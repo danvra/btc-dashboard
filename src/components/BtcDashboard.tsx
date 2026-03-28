@@ -332,11 +332,13 @@ function DebugPanel({
   generatedAt,
   nextSuggestedRunAt,
   scheduler,
+  warnings,
 }: {
   metrics: Record<string, DashboardMetricState>;
   generatedAt?: number;
   nextSuggestedRunAt?: number;
   scheduler?: string;
+  warnings: string[];
 }) {
   const counts = Object.values(metrics).reduce<Record<string, number>>((acc, metric) => {
     const key = metric.dataMode ?? "seeded";
@@ -389,6 +391,22 @@ function DebugPanel({
           </p>
         </div>
       </div>
+
+      {warnings.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-800">Implementation notes</p>
+          <div className="mt-3 grid gap-2">
+            {warnings.map((warning) => (
+              <p
+                key={warning}
+                className="text-sm leading-6 text-amber-900"
+              >
+                {warning}
+              </p>
+            ))}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -526,7 +544,7 @@ export function BtcDashboard() {
           </div>
         </header>
 
-        {(warnings.length > 0 || error || isLoading) && (
+        {(error || isLoading) && (
           <section className="mt-6 grid gap-3">
             {isLoading && (
               <div className="rounded-[1.25rem] border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-600">
@@ -538,14 +556,6 @@ export function BtcDashboard() {
                 {error}
               </div>
             )}
-            {warnings.map((warning) => (
-              <div
-                key={warning}
-                className="rounded-[1.25rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
-              >
-                {warning}
-              </div>
-            ))}
           </section>
         )}
 
@@ -627,6 +637,7 @@ export function BtcDashboard() {
             generatedAt={cacheGeneratedAt}
             nextSuggestedRunAt={nextSuggestedRunAt}
             scheduler={scheduler}
+            warnings={warnings}
           />
         )}
       </div>

@@ -1033,6 +1033,30 @@ export async function updateDashboardCache(options = {}) {
           },
         }
       : {}),
+    ...(oldSupplyShareSeries.length > 0
+      ? {
+          "hodl-waves": {
+            metricId: "hodl-waves",
+            currentValue: formatUnsignedPercent(oldSupplyShareSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "Share of supply dormant for 1 year or more",
+            sourceLabel: "BGeometrics derived from age bands",
+            trend: inferTrend(
+              oldSupplyShareSeries.at(-1)?.value ?? 0,
+              oldSupplyShareSeries.at(-2)?.value ?? oldSupplyShareSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (oldSupplyShareSeries.at(-1)?.value ?? 0) > 55
+                ? "bullish"
+                : (oldSupplyShareSeries.at(-1)?.value ?? 0) > 45
+                  ? "neutral"
+                  : "bearish",
+            series: toSeries(oldSupplyShareSeries),
+            isLive: true,
+            asOf: oldSupplyShareSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
     ...(effectiveAsoprSeries.length > 0
       ? {
           asopr: {
@@ -1082,6 +1106,30 @@ export async function updateDashboardCache(options = {}) {
             isLive: true,
             asOf: hashRibbonSeries.at(-1)?.timestamp,
             dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(nvtSignalSeries.length > 0
+      ? {
+          "nvt-signal": {
+            metricId: "nvt-signal",
+            currentValue: formatCompact(nvtSignalSeries.at(-1)?.value ?? 0, 0),
+            deltaLabel: `Dynamic range ${formatCompact(nvtSignalLowSeries.at(-1)?.value ?? 0, 0)} to ${formatCompact(nvtSignalHighSeries.at(-1)?.value ?? 0, 0)}`,
+            sourceLabel: "BGeometrics",
+            trend: inferTrend(
+              nvtSignalSeries.at(-1)?.value ?? 0,
+              nvtSignalSeries.at(-2)?.value ?? nvtSignalSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (nvtSignalSeries.at(-1)?.value ?? 0) < (nvtSignalLowSeries.at(-1)?.value ?? 0)
+                ? "bullish"
+                : (nvtRelativeToHighSeries.at(-1)?.value ?? 0) > 1
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(nvtSignalSeries),
+            isLive: true,
+            asOf: nvtSignalSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
           },
         }
       : {}),
@@ -1412,6 +1460,49 @@ export async function updateDashboardCache(options = {}) {
             isLive: true,
             asOf: fundingRatePercentSeries.at(-1)?.timestamp,
             dataMode: "scraped",
+          },
+        }
+      : {}),
+    ...(openInterestSeries.length > 0
+      ? {
+          "open-interest": {
+            metricId: "open-interest",
+            currentValue: formatUsd(openInterestSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "Total BTC futures open interest",
+            sourceLabel: "BGeometrics",
+            trend: inferTrend(
+              openInterestSeries.at(-1)?.value ?? 0,
+              openInterestSeries.at(-2)?.value ?? openInterestSeries.at(-1)?.value ?? 0,
+            ),
+            status: "neutral",
+            series: toSeries(openInterestSeries),
+            isLive: true,
+            asOf: openInterestSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
+          },
+        }
+      : {}),
+    ...(powerLawRatioSeries.length > 0
+      ? {
+          "power-law": {
+            metricId: "power-law",
+            currentValue: formatRatio(powerLawRatioSeries.at(-1)?.value ?? 0, 2),
+            deltaLabel: `Spot ${formatRatio(powerLawFloorRatioSeries.at(-1)?.value ?? 0, 2)}x power-law floor`,
+            sourceLabel: "BGeometrics model",
+            trend: inferTrend(
+              powerLawRatioSeries.at(-1)?.value ?? 0,
+              powerLawRatioSeries.at(-2)?.value ?? powerLawRatioSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (powerLawRatioSeries.at(-1)?.value ?? 0) < 0.75
+                ? "bullish"
+                : (powerLawRatioSeries.at(-1)?.value ?? 0) > 1.2
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(powerLawRatioSeries),
+            isLive: true,
+            asOf: powerLawRatioSeries.at(-1)?.timestamp,
+            dataMode: "approx",
           },
         }
       : {}),

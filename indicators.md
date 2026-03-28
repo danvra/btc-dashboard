@@ -5,14 +5,14 @@ This file documents how each dashboard indicator is currently produced in the pr
 Status labels:
 
 - `scraped`: pulled from a public feed or public chart data file and used directly.
-- `approx`: computed from a proxy, derived series, or fallback source that is directionally useful but not the exact target metric.
-- `seeded`: placeholder sample data. As of this snapshot, no indicators are still seeded.
+- `approx`: computed from a proxy, derived series, or model overlay that is useful but not the exact target metric.
+- `seeded`: placeholder sample data. As of this snapshot, no indicators remain seeded.
 
 Current snapshot:
 
-- Total indicators in the dashboard: `27`
-- `scraped`: `18`
-- `approx`: `9`
+- Total indicators in the dashboard: `39`
+- `scraped`: `24`
+- `approx`: `15`
 - `seeded`: `0`
 
 ## Priority Caveats
@@ -27,14 +27,11 @@ Current snapshot:
   - Compute a 1-day delta of short-term holder supply.
   - Use that daily change as a proxy for coins becoming more exchange-ready or leaving liquid hands.
 - Why we came to this:
-  - Exact exchange netflow endpoints were found in provider docs, but the clean public API path was token-gated or rate-limited.
-  - The prototype needed a live, directionally useful placeholder instead of remaining seeded.
+  - Exact exchange netflow endpoints were identified in provider docs, but stable public no-key access was not available.
 - Main weakness:
-  - Short-term holder supply is not the same thing as exchange flow.
-  - It captures liquid-hand behavior, not verified transfers into or out of exchanges.
+  - Short-term holder supply change is not the same as verified BTC transfers into or out of exchanges.
 - How to improve:
-  - Replace with exact exchange netflow from `bitcoin-data.com`, Glassnode, CryptoQuant, or another provider with authenticated access.
-  - If a public chart file becomes available, scrape that directly instead of deriving from STH supply.
+  - Replace with exact exchange netflow from `bitcoin-data.com`, Glassnode, CryptoQuant, or another authenticated provider.
 
 ### Exchange Balance / Exchange Reserve (`exchange-balance`)
 
@@ -43,36 +40,28 @@ Current snapshot:
 - Current source: `BGeometrics liquid-supply proxy`
 - How it is generated:
   - Load `sth_supply.json` from BGeometrics.
-  - Use current short-term holder supply as a proxy for BTC that is more liquid and more likely to be exchange-adjacent.
+  - Use current short-term holder supply as a proxy for liquid or exchange-adjacent BTC.
 - Why we came to this:
-  - Exact exchange reserve endpoints were identified in provider docs, but not through a stable no-key public feed we could rely on.
-  - We chose a liquid-supply stand-in rather than leaving the card blank.
+  - We wanted a live directional stand-in rather than leaving the card blank.
 - Main weakness:
-  - STH supply is not the same as coins actually sitting on exchanges.
-  - This is a market-liquidity proxy, not a custody-location metric.
+  - STH supply is a liquidity proxy, not a custody-location metric.
 - How to improve:
-  - Replace with exact exchange reserve data from `bitcoin-data.com`, Glassnode, CryptoQuant, or another authenticated provider.
-  - Prefer a direct exchange reserve series over any holder-supply approximation.
+  - Replace with exact exchange reserve data from `bitcoin-data.com`, Glassnode, CryptoQuant, or another authenticated source.
 
-### Fed Rate Expectations / FedWatch (`fed-rate-expectations`)
+### LTH-NUPL / STH-NUPL (`lth-nupl`, `sth-nupl`)
 
-- Panel: `Macro / Market Structure`
+- Panel: `Cycle / Regime`
 - Current status: `approx`
-- Current source: `FRED yield-curve proxy`
-- How it is generated:
-  - Load `DGS1` from FRED for the 1-year Treasury yield.
-  - Load `DFF` from FRED for the effective federal funds rate.
-  - Compute `DGS1 - DFF`.
-  - Convert that spread into a simple label such as `cuts priced` or `hikes priced`.
+- Current source: `BGeometrics cohort MVRV proxy`
+- How they are generated:
+  - Load `lth_mvrv.json` and `sth_mvrv.json`.
+  - Derive cohort NUPL as `1 - 1 / MVRV`.
 - Why we came to this:
-  - CME FedWatch does not provide a clean free public API for this use.
-  - We needed a public no-key macro expectations proxy.
+  - Exact public cohort NUPL series were not exposed, but public cohort MVRV series were.
 - Main weakness:
-  - This is not meeting-by-meeting policy probability data.
-  - It is a curve-based expectations proxy, not a true FedWatch replacement.
+  - These are derived cohort-profit proxies, not a direct vendor-supplied cohort NUPL feed.
 - How to improve:
-  - Replace with `https://rateprobability.com/api/latest`, which exposes meeting-level implied rates and move probabilities publicly.
-  - If production reliability matters, move to an official or licensed futures-based source.
+  - Replace with exact `LTH-NUPL` and `STH-NUPL` from Glassnode or another cohort-level provider.
 
 ## Daily / Price Action
 
@@ -81,51 +70,48 @@ Current snapshot:
 - Current status: `scraped`
 - Current source: `Blockchain.com market signals`
 - How it is generated:
-  - Pull the public `mvrv` chart series from Blockchain.com.
-  - Treat the latest MVRV ratio as the displayed `price vs realized price` multiple.
-  - Infer realized price as `spot price / MVRV` for the subtitle.
+  - Pull Blockchain.com `mvrv`.
+  - Treat the current MVRV ratio as the displayed `price vs realized price` multiple.
+  - Infer realized price as `spot / MVRV` for the subtitle.
 - Improve by:
-  - Using a direct realized price series from Glassnode or another authenticated provider instead of inferring it from MVRV.
+  - Using a direct realized price series instead of inferring it from MVRV.
 
 ### aSOPR (`asopr`)
 
-- Current status: `approx`
-- Current source: `BGeometrics SOPR proxy`
+- Current status: `approx` or `scraped`, depending on feed availability
+- Current source: `bitcoin-data.com` primary, `BGeometrics SOPR proxy` fallback
 - How it is generated:
   - First try `https://bitcoin-data.com/v1/asopr`.
-  - If that is unavailable or rate-limited, fall back to BGeometrics `sopr_7sma.json`.
-  - The current saved snapshot is using the fallback proxy.
+  - If unavailable or rate-limited, fall back to `sopr_7sma.json`.
 - Improve by:
-  - Persisting the exact `asopr` feed through a better cache window or authenticated plan.
-  - Replacing the SOPR fallback with exact aSOPR whenever possible.
+  - Persisting the exact aSOPR feed with a stronger cache or authenticated plan.
 
 ### Exchange Netflow (`exchange-netflow`)
 
 - Current status: `approx`
 - Current source: `BGeometrics liquid-supply proxy`
 - How it is generated:
-  - Day-over-day delta of BGeometrics `sth_supply.json`.
+  - Day-over-day delta of `sth_supply.json`.
 - Improve by:
-  - Replacing with exact exchange netflow from an authenticated provider.
+  - Replacing with exact exchange flow data.
 
 ### Exchange Balance / Exchange Reserve (`exchange-balance`)
 
 - Current status: `approx`
 - Current source: `BGeometrics liquid-supply proxy`
 - How it is generated:
-  - Current value from BGeometrics `sth_supply.json`.
+  - Current value from `sth_supply.json`.
 - Improve by:
-  - Replacing with exact exchange reserve data from an authenticated provider.
+  - Replacing with exact exchange reserve data.
 
 ### Adjusted Transfer Volume (`adjusted-transfer-volume`)
 
 - Current status: `scraped`
 - Current source: `Blockchain.com`
 - How it is generated:
-  - Pull `estimated-transaction-volume-usd` from Blockchain.com.
-  - Use it as the current dashboard implementation for adjusted transfer volume.
+  - Pull `estimated-transaction-volume-usd`.
 - Improve by:
-  - Replacing with a true change-adjusted transfer volume series from Glassnode or CryptoQuant.
+  - Replacing with a true change-adjusted transfer volume series from an on-chain provider.
 
 ## Cycle / Regime
 
@@ -134,75 +120,157 @@ Current snapshot:
 - Current status: `scraped`
 - Current source: `Blockchain.com market signals`
 - How it is generated:
-  - Pull the public Blockchain.com `mvrv` series and chart it directly.
+  - Pull the public Blockchain.com `mvrv` series directly.
 - Improve by:
-  - Switching to a direct provider API if we need stronger guarantees around methodology and availability.
+  - Moving to a documented provider API if stronger methodology guarantees are needed.
+
+### Pi Cycle Top (`pi-cycle-top`)
+
+- Current status: `approx`
+- Current source: `Blockchain.com derived`
+- How it is generated:
+  - Pull long BTC price history.
+  - Compute `111D SMA` and `2 x 350D SMA`.
+  - Display the percentage buffer between them.
+- Improve by:
+  - Storing both moving-average series for expanded chart mode.
+
+### Mayer Multiple (`mayer-multiple`)
+
+- Current status: `approx`
+- Current source: `Blockchain.com derived`
+- How it is generated:
+  - Compute `spot price / 200D moving average`.
+- Improve by:
+  - Adding exact model bands or richer zone logic if desired.
+
+### NUPL (`nupl`)
+
+- Current status: `scraped`
+- Current source: `BGeometrics`
+- How it is generated:
+  - Parse the `NUPL` Plotly trace from `bitcoin_nupl_g.html`.
+- Improve by:
+  - Replacing HTML trace parsing with a direct JSON series if a public file becomes available.
+
+### LTH-NUPL (`lth-nupl`)
+
+- Current status: `approx`
+- Current source: `BGeometrics cohort proxy`
+- How it is generated:
+  - Load `lth_mvrv.json`.
+  - Compute `1 - 1 / LTH MVRV`.
+- Improve by:
+  - Switching to an exact public or authenticated cohort NUPL series.
+
+### STH-NUPL (`sth-nupl`)
+
+- Current status: `approx`
+- Current source: `BGeometrics cohort proxy`
+- How it is generated:
+  - Load `sth_mvrv.json`.
+  - Compute `1 - 1 / STH MVRV`.
+- Improve by:
+  - Switching to an exact public or authenticated cohort NUPL series.
 
 ### Percent Supply in Profit (`percent-supply-in-profit`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `profit_loss.json`.
-  - Use the series as the current supply-in-profit implementation.
+  - Load `profit_loss.json`.
 - Improve by:
-  - Replacing with a documented provider API if we want a less brittle source than chart files.
+  - Replacing chart-file scraping with a documented API if one becomes available.
 
 ### LTH Supply (`lth-supply`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `lth_supply.json`.
+  - Load `lth_supply.json`.
 - Improve by:
-  - Replacing chart-file scraping with an API endpoint if one becomes accessible.
+  - Replacing chart-file scraping with a documented API if accessible.
 
 ### STH Supply (`sth-supply`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `sth_supply.json`.
+  - Load `sth_supply.json`.
 - Improve by:
-  - Replacing chart-file scraping with an API endpoint if one becomes accessible.
+  - Replacing chart-file scraping with a documented API if accessible.
 
 ### LTH Net Position Change (`lth-net-position-change`)
 
 - Current status: `approx`
 - Current source: `BGeometrics derived`
 - How it is generated:
-  - Load `lth_supply.json`.
-  - Compute a 30-day lagged delta of long-term holder supply.
+  - Compute a 30-day lagged delta of `lth_supply.json`.
 - Improve by:
-  - Replacing with the exact `lth-net-position-change-30d-btc` provider series.
+  - Replacing with an exact LTH net position change series.
 
 ### Reserve Risk (`reserve-risk`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `reserve_risk.json`.
+  - Load `reserve_risk.json`.
 - Improve by:
-  - Switching to a direct API feed if available, instead of scraping chart files.
+  - Replacing with a direct API feed if available.
 
 ### Liveliness (`liveliness`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Parse the `Liveliness` Plotly trace embedded in `bitcoin_liveliness_g.html`.
+  - Parse the `Liveliness` Plotly trace from `bitcoin_liveliness_g.html`.
 - Improve by:
   - Replacing HTML trace parsing with a direct JSON series.
+
+### RHODL Ratio (`rhodl-ratio`)
+
+- Current status: `scraped`
+- Current source: `BGeometrics`
+- How it is generated:
+  - Load `rhodl_1m.json`.
+  - Use the 1-month smoothed RHODL ratio as the dashboard value.
+- Improve by:
+  - Adding the unsmoothed `rhodl.json` in expanded views if needed.
+
+### HODL Waves (`hodl-waves`)
+
+- Current status: `approx`
+- Current source: `BGeometrics derived from age bands`
+- How it is generated:
+  - Load age-band files `hw_age_1y_2y`, `2y_3y`, `3y_4y`, `4y_8y`, and `8y_`.
+  - Sum them into a simplified `1Y+ supply share` scalar.
+- Why we came to this:
+  - The full HODL Waves visualization is multi-band, but the current card system expects a single value and sparkline.
+- Improve by:
+  - Rendering the full stacked age-band chart in the expanded view while keeping the card scalar.
+
+### Power Law (`power-law`)
+
+- Current status: `approx`
+- Current source: `BGeometrics model`
+- How it is generated:
+  - Load `power_law.json` and `power_law_floor.json`.
+  - Compare spot price with the power-law midline and floor.
+  - Display the `spot / power-law midline` ratio.
+- Why we came to this:
+  - This is a model overlay rather than an on-chain truth metric, so it should stay marked `approx`.
+- Improve by:
+  - Adding fuller band context in expanded mode and keeping the UI explicit that this is a model.
 
 ### Puell Multiple (`puell-multiple`)
 
 - Current status: `approx`
 - Current source: `Blockchain.com derived`
 - How it is generated:
-  - Pull Blockchain.com `miners-revenue`.
-  - Compute `current miner revenue / 365-day average miner revenue`.
+  - Pull `miners-revenue`.
+  - Compute `current miner revenue / 365D average`.
 - Improve by:
-  - Replacing with a direct Puell Multiple feed from Glassnode or another exact source.
+  - Replacing with a direct Puell Multiple feed.
 
 ## Context / Confirmation
 
@@ -211,68 +279,84 @@ Current snapshot:
 - Current status: `approx`
 - Current source: `Blockchain.com derived`
 - How it is generated:
-  - Pull Blockchain.com `estimated-transaction-volume`.
-  - Pull Blockchain.com `total-bitcoins`.
-  - Compute `transaction volume BTC / circulating supply * 100`.
+  - Compute `estimated transaction volume BTC / circulating supply * 100`.
 - Improve by:
-  - Replacing with an exact active supply metric from a dedicated on-chain provider.
+  - Replacing with a dedicated active supply series.
 
 ### Active Addresses (`active-addresses`)
 
 - Current status: `scraped`
 - Current source: `Blockchain.com`
 - How it is generated:
-  - Pull Blockchain.com `n-unique-addresses`.
+  - Pull `n-unique-addresses`.
 - Improve by:
-  - Replacing with an entity-adjusted or provider-grade active address series if needed.
+  - Replacing with entity-adjusted addresses if that becomes important.
 
 ### CDD (`cdd`)
 
 - Current status: `scraped`
 - Current source: `BitInfoCharts derived`
 - How it is generated:
-  - Read `Days Destroyed / Total Bitcoins` from the BitInfoCharts BTC page.
-  - Multiply by current circulating supply to reconstruct an absolute CDD-like reading.
+  - Read `Days Destroyed / Total Bitcoins` from BitInfoCharts.
+  - Multiply by current circulating supply.
 - Improve by:
-  - Replacing with an exact CDD series from `bitcoin-data.com`, Glassnode, or another provider.
+  - Replacing with an exact CDD time series.
 
 ### Dormancy (`dormancy`)
 
 - Current status: `approx`
 - Current source: `BitInfoCharts derived`
 - How it is generated:
-  - Compute `CDD / BTC sent in last 24h` from BitInfoCharts snapshot values.
+  - Compute `CDD / BTC sent in last 24h`.
 - Improve by:
-  - Replacing with an exact average dormancy series.
+  - Replacing with an exact dormancy series.
 
 ### Hashrate (`hashrate`)
 
 - Current status: `scraped`
 - Current source: `Blockchain.com`
 - How it is generated:
-  - Pull Blockchain.com `hash-rate`.
+  - Pull `hash-rate`.
 - Improve by:
-  - Adding a secondary source or fallback from mempool.space for resiliency.
+  - Adding a second source for resiliency.
 
 ### Difficulty (`difficulty`)
 
 - Current status: `scraped`
 - Current source: `Blockchain.com + mempool.space`
 - How it is generated:
-  - Pull Blockchain.com `difficulty` for the chart.
-  - Pull mempool.space `difficulty-adjustment` for the forward-looking delta label.
+  - Pull current difficulty from Blockchain.com.
+  - Pull next adjustment from mempool.space.
 - Improve by:
-  - Using a single documented source for both current level and next adjustment if consistency becomes important.
+  - Using one documented source for both if consistency becomes important.
+
+### Hash Ribbon (`hash-ribbon`)
+
+- Current status: `approx`
+- Current source: `Blockchain.com derived`
+- How it is generated:
+  - Compute `30D hash rate average / 60D hash rate average`.
+- Improve by:
+  - Replacing with a direct ribbon or miner-capitulation feed if available.
+
+### NVT Signal (`nvt-signal`)
+
+- Current status: `scraped`
+- Current source: `BGeometrics`
+- How it is generated:
+  - Load `nvts_bg.json` plus dynamic high and low bands.
+  - Compare the latest NVT reading with its public dynamic range.
+- Improve by:
+  - Storing the mean, high, and low bands together for richer expanded charts.
 
 ### SSR (`ssr`)
 
 - Current status: `approx`
 - Current source: `CoinGecko proxy`
 - How it is generated:
-  - Pull CoinGecko market caps for Bitcoin plus a basket of major stablecoins.
-  - Compute `bitcoin market cap / stablecoin market cap`.
+  - Compute `bitcoin market cap / major stablecoin market cap`.
 - Improve by:
-  - Replacing with a true SSR series from an on-chain or market-structure provider.
+  - Replacing with a true SSR series from a market-structure provider.
 
 ## Macro / Market Structure
 
@@ -281,52 +365,74 @@ Current snapshot:
 - Current status: `scraped`
 - Current source: `FRED CSV`
 - How it is generated:
-  - Pull `DTWEXBGS` from FRED.
+  - Pull `DTWEXBGS`.
 - Improve by:
-  - Using the classic ICE DXY if that specific index is preferred over the broad trade-weighted dollar index.
+  - Switching to classic ICE DXY if that version is preferred.
 
 ### 10Y Real Yield (`10y-real-yield`)
 
 - Current status: `scraped`
 - Current source: `FRED CSV`
 - How it is generated:
-  - Pull `DFII10` from FRED.
+  - Pull `DFII10`.
 - Improve by:
-  - Adding fallback handling for missing Treasury market days if desired.
+  - Adding handling for missing Treasury-market days if desired.
 
 ### Fed Rate Expectations / FedWatch (`fed-rate-expectations`)
 
-- Current status: `approx`
-- Current source: `FRED yield-curve proxy`
+- Current status: `scraped`
+- Current source: `Rate Probability`
 - How it is generated:
-  - Compute `DGS1 - DFF`.
+  - Pull `https://rateprobability.com/api/latest`.
+  - Use meeting rows, implied post-meeting rates, and move probabilities.
+  - Fall back to the old `DGS1 - DFF` proxy only if the public rate feed is unavailable.
 - Improve by:
-  - Replacing with `rateprobability.com/api/latest` or another meeting-by-meeting rate probability source.
+  - Persisting full returned snapshots in `dashboard-history.json` if we want to compare expectation shifts over time.
 
 ### Fed Balance Sheet (`fed-balance-sheet`)
 
 - Current status: `scraped`
 - Current source: `FRED CSV`
 - How it is generated:
-  - Pull `WALCL` from FRED.
+  - Pull `WALCL`.
 - Improve by:
-  - None urgently needed; this is already a strong public source for the prototype.
+  - No urgent change needed.
 
 ### ON RRP (`on-rrp`)
 
 - Current status: `scraped`
 - Current source: `FRED CSV`
 - How it is generated:
-  - Pull `RRPTSYD` from FRED.
+  - Pull `RRPTSYD`.
 - Improve by:
-  - None urgently needed; this is already a strong public source for the prototype.
+  - No urgent change needed.
+
+### Funding Rate (`funding-rate`)
+
+- Current status: `scraped`
+- Current source: `BGeometrics`
+- How it is generated:
+  - Load `funding_rate_7sma.json`.
+  - Convert the raw series into a displayed percent.
+- Improve by:
+  - Adding exchange splits in expanded mode if we want more derivatives detail.
+
+### Open Interest (`open-interest`)
+
+- Current status: `scraped`
+- Current source: `BGeometrics`
+- How it is generated:
+  - Load `oi_total.json`.
+  - Use the aggregated total futures open interest series.
+- Improve by:
+  - Adding exchange breakdowns from the companion `oi_*` files in expanded mode.
 
 ### Spot BTC ETF Flows (`spot-btc-etf-flows`)
 
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `flow_btc_etf_btc.json`.
+  - Load `flow_btc_etf_btc.json`.
 - Improve by:
   - Replacing with a documented ETF API or issuer-level aggregation if we want less brittle sourcing.
 
@@ -335,19 +441,19 @@ Current snapshot:
 - Current status: `scraped`
 - Current source: `BGeometrics`
 - How it is generated:
-  - Load BGeometrics `total_btc_etf_btc.json`.
+  - Load `total_btc_etf_btc.json`.
 - Improve by:
   - Replacing with a documented ETF API or issuer-level aggregation if we want less brittle sourcing.
 
 ## Suggested Upgrade Order
 
-- 1. `fed-rate-expectations`
-  - Best near-term upgrade because `rateprobability.com/api/latest` is public and meaningfully better than the current proxy.
-- 2. `exchange-netflow`
-  - High-value indicator, but likely needs authenticated provider data to become exact.
-- 3. `exchange-balance`
-  - Same constraint as exchange netflow; best fixed with a direct provider feed.
-- 4. `asopr`
-  - Already has an exact endpoint, but free-plan rate limits make the proxy appear often.
-- 5. `lth-net-position-change`, `puell-multiple`, `active-supply`, `dormancy`, `ssr`
-  - These are useful now, but would benefit from more exact provider-native series over time.
+1. `exchange-netflow`
+   - Highest-value exact-data gap still left in the dashboard.
+2. `exchange-balance`
+   - Same constraint as exchange netflow; best solved with direct provider data.
+3. `lth-nupl`, `sth-nupl`
+   - Useful now, but still cohort-derived rather than exact.
+4. `asopr`
+   - Exact endpoint exists, but free-plan rate limits still force the proxy path sometimes.
+5. `lth-net-position-change`, `puell-multiple`, `active-supply`, `dormancy`, `ssr`, `hodl-waves`, `power-law`
+   - These are already useful, but they remain derived/model-style implementations rather than direct canonical series.
