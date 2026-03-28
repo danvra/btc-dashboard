@@ -7,11 +7,20 @@ import {
   type DashboardDataSnapshot,
 } from "../lib/dashboard-data";
 
+const BACKGROUND_REFRESH_THRESHOLD_MS = 60 * 60 * 1000;
+
+type RefreshNotice = {
+  completedAt: number;
+  kind: "success" | "fallback" | "error";
+  message: string;
+};
+
 export function useDashboardData() {
   const [snapshot, setSnapshot] = useState<DashboardDataSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshNotice, setRefreshNotice] = useState<RefreshNotice | null>(null);
 
   async function fetchCachePayload(endpoint: string, timeoutMs?: number) {
     const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
@@ -54,6 +63,20 @@ export function useDashboardData() {
     return nextUpdatedAt > currentUpdatedAt;
   }
 
+  function snapshotUpdatedAt(currentSnapshot: DashboardDataSnapshot | null) {
+    return currentSnapshot?.summary.lastUpdatedAt ?? currentSnapshot?.meta?.generatedAt ?? 0;
+  }
+
+  function shouldBackgroundRefresh(currentSnapshot: DashboardDataSnapshot | null) {
+    const updatedAt = snapshotUpdatedAt(currentSnapshot);
+
+    if (!updatedAt) {
+      return true;
+    }
+
+    return Date.now() - updatedAt >= BACKGROUND_REFRESH_THRESHOLD_MS;
+  }
+
   async function load(mode: "initial" | "refresh") {
     if (mode === "initial") {
       setIsLoading(true);
@@ -72,19 +95,21 @@ export function useDashboardData() {
           });
           setIsLoading(false);
 
-          void (async () => {
-            try {
-              const apiSnapshot = await loadApiCache();
+          if (shouldBackgroundRefresh(staticSnapshot)) {
+            void (async () => {
+              try {
+                const apiSnapshot = await loadApiCache();
 
-              if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
-                startTransition(() => {
-                  setSnapshot(apiSnapshot);
-                });
+                if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
+                  startTransition(() => {
+                    setSnapshot(apiSnapshot);
+                  });
+                }
+              } catch {
+                // Keep the fast static cache on screen if the API route is slow or unavailable.
               }
-            } catch {
-              // Keep the fast static cache on screen if the API route is slow or unavailable.
-            }
-          })();
+            })();
+          }
 
           return;
         } catch {
@@ -93,14 +118,17 @@ export function useDashboardData() {
       }
 
       let nextSnapshot: DashboardDataSnapshot;
+      let refreshSource: "api" | "static" | "live" = "api";
 
       try {
         nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
       } catch {
         try {
           nextSnapshot = await loadStaticCache();
+          refreshSource = "static";
         } catch {
           nextSnapshot = await fetchDashboardData();
+          refreshSource = "live";
         }
       }
 
@@ -108,11 +136,36 @@ export function useDashboardData() {
         setSnapshot(nextSnapshot);
         setError(null);
       });
+
+      if (mode === "refresh") {
+        const completedAt = Date.now();
+        const message =
+          refreshSource === "api"
+            ? "Refresh complete."
+            : refreshSource === "static"
+              ? "Live refresh unavailable. Showing cached data."
+              : "Live refresh complete.";
+
+        setRefreshNotice({
+          completedAt,
+          kind: refreshSource === "static" ? "fallback" : "success",
+          message,
+        });
+      }
     } catch (loadError) {
       startTransition(() => {
         setSnapshot(buildFallbackSnapshot());
       });
-      setError(loadError instanceof Error ? loadError.message : "Unable to load dashboard data.");
+      const message = loadError instanceof Error ? loadError.message : "Unable to load dashboard data.";
+      setError(message);
+
+      if (mode === "refresh") {
+        setRefreshNotice({
+          completedAt: Date.now(),
+          kind: "error",
+          message: "Refresh failed.",
+        });
+      }
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
@@ -128,6 +181,7 @@ export function useDashboardData() {
     isLoading,
     isRefreshing,
     error,
+    refreshNotice,
     refresh: () => load("refresh"),
   };
 }

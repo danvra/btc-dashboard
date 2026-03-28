@@ -41,6 +41,12 @@ const cycleSourceLabels = {
   "llm-assisted": "LLM assisted",
 };
 
+const refreshNoticeClasses = {
+  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-100",
+  fallback: "border-amber-400/20 bg-amber-400/10 text-amber-100",
+  error: "border-rose-400/20 bg-rose-400/10 text-rose-100",
+};
+
 function proxyNote(metricState: DashboardMetricState) {
   if (metricState.dataMode !== "approx") {
     return null;
@@ -415,7 +421,7 @@ export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
-  const { snapshot, isLoading, isRefreshing, error, refresh } = useDashboardData();
+  const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
 
   const activePanel =
     DASHBOARD_METRICS_BY_PANEL.find((panel) => panel.id === activePanelId) ??
@@ -508,6 +514,13 @@ export function BtcDashboard() {
                 >
                   {isRefreshing ? "Refreshing..." : "Refresh data"}
                 </button>
+                {refreshNotice && !isRefreshing && (
+                  <div
+                    className={`rounded-full border px-4 py-2 text-sm ${refreshNoticeClasses[refreshNotice.kind]}`}
+                  >
+                    {refreshNotice.message} {formatRelativeTime(refreshNotice.completedAt)}
+                  </div>
+                )}
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200">
                   Mode: <span className="font-semibold capitalize text-white">{dataMode}</span>
                 </div>
