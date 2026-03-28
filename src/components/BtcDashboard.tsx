@@ -48,9 +48,9 @@ const cycleSourceLabels = {
 };
 
 const refreshNoticeClasses = {
-  success: "border-emerald-400/20 bg-emerald-400/10 text-emerald-100",
-  fallback: "border-amber-400/20 bg-amber-400/10 text-amber-100",
-  error: "border-rose-400/20 bg-rose-400/10 text-rose-100",
+  success: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  fallback: "border-amber-200 bg-amber-50 text-amber-800",
+  error: "border-rose-200 bg-rose-50 text-rose-800",
 };
 
 function clamp(value: number, min = 0, max = 1) {
@@ -775,6 +775,11 @@ function DebugPanel({
   scheduler,
   groups,
   warnings,
+  dataMode,
+  liveMetricCount,
+  isRefreshing,
+  refreshNotice,
+  onRefresh,
 }: {
   metrics: Record<string, DashboardMetricState>;
   generatedAt?: number;
@@ -782,6 +787,11 @@ function DebugPanel({
   scheduler?: string;
   groups?: Partial<Record<"fast" | "daily" | "slow" | "synthetic", DashboardCacheGroupMeta>>;
   warnings: string[];
+  dataMode: string;
+  liveMetricCount: number;
+  isRefreshing: boolean;
+  refreshNotice?: { kind: "success" | "fallback" | "error"; message: string; completedAt: number } | null;
+  onRefresh: () => void;
 }) {
   const counts = Object.values(metrics).reduce<Record<string, number>>((acc, metric) => {
     const key = metric.dataMode ?? "seeded";
@@ -790,7 +800,7 @@ function DebugPanel({
   }, {});
 
   return (
-    <section className="mt-6 rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+    <section className="rounded-[1.5rem] bg-white/90 p-5">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
@@ -801,6 +811,29 @@ function DebugPanel({
         <div className="text-sm text-stone-500">
           {generatedAt ? `Cache updated ${formatRelativeTime(generatedAt)}` : "Cache timestamp unavailable"}
         </div>
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
+        >
+          {isRefreshing ? "Refreshing..." : "Refresh data"}
+        </button>
+        <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
+          Mode: <span className="font-semibold capitalize text-stone-950">{dataMode}</span>
+        </div>
+        <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
+          Live metrics: <span className="font-semibold text-stone-950">{liveMetricCount}</span>
+        </div>
+        {refreshNotice && !isRefreshing && (
+          <div
+            className={`rounded-full border px-4 py-2 text-sm ${refreshNoticeClasses[refreshNotice.kind]}`}
+          >
+            {refreshNotice.message} {formatRelativeTime(refreshNotice.completedAt)}
+          </div>
+        )}
       </div>
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -983,6 +1016,13 @@ export function BtcDashboard() {
                   <p className="mt-1 text-sm text-stone-400">Bitcoin market intelligence</p>
                 </div>
               </div>
+              <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                Track price action, cycle regime, network health, and macro structure in one place.
+              </h1>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
+                This dashboard now mixes live market and network data with graceful fallbacks for metrics
+                that still need a dedicated on-chain or macro provider key.
+              </p>
               <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -1019,35 +1059,6 @@ export function BtcDashboard() {
                     </span>
                   </div>
                 )}
-              </div>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={refresh}
-                  className="rounded-full bg-orange-400 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-orange-300"
-                >
-                  {isRefreshing ? "Refreshing..." : "Refresh data"}
-                </button>
-                {refreshNotice && !isRefreshing && (
-                  <div
-                    className={`rounded-full border px-4 py-2 text-sm ${refreshNoticeClasses[refreshNotice.kind]}`}
-                  >
-                    {refreshNotice.message} {formatRelativeTime(refreshNotice.completedAt)}
-                  </div>
-                )}
-                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200">
-                  Mode: <span className="font-semibold capitalize text-white">{dataMode}</span>
-                </div>
-                <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200">
-                  Live metrics: <span className="font-semibold text-white">{liveMetricCount}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowDebug((current) => !current)}
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200 transition hover:bg-white/10"
-                >
-                  {showDebug ? "Hide debug" : "Show debug"}
-                </button>
               </div>
             </div>
 
@@ -1181,16 +1192,44 @@ export function BtcDashboard() {
           <LearnPanel metric={selectedMetric} metricState={selectedMetricState} />
         </section>
 
-        {showDebug && (
-          <DebugPanel
-            metrics={allMetricStates}
-            generatedAt={cacheGeneratedAt}
-            nextSuggestedRunAt={nextSuggestedRunAt}
-            scheduler={scheduler}
-            groups={groups}
-            warnings={warnings}
-          />
-        )}
+        <section className="mt-6 rounded-[1.5rem] border border-stone-200 bg-white/80 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setShowDebug((current) => !current)}
+            aria-expanded={showDebug}
+            className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition hover:bg-stone-50"
+          >
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+                Debug / Cache
+              </p>
+              <p className="mt-1 text-sm text-stone-600">
+                Inspect cache freshness, provenance counts, and prototype source health.
+              </p>
+            </div>
+            <div className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm font-semibold text-stone-700">
+              {showDebug ? "Hide" : "Show"}
+            </div>
+          </button>
+
+          {showDebug && (
+            <div className="border-t border-stone-200 px-1 pb-1">
+              <DebugPanel
+                metrics={allMetricStates}
+                generatedAt={cacheGeneratedAt}
+                nextSuggestedRunAt={nextSuggestedRunAt}
+                scheduler={scheduler}
+                groups={groups}
+                warnings={warnings}
+                dataMode={dataMode}
+                liveMetricCount={liveMetricCount}
+                isRefreshing={isRefreshing}
+                refreshNotice={refreshNotice}
+                onRefresh={refresh}
+              />
+            </div>
+          )}
+        </section>
 
         {showCycleAnalogModal && cycleAnalog && (
           <CycleAnalogModal
