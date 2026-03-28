@@ -1,0 +1,259 @@
+{
+  "meta": {
+    "generatedAt": 1774704303248,
+    "nextSuggestedRunAt": 1774707603248,
+    "scheduler": "55-65 minute jitter; next target in ~55 minutes"
+  },
+  "summary": {
+    "btcPrice": "$66K",
+    "btcPriceChange": "-0.23% 24h",
+    "liveMetricCount": 10,
+    "mode": "mixed",
+    "warnings": [
+      "Prototype mode: several advanced on-chain metrics still use seeded placeholders until we add scrape recipes for them.",
+      "ETF flows and holdings are still placeholders because the easy public source tested here is protected by anti-bot checks."
+    ],
+    "lastUpdatedAt": 1774704303248
+  },
+  "metrics": {
+    "price-vs-realized-price": {
+      "metricId": "price-vs-realized-price",
+      "currentValue": "$66K",
+      "deltaLabel": "Proxy only: BTC spot -0.23% over 24h",
+      "sourceLabel": "CoinGecko proxy",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        74859.5,
+        73927.68,
+        71263.46,
+        69911.35,
+        70507.53,
+        68890.19,
+        67849.71,
+        70885.18,
+        70517.65,
+        71301.05,
+        68779.41,
+        66329.87
+      ],
+      "isLive": true,
+      "asOf": 1774704261000,
+      "dataMode": "approx"
+    },
+    "adjusted-transfer-volume": {
+      "metricId": "adjusted-transfer-volume",
+      "currentValue": "$8.7B",
+      "deltaLabel": "Estimated on-chain transfer value",
+      "sourceLabel": "Blockchain.com",
+      "trend": "up",
+      "status": "bullish",
+      "series": [
+        10195572100.645725,
+        7906826040.114284,
+        6375312014.41345,
+        5718618497.256258,
+        5101822416.933103,
+        1218707789.7153096,
+        3563696747.3545766,
+        6351371463.8087845,
+        6967432240.095557,
+        8326071521.44758,
+        6233836622.328477,
+        8652009474.541578
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "active-addresses": {
+      "metricId": "active-addresses",
+      "currentValue": "507K",
+      "deltaLabel": "Unique active addresses",
+      "sourceLabel": "Blockchain.com",
+      "trend": "up",
+      "status": "bullish",
+      "series": [
+        477639,
+        488604,
+        472748,
+        486162,
+        496098,
+        458834,
+        432406,
+        476303,
+        460523,
+        501248,
+        491918,
+        507433
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "hashrate": {
+      "metricId": "hashrate",
+      "currentValue": "1K EH/s",
+      "deltaLabel": "Estimated network hash rate",
+      "sourceLabel": "Blockchain.com",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        901260643.8668482,
+        915680814.1687176,
+        1002201835.9799352,
+        966151410.2252611,
+        958881917.8174205,
+        917823292.9611512,
+        1077444735.2152646,
+        1064142948.360755,
+        831361678.4068401,
+        1017586694.3699718,
+        1097397415.4970288,
+        1010935800.9427172
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "difficulty": {
+      "metricId": "difficulty",
+      "currentValue": "133.8T",
+      "deltaLabel": "Next adjustment +6.35%",
+      "sourceLabel": "Blockchain.com + mempool.space",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        145042165424852.5,
+        145042165424852.5,
+        145042165424852.47,
+        145042165424852.47,
+        143950842771680.8,
+        133793147307543.5,
+        133793147307543.58,
+        133793147307543.58,
+        133793147307543.45,
+        133793147307543.56,
+        133793147307543.6,
+        133793147307543.55
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "dxy": {
+      "metricId": "dxy",
+      "currentValue": "120.28",
+      "deltaLabel": "Broad dollar index",
+      "sourceLabel": "FRED CSV",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        119.5683,
+        119.491,
+        119.5151,
+        118.7255,
+        119.2885,
+        119.8227,
+        120.5518,
+        120.097,
+        119.8328,
+        119.9276,
+        120.1802,
+        120.2757
+      ],
+      "isLive": true,
+      "asOf": 1773964800000,
+      "dataMode": "scraped"
+    },
+    "10y-real-yield": {
+      "metricId": "10y-real-yield",
+      "currentValue": "2.08%",
+      "deltaLabel": "10Y inflation-adjusted Treasury yield",
+      "sourceLabel": "FRED CSV",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        1.85,
+        1.89,
+        1.92,
+        1.87,
+        1.83,
+        1.86,
+        1.88,
+        2.01,
+        2.01,
+        2.06,
+        2.02,
+        2.08
+      ],
+      "isLive": true,
+      "asOf": 1774483200000,
+      "dataMode": "scraped"
+    },
+    "fed-balance-sheet": {
+      "metricId": "fed-balance-sheet",
+      "currentValue": "$6.7T",
+      "deltaLabel": "Federal Reserve total assets",
+      "sourceLabel": "FRED CSV",
+      "trend": "up",
+      "status": "neutral",
+      "series": [
+        6573602,
+        6581700,
+        6584580,
+        6587568,
+        6605909,
+        6622382,
+        6613395,
+        6613797,
+        6628894,
+        6646344,
+        6655939,
+        6657161
+      ],
+      "isLive": true,
+      "asOf": 1774396800000,
+      "dataMode": "scraped"
+    },
+    "on-rrp": {
+      "metricId": "on-rrp",
+      "currentValue": "$992M",
+      "deltaLabel": "Overnight reverse repo usage",
+      "sourceLabel": "FRED CSV",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        0.137,
+        0.427,
+        0.582,
+        0.797,
+        0.698,
+        0.637,
+        0.822,
+        0.857,
+        1.123,
+        0.777,
+        0.885,
+        0.992
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "ssr": {
+      "metricId": "ssr",
+      "currentValue": "4.60",
+      "deltaLabel": "Approx from major stablecoin market caps",
+      "sourceLabel": "CoinGecko proxy",
+      "trend": "flat",
+      "status": "bullish",
+      "series": [
+        4.602624404949681
+      ],
+      "isLive": true,
+      "asOf": 1774704261000,
+      "dataMode": "approx"
+    }
+  }
+}
