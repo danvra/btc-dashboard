@@ -1,44 +1,44 @@
 {
   "meta": {
-    "generatedAt": 1774705281285,
-    "nextSuggestedRunAt": 1774709061285,
-    "scheduler": "55-65 minute jitter; next target in ~63 minutes"
+    "generatedAt": 1774705816307,
+    "nextSuggestedRunAt": 1774709656307,
+    "scheduler": "55-65 minute jitter; next target in ~64 minutes"
   },
   "summary": {
     "btcPrice": "$67K",
-    "btcPriceChange": "+0.12% 24h",
+    "btcPriceChange": "+0.71% 24h",
     "liveMetricCount": 12,
     "mode": "mixed",
     "warnings": [
       "Prototype mode: several advanced on-chain metrics still use seeded placeholders until we add scrape recipes for them.",
       "ETF flows and holdings are still placeholders because the easy public source tested here is protected by anti-bot checks."
     ],
-    "lastUpdatedAt": 1774705281285
+    "lastUpdatedAt": 1774705816307
   },
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.28x",
-      "deltaLabel": "Spot $67K vs realized $52K",
+      "currentValue": "1.22x",
+      "deltaLabel": "Spot $67K vs realized $55K",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bullish",
       "series": [
-        1.2857822423473249,
-        1.2860746984606546,
-        1.2865667418249322,
-        1.2864198429044793,
-        1.2861894949777475,
-        1.2860685819693984,
-        1.2862717931742036,
-        1.28641392937754,
-        1.2854467164851755,
-        1.283381286225299,
-        1.2811239632827207,
-        1.2767513512309243
+        1.3009000979313274,
+        1.304697681520626,
+        1.3061542622654145,
+        1.3015887956897811,
+        1.2930659778501095,
+        1.2800217400226672,
+        1.2720293233854798,
+        1.2661586463292624,
+        1.2522597620267877,
+        1.2360227412648028,
+        1.2221915056395596,
+        1.2198224892602532
       ],
       "isLive": true,
-      "asOf": 1774691584000,
+      "asOf": 1774697815000,
       "dataMode": "scraped"
     },
     "adjusted-transfer-volume": {
@@ -243,7 +243,7 @@
     },
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.62",
+      "currentValue": "4.64",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
       "trend": "flat",
@@ -252,32 +252,32 @@
         4.602624404949681
       ],
       "isLive": true,
-      "asOf": 1774705232000,
+      "asOf": 1774705774000,
       "dataMode": "approx"
     },
     "mvrv": {
       "metricId": "mvrv",
-      "currentValue": "1.28",
+      "currentValue": "1.22",
       "deltaLabel": "Market value to realized value",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "neutral",
       "series": [
-        1.2857822423473249,
-        1.2860746984606546,
-        1.2865667418249322,
-        1.2864198429044793,
-        1.2861894949777475,
-        1.2860685819693984,
-        1.2862717931742036,
-        1.28641392937754,
-        1.2854467164851755,
-        1.283381286225299,
-        1.2811239632827207,
-        1.2767513512309243
+        1.3009000979313274,
+        1.304697681520626,
+        1.3061542622654145,
+        1.3015887956897811,
+        1.2930659778501095,
+        1.2800217400226672,
+        1.2720293233854798,
+        1.2661586463292624,
+        1.2522597620267877,
+        1.2360227412648028,
+        1.2221915056395596,
+        1.2198224892602532
       ],
       "isLive": true,
-      "asOf": 1774691584000,
+      "asOf": 1774697815000,
       "dataMode": "scraped"
     },
     "puell-multiple": {
