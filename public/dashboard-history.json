@@ -30,5 +30,14 @@
         "value": 4.624105509932932
       }
     ]
-  }
+  },
+  "cycleEstimate": [
+    {
+      "asOfDate": "2026-03-28",
+      "timestamp": 1774710793102,
+      "phaseId": "early-recovery-under-disbelief",
+      "score": 26,
+      "confidence": 82
+    }
+  ]
 }
