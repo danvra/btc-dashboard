@@ -72,6 +72,7 @@ const COINGECKO_API_BASE = "https://api.coingecko.com/api/v3";
 const BLOCKCHAIN_API_BASE = "https://api.blockchain.info/charts";
 const GLASSNODE_API_BASE = "https://api.glassnode.com/v1/metrics";
 const FRED_API_BASE = "https://api.stlouisfed.org/fred/series/observations";
+const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
 
 const GLASSNODE_API_KEY = import.meta.env.VITE_GLASSNODE_API_KEY;
 const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY;
@@ -235,6 +236,7 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "active-addresses",
     "hashrate",
     "difficulty",
+    "fed-balance-sheet",
     "spot-btc-etf-flows",
     "spot-btc-etf-holdings",
   ]);
@@ -242,12 +244,12 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
   const lowerIsBullish = new Set([
     "exchange-netflow",
     "exchange-balance",
+    "sth-supply",
     "reserve-risk",
     "liveliness",
     "ssr",
     "dxy",
     "10y-real-yield",
-    "fed-balance-sheet",
     "on-rrp",
   ]);
 
@@ -275,6 +277,7 @@ function buildMetricState(
     sourceLabel: string;
     valueDirectionMetric?: string;
     asOf?: number;
+    dataMode?: DashboardMetricState["dataMode"];
   },
 ): DashboardMetricState {
   const latest = lastPoint(points)?.value ?? 0;
@@ -290,7 +293,7 @@ function buildMetricState(
     sourceLabel: options.sourceLabel,
     isLive: true,
     asOf: options.asOf ?? lastPoint(points)?.timestamp,
-    dataMode: "live",
+    dataMode: options.dataMode ?? "live",
   };
 }
 
@@ -410,6 +413,65 @@ async function fetchGlassnodeMetric(
   }));
 }
 
+async function fetchBGeometricsSeries(path: string) {
+  const payload = await fetchJson<Array<[number, number | null]>>(`${BGEOMETRICS_BASE}${path}`);
+
+  return payload
+    .filter((point) => Array.isArray(point) && point.length >= 2 && point[1] !== null && Number.isFinite(point[1]))
+    .map((point) => ({
+      timestamp: Number(point[0]),
+      value: Number(point[1]),
+    }));
+}
+
+async function fetchBGeometricsPlotlySeries(path: string, traceName: string) {
+  const html = await fetchText(`${BGEOMETRICS_BASE}${path}`);
+  const escapedName = traceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = html.match(new RegExp(`"name":"${escapedName}","x":(\\[[^\\]]+\\]),"y":(\\[[^\\]]+\\])`));
+
+  if (!match) {
+    throw new Error(`Unable to locate Plotly series ${traceName}`);
+  }
+
+  const dates = JSON.parse(match[1]) as string[];
+  const values = JSON.parse(match[2]) as number[];
+
+  return dates
+    .map((date, index) => ({
+      timestamp: new Date(date).getTime(),
+      value: Number(values[index]),
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value));
+}
+
+async function fetchBitcoinDataSeries(path: string, valueKey: string) {
+  const payload = await fetchJson<Array<Record<string, number | string | null>>>(`https://bitcoin-data.com${path}`);
+
+  return payload
+    .map((point) => ({
+      timestamp: Number(point.unixTs) * 1000,
+      value: Number(point[valueKey]),
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value));
+}
+
+function deriveLaggedDelta(points: NumericPoint[], lag: number) {
+  return points
+    .map((point, index) => {
+      const baseline = points[Math.max(0, index - lag)]?.value;
+
+      if (!Number.isFinite(baseline)) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: point.value - Number(baseline),
+      };
+    })
+    .filter((point): point is NumericPoint => point !== null);
+}
+
 async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>) {
   const stablecoinIds = [
     "bitcoin",
@@ -434,6 +496,15 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     markets,
     mvrvSeries,
     minerRevenueSeries,
+    percentSupplyInProfitSeries,
+    reserveRiskSeries,
+    livelinessSeries,
+    lthSupplySeries,
+    sthSupplySeries,
+    etfFlowSeries,
+    etfHoldingsSeries,
+    asoprSeries,
+    soprProxySeries,
   ] =
     await Promise.all([
       fetchBlockchainChart("market-price", `${LIVE_WINDOW_DAYS}days`),
@@ -454,11 +525,23 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
         ),
       ),
       safePoints(() => fetchBlockchainChart("miners-revenue", "1year")),
+      safePoints(() => fetchBGeometricsSeries("/files/profit_loss.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/reserve_risk.json")),
+      safePoints(() => fetchBGeometricsPlotlySeries("/reports/bitcoin_liveliness_g.html", "Liveliness")),
+      safePoints(() => fetchBGeometricsSeries("/files/lth_supply.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/sth_supply.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
+      safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
+      safePoints(() => fetchBGeometricsSeries("/files/sopr_7sma.json")),
     ]);
 
   const latestPrice = coingecko.bitcoin?.usd ?? lastPoint(priceSeries)?.value ?? 0;
   const dailyChange = coingecko.bitcoin?.usd_24h_change ?? 0;
   const lastUpdatedAt = (coingecko.bitcoin?.last_updated_at ?? 0) * 1000;
+  const lthNetPositionChangeSeries = deriveLaggedDelta(lthSupplySeries, 30);
+  const effectiveAsoprSeries = asoprSeries.length > 0 ? asoprSeries : soprProxySeries;
+  const asoprIsExact = asoprSeries.length > 0;
 
   const publicUpdates: Record<string, DashboardMetricState> = {
     "active-addresses": buildMetricState("active-addresses", activeAddresses, {
@@ -498,6 +581,15 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       dataMode: "approx",
     },
   };
+
+  if (effectiveAsoprSeries.length > 0) {
+    publicUpdates.asopr = buildMetricState("asopr", effectiveAsoprSeries, {
+      currentValue: formatRatio(lastPoint(effectiveAsoprSeries)?.value ?? 0, 3),
+      deltaLabel: asoprIsExact ? "Adjusted SOPR" : "SOPR 7D proxy while aSOPR is unavailable",
+      sourceLabel: asoprIsExact ? "bitcoin-data.com" : "BGeometrics SOPR proxy",
+      dataMode: asoprIsExact ? "scraped" : "approx",
+    });
+  }
 
   if (mvrvSeries.length > 0) {
     const latestMvrv = lastPoint(mvrvSeries)?.value ?? 0;
@@ -556,6 +648,121 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       asOf: lastPoint(puellSeries)?.timestamp,
       dataMode: "approx",
     };
+  }
+
+  if (percentSupplyInProfitSeries.length > 0) {
+    publicUpdates["percent-supply-in-profit"] = {
+      ...metrics["percent-supply-in-profit"],
+      currentValue: `${formatRatio(lastPoint(percentSupplyInProfitSeries)?.value ?? 0, 1)}%`,
+      deltaLabel: "Percent of BTC supply currently in profit",
+      trend: inferTrend(
+        lastPoint(percentSupplyInProfitSeries)?.value ?? 0,
+        previousPoint(percentSupplyInProfitSeries)?.value ?? lastPoint(percentSupplyInProfitSeries)?.value ?? 0,
+      ),
+      status: inferStatus(
+        "percent-supply-in-profit",
+        lastPoint(percentSupplyInProfitSeries)?.value ?? 0,
+        previousPoint(percentSupplyInProfitSeries)?.value ?? lastPoint(percentSupplyInProfitSeries)?.value ?? 0,
+      ),
+      series: toSeries(percentSupplyInProfitSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(percentSupplyInProfitSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (reserveRiskSeries.length > 0) {
+    publicUpdates["reserve-risk"] = {
+      ...metrics["reserve-risk"],
+      currentValue: formatRatio(lastPoint(reserveRiskSeries)?.value ?? 0, 4),
+      deltaLabel: "Long-term holder opportunity-cost model",
+      trend: inferTrend(
+        lastPoint(reserveRiskSeries)?.value ?? 0,
+        previousPoint(reserveRiskSeries)?.value ?? lastPoint(reserveRiskSeries)?.value ?? 0,
+      ),
+      status: inferStatus(
+        "reserve-risk",
+        lastPoint(reserveRiskSeries)?.value ?? 0,
+        previousPoint(reserveRiskSeries)?.value ?? lastPoint(reserveRiskSeries)?.value ?? 0,
+      ),
+      series: toSeries(reserveRiskSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(reserveRiskSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (livelinessSeries.length > 0) {
+    publicUpdates.liveliness = {
+      ...metrics.liveliness,
+      currentValue: formatRatio(lastPoint(livelinessSeries)?.value ?? 0, 4),
+      deltaLabel: "Old-coin spending vs holding behavior",
+      trend: inferTrend(
+        lastPoint(livelinessSeries)?.value ?? 0,
+        previousPoint(livelinessSeries)?.value ?? lastPoint(livelinessSeries)?.value ?? 0,
+      ),
+      status: inferStatus(
+        "liveliness",
+        lastPoint(livelinessSeries)?.value ?? 0,
+        previousPoint(livelinessSeries)?.value ?? lastPoint(livelinessSeries)?.value ?? 0,
+      ),
+      series: toSeries(livelinessSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(livelinessSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (lthSupplySeries.length > 0) {
+    publicUpdates["lth-supply"] = buildMetricState("lth-supply", lthSupplySeries, {
+      currentValue: formatBtc(lastPoint(lthSupplySeries)?.value ?? 0, 1),
+      deltaLabel: "BTC held by long-term holders",
+      sourceLabel: "BGeometrics",
+      dataMode: "scraped",
+    });
+  }
+
+  if (sthSupplySeries.length > 0) {
+    publicUpdates["sth-supply"] = buildMetricState("sth-supply", sthSupplySeries, {
+      currentValue: formatBtc(lastPoint(sthSupplySeries)?.value ?? 0, 1),
+      deltaLabel: "BTC held by short-term holders",
+      sourceLabel: "BGeometrics",
+      dataMode: "scraped",
+    });
+  }
+
+  if (lthNetPositionChangeSeries.length > 0) {
+    publicUpdates["lth-net-position-change"] = buildMetricState(
+      "lth-net-position-change",
+      lthNetPositionChangeSeries,
+      {
+        currentValue: formatBtc(lastPoint(lthNetPositionChangeSeries)?.value ?? 0, 1),
+        deltaLabel: "Derived 30D change in long-term holder supply",
+        sourceLabel: "BGeometrics derived",
+        dataMode: "approx",
+      },
+    );
+  }
+
+  if (etfFlowSeries.length > 0) {
+    publicUpdates["spot-btc-etf-flows"] = buildMetricState("spot-btc-etf-flows", etfFlowSeries, {
+      currentValue: formatBtc(lastPoint(etfFlowSeries)?.value ?? 0, 1),
+      deltaLabel: "Daily net spot ETF flow",
+      sourceLabel: "BGeometrics",
+      dataMode: "scraped",
+    });
+  }
+
+  if (etfHoldingsSeries.length > 0) {
+    publicUpdates["spot-btc-etf-holdings"] = buildMetricState("spot-btc-etf-holdings", etfHoldingsSeries, {
+      currentValue: formatBtc(lastPoint(etfHoldingsSeries)?.value ?? 0, 1),
+      deltaLabel: "Total BTC held by spot ETFs",
+      sourceLabel: "BGeometrics",
+      dataMode: "scraped",
+    });
   }
 
   const bitcoinMarketCap = markets.find((asset) => asset.id === "bitcoin")?.market_cap ?? 0;
@@ -840,7 +1047,7 @@ export async function fetchDashboardData(): Promise<DashboardDataSnapshot> {
   metrics = publicData.metrics;
 
   if (!GLASSNODE_API_KEY) {
-    warnings.push("Advanced on-chain metrics are using seeded placeholders until `VITE_GLASSNODE_API_KEY` is set.");
+    warnings.push("Still using placeholders for Exchange Netflow, Exchange Balance, and Fed Rate Expectations.");
   } else {
     metrics = await fetchGlassnodeMetrics(metrics);
   }

@@ -88,14 +88,16 @@ function Sparkline({
   values: number[];
   tone: "bullish" | "bearish" | "neutral";
 }) {
+  const normalizedValues =
+    values.length > 1 ? values : values.length === 1 ? [values[0], values[0]] : [0, 0];
   const width = 220;
   const height = 84;
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+  const min = Math.min(...normalizedValues);
+  const max = Math.max(...normalizedValues);
   const range = max - min || 1;
-  const points = values
+  const points = normalizedValues
     .map((value, index) => {
-      const x = (index / (values.length - 1)) * width;
+      const x = (index / (normalizedValues.length - 1)) * width;
       const y = height - ((value - min) / range) * (height - 8) - 4;
       return `${x},${y}`;
     })

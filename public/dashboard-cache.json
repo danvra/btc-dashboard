@@ -1,44 +1,44 @@
 {
   "meta": {
-    "generatedAt": 1774705816307,
-    "nextSuggestedRunAt": 1774709656307,
-    "scheduler": "55-65 minute jitter; next target in ~64 minutes"
+    "generatedAt": 1774707638158,
+    "nextSuggestedRunAt": 1774711058158,
+    "scheduler": "55-65 minute jitter; next target in ~57 minutes"
   },
   "summary": {
     "btcPrice": "$67K",
-    "btcPriceChange": "+0.71% 24h",
-    "liveMetricCount": 12,
+    "btcPriceChange": "+0.80% 24h",
+    "liveMetricCount": 24,
     "mode": "mixed",
     "warnings": [
-      "Prototype mode: several advanced on-chain metrics still use seeded placeholders until we add scrape recipes for them.",
-      "ETF flows and holdings are still placeholders because the easy public source tested here is protected by anti-bot checks."
+      "Prototype mode: Exchange Netflow, Exchange Balance, and Fed Rate Expectations are still seeded placeholders.",
+      "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes."
     ],
-    "lastUpdatedAt": 1774705816307
+    "lastUpdatedAt": 1774707638158
   },
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.22x",
-      "deltaLabel": "Spot $67K vs realized $55K",
+      "currentValue": "1.28x",
+      "deltaLabel": "Spot $67K vs realized $52K",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bullish",
       "series": [
-        1.3009000979313274,
-        1.304697681520626,
-        1.3061542622654145,
-        1.3015887956897811,
-        1.2930659778501095,
-        1.2800217400226672,
-        1.2720293233854798,
-        1.2661586463292624,
-        1.2522597620267877,
-        1.2360227412648028,
-        1.2221915056395596,
-        1.2198224892602532
+        1.288698868777874,
+        1.2885880221961772,
+        1.2886777563411485,
+        1.288897661248816,
+        1.288870718536862,
+        1.2884840181678845,
+        1.2873715672844324,
+        1.2861989466837216,
+        1.2848612370775303,
+        1.2818511018395606,
+        1.278795773538976,
+        1.275862368927965
       ],
       "isLive": true,
-      "asOf": 1774697815000,
+      "asOf": 1774684681000,
       "dataMode": "scraped"
     },
     "adjusted-transfer-volume": {
@@ -119,7 +119,7 @@
     "difficulty": {
       "metricId": "difficulty",
       "currentValue": "133.8T",
-      "deltaLabel": "Next adjustment +6.56%",
+      "deltaLabel": "Next adjustment +6.45%",
       "sourceLabel": "Blockchain.com + mempool.space",
       "trend": "down",
       "status": "bearish",
@@ -197,7 +197,7 @@
       "deltaLabel": "Federal Reserve total assets",
       "sourceLabel": "FRED CSV",
       "trend": "up",
-      "status": "neutral",
+      "status": "bullish",
       "series": [
         6573602,
         6581700,
@@ -243,41 +243,41 @@
     },
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.64",
+      "currentValue": "4.62",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
       "trend": "flat",
       "status": "bullish",
       "series": [
-        4.602624404949681
+        4.6210976629866725
       ],
       "isLive": true,
-      "asOf": 1774705774000,
+      "asOf": 1774707580000,
       "dataMode": "approx"
     },
     "mvrv": {
       "metricId": "mvrv",
-      "currentValue": "1.22",
+      "currentValue": "1.28",
       "deltaLabel": "Market value to realized value",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
-      "status": "neutral",
+      "status": "bearish",
       "series": [
-        1.3009000979313274,
-        1.304697681520626,
-        1.3061542622654145,
-        1.3015887956897811,
-        1.2930659778501095,
-        1.2800217400226672,
-        1.2720293233854798,
-        1.2661586463292624,
-        1.2522597620267877,
-        1.2360227412648028,
-        1.2221915056395596,
-        1.2198224892602532
+        1.288698868777874,
+        1.2885880221961772,
+        1.2886777563411485,
+        1.288897661248816,
+        1.288870718536862,
+        1.2884840181678845,
+        1.2873715672844324,
+        1.2861989466837216,
+        1.2848612370775303,
+        1.2818511018395606,
+        1.278795773538976,
+        1.275862368927965
       ],
       "isLive": true,
-      "asOf": 1774697815000,
+      "asOf": 1774684681000,
       "dataMode": "scraped"
     },
     "puell-multiple": {
@@ -286,7 +286,7 @@
       "deltaLabel": "Miner revenue vs 365D average",
       "sourceLabel": "Blockchain.com derived",
       "trend": "down",
-      "status": "neutral",
+      "status": "bearish",
       "series": [
         0.6750771216094827,
         0.6638949024905101,
@@ -304,6 +304,284 @@
       "isLive": true,
       "asOf": 1774569600000,
       "dataMode": "approx"
+    },
+    "active-supply": {
+      "metricId": "active-supply",
+      "currentValue": "0.65%",
+      "deltaLabel": "Estimated BTC transfer volume / circulating supply",
+      "sourceLabel": "Blockchain.com derived",
+      "trend": "up",
+      "status": "bullish",
+      "series": [
+        0.6921681908432888,
+        0.5311694342043243,
+        0.4409399185641323,
+        0.4079504767636963,
+        0.3629322452591761,
+        0.08628291314729983,
+        0.258960317915027,
+        0.4550761500589939,
+        0.4965029913235609,
+        0.586845834473755,
+        0.4486198663540448,
+        0.6489254740277504
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "approx"
+    },
+    "cdd": {
+      "metricId": "cdd",
+      "currentValue": "6.5M BTC-days",
+      "deltaLabel": "0.3248 days destroyed per BTC",
+      "sourceLabel": "BitInfoCharts derived",
+      "trend": "flat",
+      "status": "neutral",
+      "series": [
+        6498577.085
+      ],
+      "isLive": true,
+      "asOf": 1774707638158,
+      "dataMode": "scraped"
+    },
+    "dormancy": {
+      "metricId": "dormancy",
+      "currentValue": "24.6d",
+      "deltaLabel": "Derived from days destroyed / BTC sent",
+      "sourceLabel": "BitInfoCharts derived",
+      "trend": "flat",
+      "status": "neutral",
+      "series": [
+        24.568732221575313
+      ],
+      "isLive": true,
+      "asOf": 1774707638158,
+      "dataMode": "approx"
+    },
+    "percent-supply-in-profit": {
+      "metricId": "percent-supply-in-profit",
+      "currentValue": "41.7%",
+      "deltaLabel": "Percent of BTC supply currently in profit",
+      "sourceLabel": "BGeometrics",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        51.03,
+        50.76,
+        48.48,
+        47.59,
+        48.76,
+        47.48,
+        45.1,
+        48.73,
+        48.09,
+        50.04,
+        45.68,
+        41.67
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "reserve-risk": {
+      "metricId": "reserve-risk",
+      "currentValue": "0.0018",
+      "deltaLabel": "Long-term holder opportunity-cost model",
+      "sourceLabel": "BGeometrics",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        0.001704,
+        0.001691,
+        0.001766,
+        0.00176,
+        0.001766,
+        0.001756,
+        0.001739,
+        0.001749,
+        0.001766,
+        0.001739,
+        0.001739,
+        0.001786
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "scraped"
+    },
+    "liveliness": {
+      "metricId": "liveliness",
+      "currentValue": "0.6378",
+      "deltaLabel": "Old-coin spending vs holding behavior",
+      "sourceLabel": "BGeometrics",
+      "trend": "down",
+      "status": "bullish",
+      "series": [
+        0.6381645743929014,
+        0.6380831936900749,
+        0.6380131638951136,
+        0.6380507158098683,
+        0.6379393599193991,
+        0.6380787302318751,
+        0.6380196314319317,
+        0.6380233357474755,
+        0.6379356826735565,
+        0.6378630265138943,
+        0.6377840228707062,
+        0.6377682872363405
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "scraped"
+    },
+    "asopr": {
+      "metricId": "asopr",
+      "currentValue": "0.995",
+      "deltaLabel": "SOPR 7D proxy while aSOPR is unavailable",
+      "sourceLabel": "BGeometrics SOPR proxy",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        0.9959677901,
+        0.9960043927,
+        0.9979515862,
+        0.9974069508,
+        0.9961741032,
+        0.9975523898,
+        0.9989326787,
+        0.9979894147,
+        0.9956305017,
+        0.9961978524,
+        0.9968700848,
+        0.9950841003
+      ],
+      "isLive": true,
+      "asOf": 1774569600000,
+      "dataMode": "approx"
+    },
+    "lth-supply": {
+      "metricId": "lth-supply",
+      "currentValue": "14.2M BTC",
+      "deltaLabel": "BTC held by long-term holders",
+      "sourceLabel": "BGeometrics",
+      "trend": "up",
+      "status": "bullish",
+      "series": [
+        14162572.0683285,
+        14178286.16840617,
+        14139877.21494341,
+        14143810.48015585,
+        14157631.40258581,
+        14133877.46242298,
+        14133040.03617178,
+        14144316.38080662,
+        14159536.13583427,
+        14171717.03497143,
+        14180752.33783195,
+        14180789.51833743
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "scraped"
+    },
+    "sth-supply": {
+      "metricId": "sth-supply",
+      "currentValue": "5.8M BTC",
+      "deltaLabel": "BTC held by short-term holders",
+      "sourceLabel": "BGeometrics",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        5801188.46707708,
+        5785927.49194377,
+        5824795.8204009,
+        5821293.80518246,
+        5807907.25771163,
+        5832114.32286597,
+        5833448.62409124,
+        5822603.52944481,
+        5807871.27441381,
+        5796115.37526891,
+        5787564.44739249,
+        5787621.01688686
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "scraped"
+    },
+    "lth-net-position-change": {
+      "metricId": "lth-net-position-change",
+      "currentValue": "44.7K BTC",
+      "deltaLabel": "Derived 30D change in long-term holder supply",
+      "sourceLabel": "BGeometrics derived",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        -737664.0841672309,
+        -702892.7624023501,
+        -721352.1226557698,
+        -694998.4254134204,
+        -145278.92484804988,
+        -2965.6121926996857,
+        3399.319924460724,
+        10143.989472638816,
+        66826.91990610957,
+        63629.39024663158,
+        64085.367299320176,
+        44676.00874056108
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "approx"
+    },
+    "spot-btc-etf-flows": {
+      "metricId": "spot-btc-etf-flows",
+      "currentValue": "-1.7K BTC",
+      "deltaLabel": "Daily net spot ETF flow",
+      "sourceLabel": "BGeometrics",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        2022.8005942643,
+        972.5239656686,
+        2543.3521249949,
+        2668.4882135331,
+        2691.4661794437,
+        -1766.9193917347,
+        -1199.4469421337,
+        -737.4796552935,
+        3096.4475087889,
+        -943.2089272132,
+        109.4256177337,
+        -1682.1158473004
+      ],
+      "isLive": true,
+      "asOf": 1774483200000,
+      "dataMode": "scraped"
+    },
+    "spot-btc-etf-holdings": {
+      "metricId": "spot-btc-etf-holdings",
+      "currentValue": "1.5M BTC",
+      "deltaLabel": "Total BTC held by spot ETFs",
+      "sourceLabel": "BGeometrics",
+      "trend": "down",
+      "status": "bearish",
+      "series": [
+        1507903.4156823368,
+        1508875.9396480054,
+        1511419.2917730003,
+        1514087.7799865333,
+        1516779.246165977,
+        1515012.3267742423,
+        1513812.8798321085,
+        1513075.400176815,
+        1516171.847685604,
+        1515228.6387583907,
+        1515338.0643761244,
+        1513655.948528824
+      ],
+      "isLive": true,
+      "asOf": 1774483200000,
+      "dataMode": "scraped"
     }
   }
 }
