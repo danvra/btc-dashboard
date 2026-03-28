@@ -6,8 +6,8 @@
         "value": 6498577.085
       },
       {
-        "timestamp": 1774710793102,
-        "value": 6484571.5309375
+        "timestamp": 1774711392113,
+        "value": 6452558.8359375
       }
     ],
     "dormancy": [
@@ -16,8 +16,8 @@
         "value": 24.568732221575313
       },
       {
-        "timestamp": 1774710793102,
-        "value": 24.528301254439786
+        "timestamp": 1774711392113,
+        "value": 24.407211214306788
       }
     ],
     "ssr": [
@@ -26,18 +26,9 @@
         "value": 4.625864784321585
       },
       {
-        "timestamp": 1774710793102,
-        "value": 4.624105509932932
+        "timestamp": 1774711392113,
+        "value": 4.651253503959318
       }
     ]
-  },
-  "cycleEstimate": [
-    {
-      "asOfDate": "2026-03-28",
-      "timestamp": 1774710793102,
-      "phaseId": "early-recovery-under-disbelief",
-      "score": 26,
-      "confidence": 82
-    }
-  ]
+  }
 }
