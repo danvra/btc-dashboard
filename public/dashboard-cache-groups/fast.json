@@ -1,0 +1,122 @@
+{
+  "groupId": "fast",
+  "generatedAt": 1774734049252,
+  "expiresAt": 1774735849252,
+  "ttlMs": 1800000,
+  "staleAfterMs": 10800000,
+  "refreshedDuringRequest": true,
+  "refreshSource": "refreshed",
+  "metricIds": [
+    "price-vs-realized-price",
+    "fear-and-greed",
+    "ssr",
+    "fed-rate-expectations"
+  ],
+  "warnings": [],
+  "lastSourceUpdateAt": 1774734031000,
+  "metrics": {
+    "price-vs-realized-price": {
+      "metricId": "price-vs-realized-price",
+      "currentValue": "1.29x",
+      "deltaLabel": "Spot $67K vs realized $52K",
+      "sourceLabel": "Blockchain.com market signals",
+      "trend": "up",
+      "status": "bullish",
+      "series": [
+        1.2379906427239098,
+        1.2373039661063605,
+        1.181574566692304,
+        1.2199996954108905,
+        1.2329627827285639,
+        1.2967161970197476,
+        1.257748418898726,
+        1.300816247253384,
+        1.3490337444414926,
+        1.2941521476381213,
+        1.2749102907352963,
+        1.2872647546114155
+      ],
+      "isLive": true,
+      "asOf": 1774607677000,
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
+    },
+    "fear-and-greed": {
+      "metricId": "fear-and-greed",
+      "currentValue": "12",
+      "deltaLabel": "Extreme Fear",
+      "sourceLabel": "Alternative.me",
+      "trend": "down",
+      "status": "bullish",
+      "series": [
+        28,
+        26,
+        23,
+        11,
+        12,
+        10,
+        8,
+        11,
+        14,
+        10,
+        13,
+        12
+      ],
+      "isLive": true,
+      "asOf": 1774656000000,
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
+    },
+    "ssr": {
+      "metricId": "ssr",
+      "currentValue": "4.63",
+      "deltaLabel": "Approx from major stablecoin market caps",
+      "sourceLabel": "CoinGecko proxy",
+      "trend": "flat",
+      "status": "bullish",
+      "series": [
+        4.625864784321585,
+        4.6399425979447715,
+        4.628807315264494
+      ],
+      "isLive": true,
+      "asOf": 1774734031000,
+      "dataMode": "approx",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
+    },
+    "fed-rate-expectations": {
+      "metricId": "fed-rate-expectations",
+      "currentValue": "Hold favored",
+      "deltaLabel": "Apr 29, 2026 | terminal 3.67%",
+      "sourceLabel": "Rate Probability",
+      "trend": "up",
+      "status": "neutral",
+      "series": [
+        3.625,
+        3.645,
+        3.645,
+        3.685,
+        3.685,
+        3.69,
+        3.685,
+        3.675
+      ],
+      "isLive": true,
+      "asOf": 1774656000000,
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
+    }
+  },
+  "summary": {
+    "btcPrice": "$67K",
+    "btcPriceChange": "+1.14% 24h"
+  }
+}

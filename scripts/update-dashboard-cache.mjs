@@ -1712,8 +1712,9 @@ export async function updateDashboardCache(options = {}) {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
-  updateDashboardCache()
-    .then((payload) => {
+  import("../lib/server/dashboard-cache-groups.mjs")
+    .then(({ refreshAllGroups }) => refreshAllGroups({ persist: true }))
+    .then(({ compositePayload: payload }) => {
       console.log(
         `Updated dashboard cache with ${payload.summary.liveMetricCount} live metrics at ${new Date(
           payload.meta.generatedAt,

@@ -7,8 +7,6 @@ import {
   type DashboardDataSnapshot,
 } from "../lib/dashboard-data";
 
-const BACKGROUND_REFRESH_THRESHOLD_MS = 60 * 60 * 1000;
-
 type RefreshNotice = {
   completedAt: number;
   kind: "success" | "fallback" | "error";
@@ -57,24 +55,14 @@ export function useDashboardData() {
   }
 
   function shouldPromoteSnapshot(nextSnapshot: DashboardDataSnapshot, currentSnapshot: DashboardDataSnapshot | null) {
-    const nextUpdatedAt = nextSnapshot.summary.lastUpdatedAt ?? 0;
-    const currentUpdatedAt = currentSnapshot?.summary.lastUpdatedAt ?? 0;
+    const nextUpdatedAt = snapshotUpdatedAt(nextSnapshot);
+    const currentUpdatedAt = snapshotUpdatedAt(currentSnapshot);
 
     return nextUpdatedAt > currentUpdatedAt;
   }
 
   function snapshotUpdatedAt(currentSnapshot: DashboardDataSnapshot | null) {
-    return currentSnapshot?.summary.lastUpdatedAt ?? currentSnapshot?.meta?.generatedAt ?? 0;
-  }
-
-  function shouldBackgroundRefresh(currentSnapshot: DashboardDataSnapshot | null) {
-    const updatedAt = snapshotUpdatedAt(currentSnapshot);
-
-    if (!updatedAt) {
-      return true;
-    }
-
-    return Date.now() - updatedAt >= BACKGROUND_REFRESH_THRESHOLD_MS;
+    return currentSnapshot?.meta?.generatedAt ?? currentSnapshot?.summary.lastUpdatedAt ?? 0;
   }
 
   async function load(mode: "initial" | "refresh") {
@@ -95,21 +83,19 @@ export function useDashboardData() {
           });
           setIsLoading(false);
 
-          if (shouldBackgroundRefresh(staticSnapshot)) {
-            void (async () => {
-              try {
-                const apiSnapshot = await loadApiCache();
+          void (async () => {
+            try {
+              const apiSnapshot = await loadApiCache();
 
-                if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
-                  startTransition(() => {
-                    setSnapshot(apiSnapshot);
-                  });
-                }
-              } catch {
-                // Keep the fast static cache on screen if the API route is slow or unavailable.
+              if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
+                startTransition(() => {
+                  setSnapshot(apiSnapshot);
+                });
               }
-            })();
-          }
+            } catch {
+              // Keep the fast static cache on screen if the API route is slow or unavailable.
+            }
+          })();
 
           return;
         } catch {

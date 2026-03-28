@@ -1,4 +1,5 @@
-import { updateDashboardCache } from "../scripts/update-dashboard-cache.mjs";
+import { ensureDashboardCache } from "../lib/server/dashboard-cache-groups.mjs";
+import { CACHE_GROUPS } from "../lib/server/dashboard-cache-shared.mjs";
 
 function parseTtlHours(value) {
   const parsed = Number(value);
@@ -18,11 +19,13 @@ export default async function handler(req, res) {
   }
 
   const ttlHours = parseTtlHours(process.env.DASHBOARD_CACHE_TTL_HOURS);
-  const ttlSeconds = ttlHours * 60 * 60;
-  const staleWhileRevalidateSeconds = Math.max(300, Math.round(ttlSeconds / 4));
+  const fallbackTtlSeconds = ttlHours * 60 * 60;
+  const fastTtlSeconds = Math.max(60, Math.round(CACHE_GROUPS.fast.ttlMs / 1000));
+  const ttlSeconds = Math.min(fallbackTtlSeconds, fastTtlSeconds);
+  const staleWhileRevalidateSeconds = Math.max(60, Math.round(ttlSeconds / 2));
 
   try {
-    const payload = await updateDashboardCache({ persist: false });
+    const payload = await ensureDashboardCache({ persist: false });
     const cacheHeader = `public, max-age=0, s-maxage=${ttlSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`;
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -30,6 +33,7 @@ export default async function handler(req, res) {
     res.setHeader("CDN-Cache-Control", cacheHeader);
     res.setHeader("Vercel-CDN-Cache-Control", cacheHeader);
     res.setHeader("X-Dashboard-Cache-Ttl-Hours", String(ttlHours));
+    res.setHeader("X-Dashboard-Fast-Ttl-Seconds", String(fastTtlSeconds));
     res.status(200).send(JSON.stringify(payload));
   } catch (error) {
     res.status(500).json({

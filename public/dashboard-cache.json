@@ -1,12 +1,115 @@
 {
   "meta": {
-    "generatedAt": 1774732876379,
-    "nextSuggestedRunAt": 1774736716379,
-    "scheduler": "55-65 minute jitter; next target in ~64 minutes"
+    "generatedAt": 1774734049252,
+    "nextSuggestedRunAt": 1774734049252,
+    "scheduler": "TTL-managed grouped cache with request-driven refresh",
+    "groups": {
+      "fast": {
+        "groupId": "fast",
+        "label": "Fast",
+        "generatedAt": 1774734049252,
+        "expiresAt": 1774735849252,
+        "ttlMs": 1800000,
+        "staleAfterMs": 10800000,
+        "refreshedDuringRequest": true,
+        "refreshSource": "refreshed",
+        "lastSourceUpdateAt": 1774734031000,
+        "warningCount": 0,
+        "metricIds": [
+          "price-vs-realized-price",
+          "fear-and-greed",
+          "ssr",
+          "fed-rate-expectations"
+        ],
+        "status": "fresh"
+      },
+      "daily": {
+        "groupId": "daily",
+        "label": "Daily",
+        "generatedAt": 1774734049252,
+        "expiresAt": 1774820449252,
+        "ttlMs": 86400000,
+        "staleAfterMs": 129600000,
+        "refreshedDuringRequest": true,
+        "refreshSource": "refreshed",
+        "lastSourceUpdateAt": 1774734049252,
+        "warningCount": 3,
+        "metricIds": [
+          "asopr",
+          "exchange-netflow",
+          "exchange-balance",
+          "adjusted-transfer-volume",
+          "mvrv",
+          "percent-supply-in-profit",
+          "lth-supply",
+          "sth-supply",
+          "lth-net-position-change",
+          "reserve-risk",
+          "liveliness",
+          "puell-multiple",
+          "pi-cycle-top",
+          "mayer-multiple",
+          "2-year-ma-multiplier",
+          "nupl",
+          "lth-nupl",
+          "sth-nupl",
+          "rhodl-ratio",
+          "hodl-waves",
+          "active-supply",
+          "active-addresses",
+          "cdd",
+          "dormancy",
+          "hashrate",
+          "difficulty",
+          "hash-ribbon",
+          "funding-rate",
+          "open-interest",
+          "nvt-signal",
+          "power-law",
+          "stock-to-flow",
+          "spot-btc-etf-flows",
+          "spot-btc-etf-holdings"
+        ],
+        "status": "fresh"
+      },
+      "slow": {
+        "groupId": "slow",
+        "label": "Slow",
+        "generatedAt": 1774734049252,
+        "expiresAt": 1774993249252,
+        "ttlMs": 259200000,
+        "staleAfterMs": 604800000,
+        "refreshedDuringRequest": true,
+        "refreshSource": "refreshed",
+        "lastSourceUpdateAt": 1774569600000,
+        "warningCount": 0,
+        "metricIds": [
+          "dxy",
+          "10y-real-yield",
+          "fed-balance-sheet",
+          "on-rrp"
+        ],
+        "status": "fresh"
+      },
+      "synthetic": {
+        "groupId": "synthetic",
+        "label": "Synthetic",
+        "generatedAt": 1774734049252,
+        "expiresAt": 1774734049252,
+        "ttlMs": 0,
+        "staleAfterMs": 86400000,
+        "refreshedDuringRequest": true,
+        "refreshSource": "refreshed",
+        "lastSourceUpdateAt": 1774734049252,
+        "warningCount": 0,
+        "metricIds": [],
+        "status": "expired"
+      }
+    }
   },
   "summary": {
     "btcPrice": "$67K",
-    "btcPriceChange": "+1.01% 24h",
+    "btcPriceChange": "+1.14% 24h",
     "liveMetricCount": 42,
     "mode": "live",
     "warnings": [
@@ -14,7 +117,7 @@
       "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes.",
       "LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series."
     ],
-    "lastUpdatedAt": 1774732876379,
+    "lastUpdatedAt": 1774734049252,
     "cycleEstimate": {
       "asOfDate": "2026-03-28",
       "phaseId": "early-recovery-under-disbelief",
@@ -48,7 +151,7 @@
       "closestDates": [
         "2026-02-10",
         "2026-02-07",
-        "2022-05-16"
+        "2022-05-18"
       ],
       "closestDateLabels": [
         "Feb 2026",
@@ -78,28 +181,31 @@
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.28x",
+      "currentValue": "1.29x",
       "deltaLabel": "Spot $67K vs realized $52K",
       "sourceLabel": "Blockchain.com market signals",
-      "trend": "down",
+      "trend": "up",
       "status": "bullish",
       "series": [
-        1.2492505270077015,
-        1.2347744057278016,
-        1.2128877915103229,
-        1.2053233264588574,
-        1.2282951649990868,
-        1.2680117823492065,
-        1.2728080675653033,
-        1.2808948667681497,
-        1.3238478080392662,
-        1.321683931860363,
-        1.2866203575416877,
-        1.279095487928946
+        1.2379906427239098,
+        1.2373039661063605,
+        1.181574566692304,
+        1.2199996954108905,
+        1.2329627827285639,
+        1.2967161970197476,
+        1.257748418898726,
+        1.300816247253384,
+        1.3490337444414926,
+        1.2941521476381213,
+        1.2749102907352963,
+        1.2872647546114155
       ],
       "isLive": true,
-      "asOf": 1774650329000,
-      "dataMode": "scraped"
+      "asOf": 1774607677000,
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
     },
     "adjusted-transfer-volume": {
       "metricId": "adjusted-transfer-volume",
@@ -124,7 +230,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "active-addresses": {
       "metricId": "active-addresses",
@@ -149,7 +258,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "hashrate": {
       "metricId": "hashrate",
@@ -174,12 +286,15 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "difficulty": {
       "metricId": "difficulty",
       "currentValue": "133.8T",
-      "deltaLabel": "Next adjustment +6.73%",
+      "deltaLabel": "Next adjustment +6.81%",
       "sourceLabel": "Blockchain.com + mempool.space",
       "trend": "down",
       "status": "bearish",
@@ -199,7 +314,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "dxy": {
       "metricId": "dxy",
@@ -224,7 +342,10 @@
       ],
       "isLive": true,
       "asOf": 1773964800000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "slow",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 604800000
     },
     "10y-real-yield": {
       "metricId": "10y-real-yield",
@@ -249,7 +370,10 @@
       ],
       "isLive": true,
       "asOf": 1774483200000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "slow",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 604800000
     },
     "fed-balance-sheet": {
       "metricId": "fed-balance-sheet",
@@ -274,7 +398,10 @@
       ],
       "isLive": true,
       "asOf": 1774396800000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "slow",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 604800000
     },
     "on-rrp": {
       "metricId": "on-rrp",
@@ -299,7 +426,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "slow",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 604800000
     },
     "ssr": {
       "metricId": "ssr",
@@ -311,36 +441,42 @@
       "series": [
         4.625864784321585,
         4.6399425979447715,
-        4.626423861836331
+        4.628807315264494
       ],
       "isLive": true,
-      "asOf": 1774732830000,
-      "dataMode": "approx"
+      "asOf": 1774734031000,
+      "dataMode": "approx",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
     },
     "mvrv": {
       "metricId": "mvrv",
-      "currentValue": "1.28",
+      "currentValue": "1.29",
       "deltaLabel": "Market value to realized value",
       "sourceLabel": "Blockchain.com market signals",
-      "trend": "down",
-      "status": "bearish",
+      "trend": "up",
+      "status": "bullish",
       "series": [
-        1.2492505270077015,
-        1.2347744057278016,
-        1.2128877915103229,
-        1.2053233264588574,
-        1.2282951649990868,
-        1.2680117823492065,
-        1.2728080675653033,
-        1.2808948667681497,
-        1.3238478080392662,
-        1.321683931860363,
-        1.2866203575416877,
-        1.279095487928946
+        1.2379906427239098,
+        1.2373039661063605,
+        1.181574566692304,
+        1.2199996954108905,
+        1.2329627827285639,
+        1.2967161970197476,
+        1.257748418898726,
+        1.300816247253384,
+        1.3490337444414926,
+        1.2941521476381213,
+        1.2749102907352963,
+        1.2872647546114155
       ],
       "isLive": true,
-      "asOf": 1774650329000,
-      "dataMode": "scraped"
+      "asOf": 1774607677000,
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "puell-multiple": {
       "metricId": "puell-multiple",
@@ -365,7 +501,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "active-supply": {
       "metricId": "active-supply",
@@ -390,27 +529,33 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "cdd": {
       "metricId": "cdd",
-      "currentValue": "4.4M BTC-days",
-      "deltaLabel": "0.2206 days destroyed per BTC",
+      "currentValue": "4.5M BTC-days",
+      "deltaLabel": "0.2227 days destroyed per BTC",
       "sourceLabel": "BitInfoCharts derived",
       "trend": "down",
       "status": "bullish",
       "series": [
         6498577.085,
         6760681.025312499,
-        4413750.323125
+        4455766.9853125
       ],
       "isLive": true,
-      "asOf": 1774732876379,
-      "dataMode": "scraped"
+      "asOf": 1774734049252,
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "dormancy": {
       "metricId": "dormancy",
-      "currentValue": "16.7d",
+      "currentValue": "16.9d",
       "deltaLabel": "Derived from days destroyed / BTC sent",
       "sourceLabel": "BitInfoCharts derived",
       "trend": "down",
@@ -418,11 +563,14 @@
       "series": [
         24.568732221575313,
         25.663466744531874,
-        16.7421521866738
+        16.8833411716367
       ],
       "isLive": true,
-      "asOf": 1774732876379,
-      "dataMode": "approx"
+      "asOf": 1774734049252,
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "percent-supply-in-profit": {
       "metricId": "percent-supply-in-profit",
@@ -447,7 +595,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "reserve-risk": {
       "metricId": "reserve-risk",
@@ -472,7 +623,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "liveliness": {
       "metricId": "liveliness",
@@ -497,7 +651,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "asopr": {
       "metricId": "asopr",
@@ -522,7 +679,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "lth-supply": {
       "metricId": "lth-supply",
@@ -547,7 +707,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "sth-supply": {
       "metricId": "sth-supply",
@@ -572,7 +735,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "lth-net-position-change": {
       "metricId": "lth-net-position-change",
@@ -597,7 +763,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "spot-btc-etf-flows": {
       "metricId": "spot-btc-etf-flows",
@@ -622,7 +791,10 @@
       ],
       "isLive": true,
       "asOf": 1774483200000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "spot-btc-etf-holdings": {
       "metricId": "spot-btc-etf-holdings",
@@ -647,7 +819,10 @@
       ],
       "isLive": true,
       "asOf": 1774483200000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "exchange-netflow": {
       "metricId": "exchange-netflow",
@@ -672,7 +847,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "exchange-balance": {
       "metricId": "exchange-balance",
@@ -697,7 +875,10 @@
       ],
       "isLive": true,
       "asOf": 1766880000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "fed-rate-expectations": {
       "metricId": "fed-rate-expectations",
@@ -718,7 +899,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
     },
     "pi-cycle-top": {
       "metricId": "pi-cycle-top",
@@ -743,7 +927,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "mayer-multiple": {
       "metricId": "mayer-multiple",
@@ -768,7 +955,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "hash-ribbon": {
       "metricId": "hash-ribbon",
@@ -793,7 +983,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "funding-rate": {
       "metricId": "funding-rate",
@@ -818,7 +1011,10 @@
       ],
       "isLive": true,
       "asOf": 1774717200000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "nupl": {
       "metricId": "nupl",
@@ -843,7 +1039,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "lth-nupl": {
       "metricId": "lth-nupl",
@@ -868,7 +1067,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "sth-nupl": {
       "metricId": "sth-nupl",
@@ -893,7 +1095,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "rhodl-ratio": {
       "metricId": "rhodl-ratio",
@@ -918,7 +1123,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "hodl-waves": {
       "metricId": "hodl-waves",
@@ -943,7 +1151,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "nvt-signal": {
       "metricId": "nvt-signal",
@@ -968,7 +1179,10 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "open-interest": {
       "metricId": "open-interest",
@@ -993,7 +1207,10 @@
       ],
       "isLive": true,
       "asOf": 1774483200000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "power-law": {
       "metricId": "power-law",
@@ -1018,7 +1235,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "2-year-ma-multiplier": {
       "metricId": "2-year-ma-multiplier",
@@ -1033,7 +1253,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "stock-to-flow": {
       "metricId": "stock-to-flow",
@@ -1058,7 +1281,10 @@
       ],
       "isLive": true,
       "asOf": 1774615588000,
-      "dataMode": "approx"
+      "dataMode": "approx",
+      "groupId": "daily",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 129600000
     },
     "fear-and-greed": {
       "metricId": "fear-and-greed",
@@ -1083,7 +1309,10 @@
       ],
       "isLive": true,
       "asOf": 1774656000000,
-      "dataMode": "scraped"
+      "dataMode": "scraped",
+      "groupId": "fast",
+      "refreshedAt": 1774734049252,
+      "staleAfterMs": 10800000
     }
   }
 }

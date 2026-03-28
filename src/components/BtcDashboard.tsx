@@ -8,6 +8,7 @@ import {
 import { getMetricSample } from "../lib/dashboard-samples";
 import { useDashboardData } from "../hooks/useDashboardData";
 import type {
+  DashboardCacheGroupMeta,
   DashboardCycleAnalog,
   DashboardCycleEstimate,
   DashboardMetricState,
@@ -358,12 +359,14 @@ function DebugPanel({
   generatedAt,
   nextSuggestedRunAt,
   scheduler,
+  groups,
   warnings,
 }: {
   metrics: Record<string, DashboardMetricState>;
   generatedAt?: number;
   nextSuggestedRunAt?: number;
   scheduler?: string;
+  groups?: Partial<Record<"fast" | "daily" | "slow" | "synthetic", DashboardCacheGroupMeta>>;
   warnings: string[];
 }) {
   const counts = Object.values(metrics).reduce<Record<string, number>>((acc, metric) => {
@@ -418,6 +421,41 @@ function DebugPanel({
         </div>
       </div>
 
+      {groups && Object.keys(groups).length > 0 && (
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Object.values(groups).map((group) => {
+            if (!group) {
+              return null;
+            }
+
+            return (
+              <div
+                key={group.groupId}
+                className="rounded-2xl border border-stone-200 p-4"
+              >
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{group.label}</p>
+                <p className="mt-2 text-lg font-semibold text-stone-950">{group.status ?? "unknown"}</p>
+                <p className="mt-1 text-sm text-stone-700">
+                  {group.generatedAt ? `Cache ${formatRelativeTime(group.generatedAt)}` : "No cache snapshot"}
+                </p>
+                <p className="mt-1 text-sm text-stone-600">
+                  {group.lastSourceUpdateAt
+                    ? `Source ${formatRelativeTime(group.lastSourceUpdateAt)}`
+                    : "No source timestamp"}
+                </p>
+                <p className="mt-1 text-xs text-stone-500">
+                  {group.refreshedDuringRequest
+                    ? "Refreshed during request"
+                    : group.refreshSource === "bootstrap"
+                      ? "Bootstrapped from bundled cache"
+                      : "Served from grouped cache"}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {warnings.length > 0 && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-amber-800">Implementation notes</p>
@@ -468,6 +506,7 @@ export function BtcDashboard() {
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
   const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
   const scheduler = snapshot?.meta?.scheduler;
+  const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
   const cycleAnalog = snapshot?.summary.cycleAnalog;
 
@@ -681,6 +720,7 @@ export function BtcDashboard() {
             generatedAt={cacheGeneratedAt}
             nextSuggestedRunAt={nextSuggestedRunAt}
             scheduler={scheduler}
+            groups={groups}
             warnings={warnings}
           />
         )}

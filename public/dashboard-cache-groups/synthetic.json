@@ -1,0 +1,74 @@
+{
+  "groupId": "synthetic",
+  "generatedAt": 1774734049252,
+  "expiresAt": 1774734049252,
+  "ttlMs": 0,
+  "staleAfterMs": 86400000,
+  "refreshedDuringRequest": true,
+  "refreshSource": "refreshed",
+  "metricIds": [],
+  "warnings": [],
+  "lastSourceUpdateAt": 1774734049252,
+  "metrics": {},
+  "summary": {
+    "cycleEstimate": {
+      "asOfDate": "2026-03-28",
+      "phaseId": "early-recovery-under-disbelief",
+      "label": "Early Recovery Under Disbelief",
+      "confidence": 82,
+      "score": 25,
+      "heatScore": 25,
+      "damageScore": 38,
+      "distributionScore": 1,
+      "summary": "Cycle signals are improving from lower-risk territory, but the mix still looks more skeptical and rebuilding than broadly euphoric.",
+      "rationale": "Trend conditions are improving without obvious late-cycle excess, and the market still feels more skeptical than euphoric. Supporting evidence leans most on Percent Supply In Profit, Price Vs Realized Price, Mvrv.",
+      "supportingMetricIds": [
+        "percent-supply-in-profit",
+        "price-vs-realized-price",
+        "mvrv"
+      ],
+      "conflictingMetricIds": [
+        "reserve-risk",
+        "funding-rate",
+        "mvrv"
+      ],
+      "source": "rule-based",
+      "change": "unchanged"
+    },
+    "cycleAnalog": {
+      "asOfDate": "2026-03-28",
+      "label": "Capitulation",
+      "phaseId": "deep-capitulation",
+      "agreement": 90,
+      "confidence": 91,
+      "closestDates": [
+        "2026-02-10",
+        "2026-02-07",
+        "2022-05-18"
+      ],
+      "closestDateLabels": [
+        "Feb 2026",
+        "Feb 2026",
+        "May 2022"
+      ],
+      "closestPhaseIds": [
+        "deep-capitulation",
+        "deep-capitulation",
+        "deep-capitulation"
+      ],
+      "summary": "Current conditions most closely resemble prior washout periods with high damage and limited expansion.",
+      "methodology": "historical-nearest-neighbor",
+      "matchCount": 20,
+      "indicatorIds": [
+        "mvrv",
+        "percent-supply-in-profit",
+        "reserve-risk",
+        "price-vs-realized-price",
+        "asopr",
+        "nupl",
+        "liveliness",
+        "lth-net-position-change"
+      ]
+    }
+  }
+}

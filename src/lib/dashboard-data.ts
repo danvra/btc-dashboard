@@ -5,6 +5,26 @@ export interface DashboardMetricState extends MetricSample {
   isLive: boolean;
   asOf?: number;
   dataMode?: "seeded" | "live" | "scraped" | "approx";
+  groupId?: DashboardCacheGroupId;
+  refreshedAt?: number;
+  staleAfterMs?: number;
+}
+
+export type DashboardCacheGroupId = "fast" | "daily" | "slow" | "synthetic";
+
+export interface DashboardCacheGroupMeta {
+  groupId: DashboardCacheGroupId;
+  label: string;
+  generatedAt?: number;
+  expiresAt?: number;
+  ttlMs?: number;
+  staleAfterMs?: number;
+  refreshedDuringRequest?: boolean;
+  refreshSource?: "cache" | "refreshed" | "bootstrap";
+  lastSourceUpdateAt?: number;
+  warningCount?: number;
+  metricIds: string[];
+  status?: "fresh" | "stale" | "expired" | "missing";
 }
 
 export type DashboardCyclePhaseId =
@@ -68,6 +88,7 @@ export interface DashboardDataSnapshot {
     generatedAt?: number;
     nextSuggestedRunAt?: number;
     scheduler?: string;
+    groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
   };
 }
 
@@ -76,6 +97,7 @@ export interface DashboardCachePayload {
     generatedAt?: number;
     nextSuggestedRunAt?: number;
     scheduler?: string;
+    groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
   };
   metrics?: Record<string, Partial<DashboardMetricState>>;
   summary?: Partial<DashboardDataSummary>;
@@ -152,6 +174,17 @@ const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY;
 
 const LIVE_WINDOW_DAYS = 30;
 
+const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGroupId>> = {
+  "price-vs-realized-price": "fast",
+  "fear-and-greed": "fast",
+  ssr: "fast",
+  "fed-rate-expectations": "fast",
+  dxy: "slow",
+  "10y-real-yield": "slow",
+  "fed-balance-sheet": "slow",
+  "on-rrp": "slow",
+};
+
 const FALLBACK_METRICS: Record<string, DashboardMetricState> = Object.fromEntries(
   METRIC_SAMPLES.map((sample) => [
     sample.metricId,
@@ -159,6 +192,7 @@ const FALLBACK_METRICS: Record<string, DashboardMetricState> = Object.fromEntrie
       ...sample,
       isLive: false,
       dataMode: "seeded",
+      groupId: metricGroupId(sample.metricId),
     },
   ]),
 );
@@ -202,6 +236,12 @@ export function mergeCachePayload(payload: DashboardCachePayload): DashboardData
       status: metric.status ?? mergedMetrics[metricId].status,
       isLive: metric.isLive ?? mergedMetrics[metricId].isLive,
       dataMode: metric.dataMode ?? mergedMetrics[metricId].dataMode,
+      groupId:
+        metric.groupId ??
+        mergedMetrics[metricId].groupId ??
+        metricGroupId(metricId as DashboardMetric["id"]),
+      refreshedAt: metric.refreshedAt ?? mergedMetrics[metricId].refreshedAt,
+      staleAfterMs: metric.staleAfterMs ?? mergedMetrics[metricId].staleAfterMs,
     };
   }
 
@@ -333,6 +373,10 @@ function normalizePercentValue(value: number | undefined) {
   return Math.abs(numericValue) <= 1 ? numericValue * 100 : numericValue;
 }
 
+function metricGroupId(metricId: DashboardMetric["id"]): DashboardCacheGroupId {
+  return METRIC_GROUP_IDS[metricId] ?? "daily";
+}
+
 function lastPoint(points: NumericPoint[]) {
   return points[points.length - 1];
 }
@@ -430,6 +474,7 @@ function buildMetricState(
     isLive: true,
     asOf: options.asOf ?? lastPoint(points)?.timestamp,
     dataMode: options.dataMode ?? "live",
+    groupId: metricGroupId(metricId),
   };
 }
 

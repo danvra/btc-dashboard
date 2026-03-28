@@ -41,8 +41,16 @@ Copy `.env.example` to `.env` and add keys if you want the full set:
 For a brittle but practical prototype, the app can read from a local cache file:
 
 - App reads `public/dashboard-cache.json`
+- Group snapshots live under `public/dashboard-cache-groups/`
 - Updater script refreshes that file from public sources
 - Missing metrics stay on bundled placeholder values
+
+The cache now uses grouped freshness domains:
+
+- `fast`: intraday metrics like price, sentiment, and rate expectations
+- `daily`: most on-chain and derived indicators
+- `slow`: macro series with slower source cadence
+- `synthetic`: cycle estimate and analog outputs derived from the current grouped snapshot
 
 Commands:
 
@@ -64,7 +72,7 @@ The header now supports a daily BTC cycle estimate that is derived from the dash
 Production should use the API cache route instead of the static `public/dashboard-cache.json` file:
 
 - The app first tries `/api/dashboard-cache`
-- That route rebuilds the payload server-side and returns CDN cache headers
+- That route manages grouped TTLs server-side and refreshes expired groups on request
 - `DASHBOARD_CACHE_TTL_HOURS` controls the cache freshness window and defaults to `24`
 - `vercel.json` warms the route once per day with a cron request at `00:00 UTC`
 
