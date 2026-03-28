@@ -36,17 +36,6 @@ const freshnessClasses = {
   unknown: "text-stone-500",
 };
 
-const cycleEstimateClasses: Record<string, string> = {
-  "deep-capitulation": "border-rose-400/30 bg-rose-500/10",
-  "bottoming-and-reaccumulation": "border-amber-400/30 bg-amber-400/10",
-  "early-recovery-under-disbelief": "border-sky-400/30 bg-sky-400/10",
-  "healthy-bull-expansion": "border-emerald-400/30 bg-emerald-400/10",
-  "late-cycle-acceleration": "border-orange-400/30 bg-orange-400/10",
-  "euphoric-overheating": "border-fuchsia-400/30 bg-fuchsia-400/10",
-  "distribution-and-top-formation": "border-rose-400/30 bg-rose-400/10",
-  "post-top-unwind": "border-stone-300/20 bg-white/5",
-};
-
 const cycleSourceLabels = {
   "rule-based": "Rule engine",
   "llm-assisted": "LLM assisted",
@@ -456,13 +445,43 @@ export function BtcDashboard() {
                   <p className="mt-1 text-sm text-stone-400">Bitcoin market intelligence</p>
                 </div>
               </div>
-              <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
-                Track price action, cycle regime, network health, and macro structure in one place.
-              </h1>
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
-                This dashboard now mixes live market and network data with graceful fallbacks for metrics
-                that still need a dedicated on-chain or macro provider key.
-              </p>
+              <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">
+                      Daily cycle estimate
+                    </p>
+                    <h1 className="mt-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+                      {cycleEstimate?.label ?? "Estimate pending"}
+                    </h1>
+                  </div>
+                  {cycleEstimate && (
+                    <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1 text-xs font-semibold text-stone-100">
+                      {cycleEstimate.confidence}% confidence
+                    </div>
+                  )}
+                </div>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-200 sm:text-base">
+                  {cycleEstimate?.summary ??
+                    "Cycle estimation appears once the dashboard has a synthesized indicator snapshot."}
+                </p>
+                {cycleEstimate && (
+                  <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-200">
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      Score {cycleEstimate.score}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleSourceLabels[cycleEstimate.source]}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleChangeLabel(cycleEstimate.change)}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleEstimate.asOfDate}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   type="button"
@@ -488,50 +507,6 @@ export function BtcDashboard() {
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div
-                className={[
-                  "rounded-[1.5rem] border p-4 sm:col-span-2 lg:col-span-1 xl:col-span-2",
-                  cycleEstimate
-                    ? cycleEstimateClasses[cycleEstimate.phaseId]
-                    : "border-white/10 bg-white/5",
-                ].join(" ")}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
-                      Daily cycle estimate
-                    </p>
-                    <p className="mt-2 text-2xl font-semibold">
-                      {cycleEstimate?.label ?? "Estimate pending"}
-                    </p>
-                  </div>
-                  {cycleEstimate && (
-                    <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1 text-xs font-semibold text-stone-100">
-                      {cycleEstimate.confidence}% confidence
-                    </div>
-                  )}
-                </div>
-                <p className="mt-2 text-sm leading-6 text-stone-200">
-                  {cycleEstimate?.summary ??
-                    "Cycle estimation appears once the dashboard has a synthesized indicator snapshot."}
-                </p>
-                {cycleEstimate && (
-                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-200">
-                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      Score {cycleEstimate.score}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      {cycleSourceLabels[cycleEstimate.source]}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      {cycleChangeLabel(cycleEstimate.change)}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      {cycleEstimate.asOfDate}
-                    </span>
-                  </div>
-                )}
-              </div>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">BTC price</p>
                 <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>

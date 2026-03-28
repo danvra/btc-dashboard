@@ -280,6 +280,24 @@ function combineSeries(
     .filter((point): point is NumericPoint => point !== null && Number.isFinite(point.value));
 }
 
+function sumSeries(seriesList: NumericPoint[][]) {
+  if (seriesList.length === 0) {
+    return [];
+  }
+
+  const timestampMap = new Map<number, number>();
+
+  for (const series of seriesList) {
+    for (const point of series) {
+      timestampMap.set(point.timestamp, (timestampMap.get(point.timestamp) ?? 0) + point.value);
+    }
+  }
+
+  return Array.from(timestampMap.entries())
+    .map(([timestamp, value]) => ({ timestamp, value }))
+    .sort((left, right) => left.timestamp - right.timestamp);
+}
+
 function normalizePercentValue(value: number | undefined) {
   const numericValue = Number(value);
 
@@ -318,6 +336,7 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "percent-supply-in-profit",
     "lth-supply",
     "lth-net-position-change",
+    "hodl-waves",
     "active-supply",
     "active-addresses",
     "hashrate",
@@ -337,8 +356,10 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "ssr",
     "dxy",
     "10y-real-yield",
+    "nvt-signal",
     "fed-rate-expectations",
     "on-rrp",
+    "power-law",
   ]);
 
   if (trend === "flat") {
@@ -598,6 +619,17 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     lthMvrvSeries,
     sthMvrvSeries,
     rhodlRatioSeries,
+    hodl1y2ySeries,
+    hodl2y3ySeries,
+    hodl3y4ySeries,
+    hodl4y8ySeries,
+    hodl8ySeries,
+    nvtSignalSeries,
+    nvtSignalHighSeries,
+    nvtSignalLowSeries,
+    openInterestSeries,
+    powerLawSeries,
+    powerLawFloorSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -636,6 +668,17 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       safePoints(() => fetchBGeometricsSeries("/files/lth_mvrv.json")),
       safePoints(() => fetchBGeometricsSeries("/files/sth_mvrv.json")),
       safePoints(() => fetchBGeometricsSeries("/files/rhodl_1m.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/hw_age_1y_2y.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/hw_age_2y_3y.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/hw_age_3y_4y.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/hw_age_4y_8y.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/hw_age_8y_.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/nvts_bg.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/nvts_730dma_high_bg.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/nvts_730dma_low_bg.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/oi_total.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/power_law.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/power_law_floor.json")),
       safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
       safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
       safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
@@ -729,6 +772,28 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       value: point.value > 0 ? 1 - 1 / point.value : 0,
     }))
     .filter((point) => Number.isFinite(point.value));
+  const oldSupplyShareSeries = sumSeries([
+    hodl1y2ySeries,
+    hodl2y3ySeries,
+    hodl3y4ySeries,
+    hodl4y8ySeries,
+    hodl8ySeries,
+  ]);
+  const nvtRelativeToHighSeries = combineSeries(
+    nvtSignalSeries,
+    nvtSignalHighSeries,
+    (nvtValue, highValue) => (highValue > 0 ? nvtValue / highValue : 0),
+  );
+  const powerLawRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawSeries,
+    (priceValue, modelValue) => (modelValue > 0 ? priceValue / modelValue : 0),
+  );
+  const powerLawFloorRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawFloorSeries,
+    (priceValue, floorValue) => (floorValue > 0 ? priceValue / floorValue : 0),
+  );
 
   const publicUpdates: Record<string, DashboardMetricState> = {
     "active-addresses": buildMetricState("active-addresses", activeAddresses, {
@@ -925,6 +990,24 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     };
   }
 
+  if (oldSupplyShareSeries.length > 0) {
+    const latestOldSupplyShare = lastPoint(oldSupplyShareSeries)?.value ?? 0;
+    const previousOldSupplyShare = previousPoint(oldSupplyShareSeries)?.value ?? latestOldSupplyShare;
+
+    publicUpdates["hodl-waves"] = {
+      ...metrics["hodl-waves"],
+      currentValue: formatPercent(latestOldSupplyShare, 1),
+      deltaLabel: "Share of supply dormant for 1 year or more",
+      trend: inferTrend(latestOldSupplyShare, previousOldSupplyShare),
+      status: latestOldSupplyShare > 55 ? "bullish" : latestOldSupplyShare > 45 ? "neutral" : "bearish",
+      series: toSeries(oldSupplyShareSeries),
+      sourceLabel: "BGeometrics derived from age bands",
+      isLive: true,
+      asOf: lastPoint(oldSupplyShareSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
+
   if (minerRevenueSeries.length > 0) {
     const movingAverage = rollingAverage(minerRevenueSeries, 365);
     const puellSeries = minerRevenueSeries.map((point, index) => ({
@@ -1034,6 +1117,27 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       isLive: true,
       asOf: lastPoint(hashRibbonSeries)?.timestamp,
       dataMode: "approx",
+    };
+  }
+
+  if (nvtSignalSeries.length > 0) {
+    const latestNvtSignal = lastPoint(nvtSignalSeries)?.value ?? 0;
+    const previousNvtSignal = previousPoint(nvtSignalSeries)?.value ?? latestNvtSignal;
+    const latestNvtHigh = lastPoint(nvtSignalHighSeries)?.value ?? 0;
+    const latestNvtLow = lastPoint(nvtSignalLowSeries)?.value ?? 0;
+    const nvtRelativeToHigh = lastPoint(nvtRelativeToHighSeries)?.value ?? 0;
+
+    publicUpdates["nvt-signal"] = {
+      ...metrics["nvt-signal"],
+      currentValue: formatCompactNumber(latestNvtSignal, 0),
+      deltaLabel: `Dynamic range ${formatCompactNumber(latestNvtLow, 0)} to ${formatCompactNumber(latestNvtHigh, 0)}`,
+      trend: inferTrend(latestNvtSignal, previousNvtSignal),
+      status: latestNvtSignal < latestNvtLow ? "bullish" : nvtRelativeToHigh > 1 ? "bearish" : "neutral",
+      series: toSeries(nvtSignalSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(nvtSignalSeries)?.timestamp,
+      dataMode: "scraped",
     };
   }
 
@@ -1166,6 +1270,43 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       isLive: true,
       asOf: lastPoint(fundingRatePercentSeries)?.timestamp,
       dataMode: "scraped",
+    };
+  }
+
+  if (openInterestSeries.length > 0) {
+    publicUpdates["open-interest"] = {
+      ...metrics["open-interest"],
+      currentValue: formatUsd(lastPoint(openInterestSeries)?.value ?? 0, 1),
+      deltaLabel: "Total BTC futures open interest",
+      trend: inferTrend(
+        lastPoint(openInterestSeries)?.value ?? 0,
+        previousPoint(openInterestSeries)?.value ?? lastPoint(openInterestSeries)?.value ?? 0,
+      ),
+      status: "neutral",
+      series: toSeries(openInterestSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(openInterestSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (powerLawRatioSeries.length > 0) {
+    const latestPowerLawRatio = lastPoint(powerLawRatioSeries)?.value ?? 0;
+    const latestFloorRatio = lastPoint(powerLawFloorRatioSeries)?.value ?? 0;
+    const previousPowerLawRatio = previousPoint(powerLawRatioSeries)?.value ?? latestPowerLawRatio;
+
+    publicUpdates["power-law"] = {
+      ...metrics["power-law"],
+      currentValue: formatRatio(latestPowerLawRatio, 2),
+      deltaLabel: `Spot ${formatRatio(latestFloorRatio, 2)}x power-law floor`,
+      trend: inferTrend(latestPowerLawRatio, previousPowerLawRatio),
+      status: latestPowerLawRatio < 0.75 ? "bullish" : latestPowerLawRatio > 1.2 ? "bearish" : "neutral",
+      series: toSeries(powerLawRatioSeries),
+      sourceLabel: "BGeometrics model",
+      isLive: true,
+      asOf: lastPoint(powerLawRatioSeries)?.timestamp,
+      dataMode: "approx",
     };
   }
 

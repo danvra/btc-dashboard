@@ -16,7 +16,7 @@ const MEMPOOL_API_BASE = "https://mempool.space/api/v1";
 const FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
 const RATE_PROBABILITY_API = "https://rateprobability.com/api/latest";
-const TOTAL_METRIC_COUNT = 35;
+const TOTAL_METRIC_COUNT = 39;
 
 const jitterMinutes = 55 + Math.floor(Math.random() * 11);
 
@@ -86,6 +86,7 @@ function inferStatus(metricId, latest, previous) {
     "percent-supply-in-profit",
     "lth-supply",
     "lth-net-position-change",
+    "hodl-waves",
     "hashrate",
     "hash-ribbon",
     "difficulty",
@@ -106,8 +107,10 @@ function inferStatus(metricId, latest, previous) {
     "ssr",
     "dxy",
     "10y-real-yield",
+    "nvt-signal",
     "fed-rate-expectations",
     "on-rrp",
+    "power-law",
   ]);
 
   if (trend === "flat") {
@@ -158,6 +161,24 @@ function combineSeries(left, right, combiner) {
       };
     })
     .filter((point) => point !== null && Number.isFinite(point.value));
+}
+
+function sumSeries(seriesList) {
+  if (seriesList.length === 0) {
+    return [];
+  }
+
+  const timestampMap = new Map();
+
+  for (const series of seriesList) {
+    for (const point of series) {
+      timestampMap.set(point.timestamp, (timestampMap.get(point.timestamp) ?? 0) + point.value);
+    }
+  }
+
+  return Array.from(timestampMap.entries())
+    .map(([timestamp, value]) => ({ timestamp, value }))
+    .sort((left, right) => left.timestamp - right.timestamp);
 }
 
 function normalizePercentValue(value) {
@@ -432,6 +453,17 @@ export async function updateDashboardCache(options = {}) {
     lthMvrvSeries,
     sthMvrvSeries,
     rhodlRatioSeries,
+    hodl1y2ySeries,
+    hodl2y3ySeries,
+    hodl3y4ySeries,
+    hodl4y8ySeries,
+    hodl8ySeries,
+    nvtSignalSeries,
+    nvtSignalHighSeries,
+    nvtSignalLowSeries,
+    openInterestSeries,
+    powerLawSeries,
+    powerLawFloorSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -481,6 +513,17 @@ export async function updateDashboardCache(options = {}) {
     safePoints(() => fetchBGeometricsSeries("/files/lth_mvrv.json")),
     safePoints(() => fetchBGeometricsSeries("/files/sth_mvrv.json")),
     safePoints(() => fetchBGeometricsSeries("/files/rhodl_1m.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/hw_age_1y_2y.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/hw_age_2y_3y.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/hw_age_3y_4y.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/hw_age_4y_8y.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/hw_age_8y_.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/nvts_bg.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/nvts_730dma_high_bg.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/nvts_730dma_low_bg.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/oi_total.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/power_law.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/power_law_floor.json")),
     safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
     safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
     safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
