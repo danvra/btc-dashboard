@@ -38,12 +38,12 @@ Copy `.env.example` to `.env` and add keys if you want the full set:
 
 ## Prototype cache mode
 
-For a brittle but practical prototype, the app can read from a local cache file:
+The app can run in a grouped cache mode with a local filesystem fallback:
 
-- App reads `public/dashboard-cache.json`
+- `public/dashboard-cache.json` is the bundled bootstrap snapshot for first paint
 - Group snapshots live under `public/dashboard-cache-groups/`
-- Updater script refreshes that file from public sources
-- Missing metrics stay on bundled placeholder values
+- `public/dashboard-history.json` stores snapshot-style sparkline history in local/dev mode
+- In production, the same grouped snapshots can persist to Redis-style storage through `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 
 The cache now uses grouped freshness domains:
 
@@ -57,7 +57,9 @@ Commands:
 1. `npm run cache:update`
 2. `npm run cache:watch`
 
-`cache:watch` runs forever and refreshes the cache roughly every 55-65 minutes.
+`cache:update` forces a full grouped refresh.
+
+`cache:watch` runs forever, wakes up roughly every 55-65 minutes, and lets server TTLs decide which groups are actually stale.
 
 ## Cycle estimate
 
@@ -69,16 +71,20 @@ The header now supports a daily BTC cycle estimate that is derived from the dash
 
 ## Vercel deployment
 
-Production should use the API cache route instead of the static `public/dashboard-cache.json` file:
+Production should use the API cache route instead of treating the static `public/dashboard-cache.json` file as the source of truth:
 
 - The app first tries `/api/dashboard-cache`
-- That route manages grouped TTLs server-side and refreshes expired groups on request
+- That route manages grouped TTLs server-side, refreshes only stale groups on request, and persists successful updates immediately
+- `/api/dashboard-cache-warm` is the authenticated daily cron warm route for `daily`, `slow`, and `synthetic`
 - `DASHBOARD_CACHE_TTL_HOURS` controls the cache freshness window and defaults to `24`
-- `vercel.json` warms the route once per day with a cron request at `00:00 UTC`
+- `vercel.json` warms the cache once per day with a cron request at `00:00 UTC`
 
 Optional environment variables:
 
 - `DASHBOARD_CACHE_TTL_HOURS=24`
+- `UPSTASH_REDIS_REST_URL=...`
+- `UPSTASH_REDIS_REST_TOKEN=...`
+- `CRON_SECRET=...`
 - `OPENAI_API_KEY=...`
 - `CYCLE_ESTIMATE_MODEL=gpt-4o-mini`
 - `CYCLE_ESTIMATE_USE_LLM=true`

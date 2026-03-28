@@ -1,4 +1,4 @@
-import { updateDashboardCache } from "./update-dashboard-cache.mjs";
+import { ensureDashboardCache } from "../lib/server/dashboard-cache-groups.mjs";
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -12,7 +12,7 @@ function nextDelayMs() {
 async function main() {
   while (true) {
     try {
-      await updateDashboardCache();
+      await ensureDashboardCache();
     } catch (error) {
       console.error("Cache update failed:", error);
     }

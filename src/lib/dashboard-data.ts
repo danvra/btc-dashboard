@@ -57,17 +57,34 @@ export interface DashboardCycleEstimate {
 
 export interface DashboardCycleAnalog {
   asOfDate: string;
-  label: string;
   phaseId: DashboardCyclePhaseId;
+  label: string;
   agreement: number;
   confidence: number;
-  closestDates: string[];
-  closestDateLabels?: string[];
-  closestPhaseIds: DashboardCyclePhaseId[];
   summary: string;
-  methodology: "historical-nearest-neighbor";
-  matchCount: number;
+  methodology: "phase-window-nearest-neighbor";
   indicatorIds: string[];
+  phaseDistribution: Array<{
+    phaseId: DashboardCyclePhaseId;
+    label: string;
+    cyclesMatched: number;
+    averageDistance: number;
+  }>;
+  perCycleMatches: DashboardCycleAnalogWindow[];
+  topMatchDates: string[];
+}
+
+export interface DashboardCycleAnalogWindow {
+  cycleId: string;
+  cycleLabel: string;
+  phaseId: DashboardCyclePhaseId;
+  phaseLabel: string;
+  windowStartDate: string;
+  windowEndDate: string;
+  bestMatchDate: string;
+  bestMatchDateLabel: string;
+  distance: number;
+  coverage: number;
 }
 
 export interface DashboardDataSummary {

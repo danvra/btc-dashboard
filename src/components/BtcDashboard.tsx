@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   DASHBOARD_METRICS,
   DASHBOARD_METRICS_BY_PANEL,
@@ -10,6 +10,7 @@ import { useDashboardData } from "../hooks/useDashboardData";
 import type {
   DashboardCacheGroupMeta,
   DashboardCycleAnalog,
+  DashboardCycleAnalogWindow,
   DashboardCycleEstimate,
   DashboardMetricState,
 } from "../lib/dashboard-data";
@@ -51,6 +52,10 @@ const refreshNoticeClasses = {
   fallback: "border-amber-400/20 bg-amber-400/10 text-amber-100",
   error: "border-rose-400/20 bg-rose-400/10 text-rose-100",
 };
+
+function clamp(value: number, min = 0, max = 1) {
+  return Math.min(max, Math.max(min, value));
+}
 
 function proxyNote(metricState: DashboardMetricState) {
   if (metricState.dataMode !== "approx") {
@@ -117,12 +122,45 @@ function cycleChangeLabel(change?: DashboardCycleEstimate["change"]) {
   return "Unchanged";
 }
 
-function cycleAnalogDatesLabel(dateLabels?: string[]) {
-  if (!dateLabels || dateLabels.length === 0) {
+function formatMonthYear(dateKey?: string) {
+  if (!dateKey) {
+    return null;
+  }
+
+  const date = new Date(`${dateKey}T00:00:00.000Z`);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateKey;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
+function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
+  if (cycleAnalog?.topMatchDates?.length) {
+    return cycleAnalog.topMatchDates
+      .slice(0, 2)
+      .map((dateKey) => formatMonthYear(dateKey))
+      .filter(Boolean) as string[];
+  }
+
+  const legacyLabels = (cycleAnalog as (DashboardCycleAnalog & { closestDateLabels?: string[] }) | undefined)
+    ?.closestDateLabels;
+  return legacyLabels?.slice(0, 2) ?? [];
+}
+
+function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
+  const dateLabels = cycleAnalogTopDateLabels(cycleAnalog);
+
+  if (dateLabels.length === 0) {
     return "Historical comparison appears once enough analog data is available";
   }
 
-  return `Closest to ${dateLabels.slice(0, 2).join(", ")}`;
+  return `Analogous to prior-cycle ${dateLabels.join(", ")}`;
 }
 
 function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
@@ -130,7 +168,38 @@ function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
     return "Waiting for cross-cycle matches";
   }
 
-  return `${cycleAnalog.agreement}% of top ${cycleAnalog.matchCount} matches`;
+  return `${cycleAnalog.agreement}% of prior cycles match this phase`;
+}
+
+function formatDistance(value?: number) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+
+  return value!.toFixed(3);
+}
+
+function formatCoverage(value?: number) {
+  if (!Number.isFinite(value)) {
+    return "n/a";
+  }
+
+  return `${Math.round(value! * 100)}%`;
+}
+
+function formatWindowLabel(startDate?: string, endDate?: string) {
+  const start = formatMonthYear(startDate);
+  const end = formatMonthYear(endDate);
+
+  if (!start && !end) {
+    return "Window unavailable";
+  }
+
+  if (start === end) {
+    return start ?? "Window unavailable";
+  }
+
+  return `${start ?? "Unknown"} to ${end ?? "Unknown"}`;
 }
 
 function Sparkline({
@@ -354,6 +423,351 @@ function LearnPanel({
   );
 }
 
+const phaseTimelineOrder: Array<{
+  id: DashboardCycleAnalogWindow["phaseId"];
+  label: string;
+}> = [
+  { id: "deep-capitulation", label: "Capitulation" },
+  { id: "bottoming-and-reaccumulation", label: "Reaccumulation" },
+  { id: "early-recovery-under-disbelief", label: "Early Bull" },
+  { id: "healthy-bull-expansion", label: "Bull Expansion" },
+  { id: "late-cycle-acceleration", label: "Late Bull" },
+  { id: "euphoric-overheating", label: "Overheating" },
+  { id: "distribution-and-top-formation", label: "Distribution" },
+  { id: "post-top-unwind", label: "Unwind" },
+];
+
+function CycleAnalogPhaseTimeline({
+  dominantPhaseId,
+  matches,
+}: {
+  dominantPhaseId?: DashboardCycleAnalog["phaseId"];
+  matches: DashboardCycleAnalogWindow[];
+}) {
+  const width = 760;
+  const height = Math.max(170, 96 + matches.length * 32);
+  const leftColumn = 180;
+  const rightPadding = 36;
+  const xForIndex = (index: number) =>
+    leftColumn + (index / Math.max(phaseTimelineOrder.length - 1, 1)) * (width - leftColumn - rightPadding);
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-auto w-full"
+      aria-label="Prior-cycle analog phases"
+      role="img"
+    >
+      <line
+        x1={leftColumn}
+        y1={50}
+        x2={width - rightPadding}
+        y2={50}
+        stroke="#d6d3d1"
+        strokeWidth="2"
+      />
+      {phaseTimelineOrder.map((phase, index) => {
+        const x = xForIndex(index);
+        const isDominant = phase.id === dominantPhaseId;
+
+        return (
+          <g key={phase.id}>
+            <circle
+              cx={x}
+              cy={50}
+              r={isDominant ? 8 : 5}
+              fill={isDominant ? "#f97316" : "#a8a29e"}
+              stroke={isDominant ? "#fdba74" : "none"}
+              strokeWidth={isDominant ? 2 : 0}
+            />
+            <text
+              x={x}
+              y={20}
+              textAnchor="middle"
+              fontSize="11"
+              fill={isDominant ? "#f97316" : "#78716c"}
+            >
+              {phase.label}
+            </text>
+          </g>
+        );
+      })}
+      {matches.map((match, index) => {
+        const phaseIndex = phaseTimelineOrder.findIndex((phase) => phase.id === match.phaseId);
+        const x = xForIndex(Math.max(phaseIndex, 0));
+        const y = 86 + index * 32;
+
+        return (
+          <g key={`${match.cycleId}-${match.bestMatchDate}`}>
+            <text
+              x={16}
+              y={y + 4}
+              fontSize="12"
+              fill="#44403c"
+            >
+              {match.cycleLabel}
+            </text>
+            <line
+              x1={leftColumn}
+              y1={y}
+              x2={width - rightPadding}
+              y2={y}
+              stroke="#f5f5f4"
+              strokeWidth="1"
+            />
+            <circle
+              cx={x}
+              cy={y}
+              r="7"
+              fill="#0f172a"
+              stroke="#fdba74"
+              strokeWidth="2"
+            />
+            <text
+              x={x + 12}
+              y={y + 4}
+              fontSize="11"
+              fill="#57534e"
+            >
+              {match.phaseLabel}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function CycleAnalogDistanceChart({
+  matches,
+}: {
+  matches: DashboardCycleAnalogWindow[];
+}) {
+  const width = 760;
+  const barWidth = 300;
+  const leftColumn = 180;
+  const rowHeight = 36;
+  const height = Math.max(120, 28 + matches.length * rowHeight);
+  const maxDistance = Math.max(...matches.map((match) => match.distance), 0.01);
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-auto w-full"
+      aria-label="Analog distance comparison by prior cycle"
+      role="img"
+    >
+      {matches.map((match, index) => {
+        const y = 24 + index * rowHeight;
+        const normalized = clamp(match.distance / maxDistance, 0.08, 1);
+        const fillWidth = normalized * barWidth;
+        const isStrongest = index === 0;
+
+        return (
+          <g key={`${match.cycleId}-${match.distance}`}>
+            <text
+              x={16}
+              y={y + 13}
+              fontSize="12"
+              fill="#44403c"
+            >
+              {match.cycleLabel}
+            </text>
+            <rect
+              x={leftColumn}
+              y={y}
+              width={barWidth}
+              height="14"
+              rx="7"
+              fill="#e7e5e4"
+            />
+            <rect
+              x={leftColumn}
+              y={y}
+              width={fillWidth}
+              height="14"
+              rx="7"
+              fill={isStrongest ? "#f97316" : "#57534e"}
+              opacity={isStrongest ? 0.9 : 0.75}
+            />
+            <text
+              x={leftColumn + barWidth + 16}
+              y={y + 12}
+              fontSize="11"
+              fill="#57534e"
+            >
+              distance {formatDistance(match.distance)}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function CycleAnalogModal({
+  cycleAnalog,
+  closeButtonRef,
+  onClose,
+}: {
+  cycleAnalog: DashboardCycleAnalog;
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}) {
+  const matches = cycleAnalog.perCycleMatches ?? [];
+  const phaseDistribution = cycleAnalog.phaseDistribution ?? [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cycle-analog-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
+              Cycle Analog
+            </p>
+            <h2
+              id="cycle-analog-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {cycleAnalog.label}
+            </h2>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="space-y-8 px-6 py-6 lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl">
+                <p className="text-sm leading-7 text-stone-600">{cycleAnalog.summary}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-700">
+                  {cycleAnalog.agreement}% agreement
+                </span>
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                  {cycleAnalog.confidence}% confidence
+                </span>
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                  {cycleAnalog.methodology}
+                </span>
+              </div>
+            </div>
+
+            {phaseDistribution.length > 0 && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {phaseDistribution.map((phase) => (
+                  <span
+                    key={phase.phaseId}
+                    className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600"
+                  >
+                    {phase.label}: {phase.cyclesMatched} cycles
+                  </span>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {matches.length > 0 ? (
+            <section className="grid gap-4 lg:grid-cols-3">
+              {matches.map((match) => (
+                <article
+                  key={`${match.cycleId}-${match.bestMatchDate}`}
+                  className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    {match.cycleLabel}
+                  </p>
+                  <h3 className="mt-2 text-xl font-semibold text-stone-950">{match.phaseLabel}</h3>
+                  <p className="mt-1 text-sm text-stone-600">Best match {match.bestMatchDateLabel}</p>
+                  <div className="mt-4 grid gap-3 text-sm text-stone-600">
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Phase window</p>
+                      <p className="mt-1 font-medium text-stone-900">
+                        {formatWindowLabel(match.windowStartDate, match.windowEndDate)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Distance</p>
+                      <p className="mt-1 font-medium text-stone-900">{formatDistance(match.distance)}</p>
+                    </div>
+                    <div className="rounded-2xl bg-stone-50 p-3">
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Coverage</p>
+                      <p className="mt-1 font-medium text-stone-900">{formatCoverage(match.coverage)}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+          ) : (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
+              Detailed prior-cycle matches will appear after the next synthetic refresh computes the new phase-window analog payload.
+            </section>
+          )}
+
+          {matches.length > 0 && (
+            <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+              <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Phase Ladder
+                </p>
+                <div className="mt-4">
+                  <CycleAnalogPhaseTimeline
+                    dominantPhaseId={cycleAnalog.phaseId}
+                    matches={matches}
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Distance By Cycle
+                </p>
+                <div className="mt-4">
+                  <CycleAnalogDistanceChart matches={matches} />
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Indicator Support
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {cycleAnalog.indicatorIds.map((indicatorId) => (
+                <span
+                  key={indicatorId}
+                  className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm text-stone-700"
+                >
+                  {indicatorId}
+                </span>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DebugPanel({
   metrics,
   generatedAt,
@@ -479,6 +893,9 @@ export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
+  const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
+  const cycleAnalogTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const cycleAnalogCloseRef = useRef<HTMLButtonElement | null>(null);
   const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
 
   const activePanel =
@@ -509,6 +926,43 @@ export function BtcDashboard() {
   const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
   const cycleAnalog = snapshot?.summary.cycleAnalog;
+
+  useEffect(() => {
+    if (!cycleAnalog) {
+      setShowCycleAnalogModal(false);
+    }
+  }, [cycleAnalog]);
+
+  useEffect(() => {
+    if (!showCycleAnalogModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => cycleAnalogCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowCycleAnalogModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => cycleAnalogTriggerRef.current?.focus());
+      }
+    };
+  }, [showCycleAnalogModal]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
@@ -613,16 +1067,29 @@ export function BtcDashboard() {
                 <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
                 <p className="mt-1 text-sm text-stone-300">Metrics across 4 dashboard panels</p>
               </div>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+              <button
+                ref={cycleAnalogTriggerRef}
+                type="button"
+                onClick={() => cycleAnalog && setShowCycleAnalogModal(true)}
+                disabled={!cycleAnalog}
+                aria-haspopup="dialog"
+                aria-expanded={showCycleAnalogModal}
+                className={[
+                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  cycleAnalog
+                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                    : "cursor-default opacity-80",
+                ].join(" ")}
+              >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Cycle analog</p>
                 <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? "Pending"}</p>
                 <p className="mt-1 text-sm text-stone-300">
-                  {cycleAnalogDatesLabel(cycleAnalog?.closestDateLabels)}
+                  {cycleAnalogDatesLabel(cycleAnalog)}
                 </p>
                 <p className="mt-1 text-xs text-stone-400">
                   {cycleAnalogAgreementLabel(cycleAnalog)}
                 </p>
-              </div>
+              </button>
             </div>
           </div>
         </header>
@@ -722,6 +1189,14 @@ export function BtcDashboard() {
             scheduler={scheduler}
             groups={groups}
             warnings={warnings}
+          />
+        )}
+
+        {showCycleAnalogModal && cycleAnalog && (
+          <CycleAnalogModal
+            cycleAnalog={cycleAnalog}
+            closeButtonRef={cycleAnalogCloseRef}
+            onClose={() => setShowCycleAnalogModal(false)}
           />
         )}
       </div>

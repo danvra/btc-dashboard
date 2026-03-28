@@ -25,7 +25,8 @@ export default async function handler(req, res) {
   const staleWhileRevalidateSeconds = Math.max(60, Math.round(ttlSeconds / 2));
 
   try {
-    const payload = await ensureDashboardCache({ persist: false });
+    const result = await ensureDashboardCache();
+    const payload = result.compositePayload;
     const cacheHeader = `public, max-age=0, s-maxage=${ttlSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`;
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -34,6 +35,7 @@ export default async function handler(req, res) {
     res.setHeader("Vercel-CDN-Cache-Control", cacheHeader);
     res.setHeader("X-Dashboard-Cache-Ttl-Hours", String(ttlHours));
     res.setHeader("X-Dashboard-Fast-Ttl-Seconds", String(fastTtlSeconds));
+    res.setHeader("X-Dashboard-Storage-Mode", result.storageMode);
     res.status(200).send(JSON.stringify(payload));
   } catch (error) {
     res.status(500).json({

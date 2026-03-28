@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/dashboard-cache",
+      "path": "/api/dashboard-cache-warm",
       "schedule": "0 0 * * *"
     }
   ]
