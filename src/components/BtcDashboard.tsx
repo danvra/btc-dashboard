@@ -29,6 +29,58 @@ const dataModeClasses = {
   seeded: "bg-stone-100 text-stone-700 ring-stone-200",
 };
 
+const freshnessClasses = {
+  fresh: "text-emerald-700",
+  aging: "text-amber-700",
+  stale: "text-rose-700",
+  unknown: "text-stone-500",
+};
+
+function formatRelativeTime(timestamp?: number) {
+  if (!timestamp) {
+    return "No timestamp";
+  }
+
+  const diffMs = Date.now() - timestamp;
+  const isFuture = diffMs < 0;
+  const diffMinutes = Math.max(Math.round(Math.abs(diffMs) / 60000), 0);
+
+  if (diffMinutes < 1) {
+    return isFuture ? "in under a minute" : "just now";
+  }
+
+  if (diffMinutes < 60) {
+    return isFuture ? `in ${diffMinutes}m` : `${diffMinutes}m ago`;
+  }
+
+  const diffHours = Math.round(diffMinutes / 60);
+
+  if (diffHours < 48) {
+    return isFuture ? `in ${diffHours}h` : `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.round(diffHours / 24);
+  return isFuture ? `in ${diffDays}d` : `${diffDays}d ago`;
+}
+
+function freshnessTone(timestamp?: number) {
+  if (!timestamp) {
+    return "unknown";
+  }
+
+  const diffHours = (Date.now() - timestamp) / 3_600_000;
+
+  if (diffHours <= 6) {
+    return "fresh";
+  }
+
+  if (diffHours <= 24) {
+    return "aging";
+  }
+
+  return "stale";
+}
+
 function Sparkline({
   values,
   tone,
@@ -128,13 +180,20 @@ function MetricCard({
       </div>
 
       <div className="mt-3">
-        <span
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ring-1 ${
-            dataModeClasses[metricState.dataMode ?? "seeded"]
-          }`}
-        >
-          {metricState.dataMode ?? "seeded"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span
+            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] ring-1 ${
+              dataModeClasses[metricState.dataMode ?? "seeded"]
+            }`}
+          >
+            {metricState.dataMode ?? "seeded"}
+          </span>
+          <span
+            className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}
+          >
+            {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+          </span>
+        </div>
       </div>
 
       <div className="mt-4 flex items-end justify-between gap-4">
@@ -188,9 +247,20 @@ function LearnPanel({
             {metricState.currentValue}
           </dd>
           <p className="mt-1 text-sm text-stone-600">{metricState.deltaLabel}</p>
-          <div className="mt-3 inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
-            {metricState.dataMode ?? "seeded"}
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <div className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
+              {metricState.dataMode ?? "seeded"}
+            </div>
+            <div className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}>
+              {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+            </div>
           </div>
+        </div>
+        <div className="rounded-2xl bg-stone-50 p-4">
+          <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+            Source
+          </dt>
+          <dd className="mt-2 text-sm leading-6 text-stone-700">{metricState.sourceLabel}</dd>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
@@ -213,9 +283,76 @@ function LearnPanel({
   );
 }
 
+function DebugPanel({
+  metrics,
+  generatedAt,
+  nextSuggestedRunAt,
+  scheduler,
+}: {
+  metrics: Record<string, DashboardMetricState>;
+  generatedAt?: number;
+  nextSuggestedRunAt?: number;
+  scheduler?: string;
+}) {
+  const counts = Object.values(metrics).reduce<Record<string, number>>((acc, metric) => {
+    const key = metric.dataMode ?? "seeded";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <section className="mt-6 rounded-[1.5rem] border border-stone-200 bg-white/90 p-5 shadow-sm">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
+            Debug / Cache
+          </p>
+          <h3 className="mt-1 text-xl font-semibold text-stone-950">Prototype source health</h3>
+        </div>
+        <div className="text-sm text-stone-500">
+          {generatedAt ? `Cache updated ${formatRelativeTime(generatedAt)}` : "Cache timestamp unavailable"}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-2xl bg-stone-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Seeded</p>
+          <p className="mt-2 text-2xl font-semibold text-stone-950">{counts.seeded ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-sky-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">Scraped</p>
+          <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.scraped ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-amber-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">Approx</p>
+          <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.approx ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-emerald-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Live</p>
+          <p className="mt-2 text-2xl font-semibold text-emerald-950">{counts.live ?? 0}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-stone-200 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Scheduler</p>
+          <p className="mt-2 text-sm text-stone-700">{scheduler ?? "Unknown"}</p>
+        </div>
+        <div className="rounded-2xl border border-stone-200 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Next suggested run</p>
+          <p className="mt-2 text-sm text-stone-700">
+            {nextSuggestedRunAt ? formatRelativeTime(nextSuggestedRunAt) : "Not scheduled"}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
+  const [showDebug, setShowDebug] = useState(false);
   const { snapshot, isLoading, isRefreshing, error, refresh } = useDashboardData();
 
   const activePanel =
@@ -239,6 +376,10 @@ export function BtcDashboard() {
   const btcPrice = snapshot?.summary.btcPrice ?? "Loading";
   const btcPriceChange = snapshot?.summary.btcPriceChange ?? "Connecting...";
   const warnings = snapshot?.summary.warnings ?? [];
+  const allMetricStates = snapshot?.metrics ?? {};
+  const cacheGeneratedAt = snapshot?.meta?.generatedAt;
+  const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
+  const scheduler = snapshot?.meta?.scheduler;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
@@ -270,6 +411,13 @@ export function BtcDashboard() {
                 <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200">
                   Live metrics: <span className="font-semibold text-white">{liveMetricCount}</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDebug((current) => !current)}
+                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-stone-200 transition hover:bg-white/10"
+                >
+                  {showDebug ? "Hide debug" : "Show debug"}
+                </button>
               </div>
             </div>
 
@@ -387,6 +535,15 @@ export function BtcDashboard() {
 
           <LearnPanel metric={selectedMetric} metricState={selectedMetricState} />
         </section>
+
+        {showDebug && (
+          <DebugPanel
+            metrics={allMetricStates}
+            generatedAt={cacheGeneratedAt}
+            nextSuggestedRunAt={nextSuggestedRunAt}
+            scheduler={scheduler}
+          />
+        )}
       </div>
     </div>
   );
