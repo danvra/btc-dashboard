@@ -649,6 +649,28 @@ export async function updateDashboardCache(options = {}) {
       value: point.value > 0 ? 1 - 1 / point.value : 0,
     }))
     .filter((point) => Number.isFinite(point.value));
+  const oldSupplyShareSeries = sumSeries([
+    hodl1y2ySeries,
+    hodl2y3ySeries,
+    hodl3y4ySeries,
+    hodl4y8ySeries,
+    hodl8ySeries,
+  ]);
+  const nvtRelativeToHighSeries = combineSeries(
+    nvtSignalSeries,
+    nvtSignalHighSeries,
+    (nvtValue, highValue) => (highValue > 0 ? nvtValue / highValue : 0),
+  );
+  const powerLawRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawSeries,
+    (priceValue, modelValue) => (modelValue > 0 ? priceValue / modelValue : 0),
+  );
+  const powerLawFloorRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawFloorSeries,
+    (priceValue, floorValue) => (floorValue > 0 ? priceValue / floorValue : 0),
+  );
   const generatedAt = Date.now();
 
   if (!rateProbabilityRows.length) {
