@@ -164,8 +164,8 @@ function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
 }
 
 function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
-  if (!cycleAnalog) {
-    return "Waiting for cross-cycle matches";
+  if (!cycleAnalog?.perCycleMatches?.length) {
+    return "Phase-window analog pending refresh";
   }
 
   return `${cycleAnalog.agreement}% of prior cycles match this phase`;
