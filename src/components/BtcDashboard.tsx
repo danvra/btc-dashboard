@@ -36,6 +36,14 @@ const freshnessClasses = {
   unknown: "text-stone-500",
 };
 
+function proxyNote(metricState: DashboardMetricState) {
+  if (metricState.dataMode !== "approx") {
+    return null;
+  }
+
+  return `Proxy note: this card uses a best-effort approximation from ${metricState.sourceLabel}.`;
+}
+
 function formatRelativeTime(timestamp?: number) {
   if (!timestamp) {
     return "No timestamp";
@@ -153,6 +161,8 @@ function MetricCard({
   selected: boolean;
   onSelect: (metric: DashboardMetric) => void;
 }) {
+  const note = proxyNote(metricState);
+
   return (
     <button
       type="button"
@@ -218,6 +228,11 @@ function MetricCard({
         <p>
           <span className="font-medium text-stone-900">Matters because:</span> {metric.tooltip.why}
         </p>
+        {note && (
+          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
+            {note}
+          </p>
+        )}
       </div>
     </button>
   );
@@ -230,6 +245,8 @@ function LearnPanel({
   metric: DashboardMetric;
   metricState: DashboardMetricState;
 }) {
+  const note = proxyNote(metricState);
+
   return (
     <aside className="rounded-[1.75rem] border border-stone-200 bg-white/95 p-6 shadow-panel lg:sticky lg:top-6">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
@@ -264,6 +281,14 @@ function LearnPanel({
           </dt>
           <dd className="mt-2 text-sm leading-6 text-stone-700">{metricState.sourceLabel}</dd>
         </div>
+        {note && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
+              Proxy note
+            </dt>
+            <dd className="mt-2 text-sm leading-6 text-amber-900">{note}</dd>
+          </div>
+        )}
         <div className="rounded-2xl bg-emerald-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
             Bullish read
