@@ -7,6 +7,34 @@ export interface DashboardMetricState extends MetricSample {
   dataMode?: "seeded" | "live" | "scraped" | "approx";
 }
 
+export type DashboardCyclePhaseId =
+  | "deep-capitulation"
+  | "bottoming-and-reaccumulation"
+  | "early-recovery-under-disbelief"
+  | "healthy-bull-expansion"
+  | "late-cycle-acceleration"
+  | "euphoric-overheating"
+  | "distribution-and-top-formation"
+  | "post-top-unwind";
+
+export interface DashboardCycleEstimate {
+  asOfDate: string;
+  phaseId: DashboardCyclePhaseId;
+  label: string;
+  confidence: number;
+  score: number;
+  heatScore: number;
+  damageScore: number;
+  distributionScore: number;
+  summary: string;
+  rationale: string;
+  supportingMetricIds: string[];
+  conflictingMetricIds: string[];
+  source: "rule-based" | "llm-assisted";
+  model?: string;
+  change: "earlier" | "later" | "unchanged";
+}
+
 export interface DashboardDataSummary {
   btcPrice: string;
   btcPriceChange: string;
@@ -14,6 +42,7 @@ export interface DashboardDataSummary {
   mode: "fallback" | "mixed" | "live";
   warnings: string[];
   lastUpdatedAt?: number;
+  cycleEstimate?: DashboardCycleEstimate;
 }
 
 export interface DashboardDataSnapshot {
@@ -559,12 +588,16 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     coingecko,
     markets,
     mvrvSeries,
+    nuplSeries,
     minerRevenueSeries,
     percentSupplyInProfitSeries,
     reserveRiskSeries,
     livelinessSeries,
     lthSupplySeries,
     sthSupplySeries,
+    lthMvrvSeries,
+    sthMvrvSeries,
+    rhodlRatioSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -593,12 +626,16 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
           })),
         ),
       ),
+      safePoints(() => fetchBGeometricsPlotlySeries("/reports/bitcoin_nupl_g.html", "NUPL")),
       safePoints(() => fetchBlockchainChart("miners-revenue", "1year")),
       safePoints(() => fetchBGeometricsSeries("/files/profit_loss.json")),
       safePoints(() => fetchBGeometricsSeries("/files/reserve_risk.json")),
       safePoints(() => fetchBGeometricsPlotlySeries("/reports/bitcoin_liveliness_g.html", "Liveliness")),
       safePoints(() => fetchBGeometricsSeries("/files/lth_supply.json")),
       safePoints(() => fetchBGeometricsSeries("/files/sth_supply.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/lth_mvrv.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/sth_mvrv.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/rhodl_1m.json")),
       safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
       safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
       safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
@@ -680,6 +717,18 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       timestamp: Number(row.timestamp),
       impliedRate: Number(row.impliedRate),
     }));
+  const lthNuplSeries = lthMvrvSeries
+    .map((point) => ({
+      timestamp: point.timestamp,
+      value: point.value > 0 ? 1 - 1 / point.value : 0,
+    }))
+    .filter((point) => Number.isFinite(point.value));
+  const sthNuplSeries = sthMvrvSeries
+    .map((point) => ({
+      timestamp: point.timestamp,
+      value: point.value > 0 ? 1 - 1 / point.value : 0,
+    }))
+    .filter((point) => Number.isFinite(point.value));
 
   const publicUpdates: Record<string, DashboardMetricState> = {
     "active-addresses": buildMetricState("active-addresses", activeAddresses, {
@@ -801,6 +850,78 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       isLive: true,
       asOf: lastPoint(mayerMultipleSeries)?.timestamp,
       dataMode: "approx",
+    };
+  }
+
+  if (nuplSeries.length > 0) {
+    const latestNupl = lastPoint(nuplSeries)?.value ?? 0;
+    const previousNupl = previousPoint(nuplSeries)?.value ?? latestNupl;
+
+    publicUpdates.nupl = {
+      ...metrics.nupl,
+      currentValue: formatRatio(latestNupl, 2),
+      deltaLabel: "Net unrealized profit / loss",
+      trend: inferTrend(latestNupl, previousNupl),
+      status: latestNupl > 0.75 ? "bearish" : latestNupl > 0.25 ? "neutral" : "bullish",
+      series: toSeries(nuplSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(nuplSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (lthNuplSeries.length > 0) {
+    const latestLthNupl = lastPoint(lthNuplSeries)?.value ?? 0;
+    const previousLthNupl = previousPoint(lthNuplSeries)?.value ?? latestLthNupl;
+
+    publicUpdates["lth-nupl"] = {
+      ...metrics["lth-nupl"],
+      currentValue: formatRatio(latestLthNupl, 2),
+      deltaLabel: "Derived from public LTH MVRV",
+      trend: inferTrend(latestLthNupl, previousLthNupl),
+      status: latestLthNupl > 0.6 ? "bearish" : latestLthNupl > 0.2 ? "neutral" : "bullish",
+      series: toSeries(lthNuplSeries),
+      sourceLabel: "BGeometrics cohort proxy",
+      isLive: true,
+      asOf: lastPoint(lthNuplSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
+
+  if (sthNuplSeries.length > 0) {
+    const latestSthNupl = lastPoint(sthNuplSeries)?.value ?? 0;
+    const previousSthNupl = previousPoint(sthNuplSeries)?.value ?? latestSthNupl;
+
+    publicUpdates["sth-nupl"] = {
+      ...metrics["sth-nupl"],
+      currentValue: formatRatio(latestSthNupl, 2),
+      deltaLabel: "Derived from public STH MVRV",
+      trend: inferTrend(latestSthNupl, previousSthNupl),
+      status: latestSthNupl > 0.25 ? "bearish" : latestSthNupl > 0 ? "neutral" : "bullish",
+      series: toSeries(sthNuplSeries),
+      sourceLabel: "BGeometrics cohort proxy",
+      isLive: true,
+      asOf: lastPoint(sthNuplSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
+
+  if (rhodlRatioSeries.length > 0) {
+    const latestRhodl = lastPoint(rhodlRatioSeries)?.value ?? 0;
+    const previousRhodl = previousPoint(rhodlRatioSeries)?.value ?? latestRhodl;
+
+    publicUpdates["rhodl-ratio"] = {
+      ...metrics["rhodl-ratio"],
+      currentValue: formatCompactNumber(latestRhodl, 1),
+      deltaLabel: "1M smoothed RHODL ratio",
+      trend: inferTrend(latestRhodl, previousRhodl),
+      status: latestRhodl > 2000 ? "bearish" : latestRhodl > 700 ? "neutral" : "bullish",
+      series: toSeries(rhodlRatioSeries),
+      sourceLabel: "BGeometrics",
+      isLive: true,
+      asOf: lastPoint(rhodlRatioSeries)?.timestamp,
+      dataMode: "scraped",
     };
   }
 
@@ -1346,6 +1467,10 @@ export async function fetchDashboardData(): Promise<DashboardDataSnapshot> {
 
   if (metrics["fed-rate-expectations"]?.dataMode === "approx") {
     warnings.push("Fed Rate Expectations fell back to a FRED proxy because the public meeting-probability feed was unavailable.");
+  }
+
+  if (metrics["lth-nupl"]?.dataMode === "approx" || metrics["sth-nupl"]?.dataMode === "approx") {
+    warnings.push("LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series.");
   }
 
   metrics = await fetchFredMetrics(metrics);

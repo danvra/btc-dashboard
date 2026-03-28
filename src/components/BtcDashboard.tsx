@@ -7,7 +7,7 @@ import {
 } from "../lib/dashboard-definitions";
 import { getMetricSample } from "../lib/dashboard-samples";
 import { useDashboardData } from "../hooks/useDashboardData";
-import type { DashboardMetricState } from "../lib/dashboard-data";
+import type { DashboardCycleEstimate, DashboardMetricState } from "../lib/dashboard-data";
 
 const panelAccent: Record<DashboardPanelId, string> = {
   "price-action": "from-orange-500/20 to-amber-300/10",
@@ -34,6 +34,22 @@ const freshnessClasses = {
   aging: "text-amber-700",
   stale: "text-rose-700",
   unknown: "text-stone-500",
+};
+
+const cycleEstimateClasses: Record<string, string> = {
+  "deep-capitulation": "border-rose-400/30 bg-rose-500/10",
+  "bottoming-and-reaccumulation": "border-amber-400/30 bg-amber-400/10",
+  "early-recovery-under-disbelief": "border-sky-400/30 bg-sky-400/10",
+  "healthy-bull-expansion": "border-emerald-400/30 bg-emerald-400/10",
+  "late-cycle-acceleration": "border-orange-400/30 bg-orange-400/10",
+  "euphoric-overheating": "border-fuchsia-400/30 bg-fuchsia-400/10",
+  "distribution-and-top-formation": "border-rose-400/30 bg-rose-400/10",
+  "post-top-unwind": "border-stone-300/20 bg-white/5",
+};
+
+const cycleSourceLabels = {
+  "rule-based": "Rule engine",
+  "llm-assisted": "LLM assisted",
 };
 
 function proxyNote(metricState: DashboardMetricState) {
@@ -87,6 +103,18 @@ function freshnessTone(timestamp?: number) {
   }
 
   return "stale";
+}
+
+function cycleChangeLabel(change?: DashboardCycleEstimate["change"]) {
+  if (change === "later") {
+    return "Shifted later";
+  }
+
+  if (change === "earlier") {
+    return "Shifted earlier";
+  }
+
+  return "Unchanged";
 }
 
 function Sparkline({
@@ -407,6 +435,7 @@ export function BtcDashboard() {
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
   const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
   const scheduler = snapshot?.meta?.scheduler;
+  const cycleEstimate = snapshot?.summary.cycleEstimate;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
@@ -458,7 +487,51 @@ export function BtcDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div
+                className={[
+                  "rounded-[1.5rem] border p-4 sm:col-span-2 lg:col-span-1 xl:col-span-2",
+                  cycleEstimate
+                    ? cycleEstimateClasses[cycleEstimate.phaseId]
+                    : "border-white/10 bg-white/5",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
+                      Daily cycle estimate
+                    </p>
+                    <p className="mt-2 text-2xl font-semibold">
+                      {cycleEstimate?.label ?? "Estimate pending"}
+                    </p>
+                  </div>
+                  {cycleEstimate && (
+                    <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1 text-xs font-semibold text-stone-100">
+                      {cycleEstimate.confidence}% confidence
+                    </div>
+                  )}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-stone-200">
+                  {cycleEstimate?.summary ??
+                    "Cycle estimation appears once the dashboard has a synthesized indicator snapshot."}
+                </p>
+                {cycleEstimate && (
+                  <div className="mt-3 flex flex-wrap gap-2 text-xs text-stone-200">
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      Score {cycleEstimate.score}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleSourceLabels[cycleEstimate.source]}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleChangeLabel(cycleEstimate.change)}
+                    </span>
+                    <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
+                      {cycleEstimate.asOfDate}
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">BTC price</p>
                 <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>

@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { estimateCyclePosition } from "../lib/server/cycle-estimate.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,7 +16,7 @@ const MEMPOOL_API_BASE = "https://mempool.space/api/v1";
 const FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
 const RATE_PROBABILITY_API = "https://rateprobability.com/api/latest";
-const TOTAL_METRIC_COUNT = 31;
+const TOTAL_METRIC_COUNT = 35;
 
 const jitterMinutes = 55 + Math.floor(Math.random() * 11);
 
@@ -399,7 +400,8 @@ async function fetchBitInfoSnapshot() {
   };
 }
 
-export async function updateDashboardCache() {
+export async function updateDashboardCache(options = {}) {
+  const { persist = true } = options;
   const existing = await readExistingCache();
   const history = await readExistingHistory();
   const warnings = [
@@ -420,12 +422,16 @@ export async function updateDashboardCache() {
     mempoolDifficulty,
     markets,
     mvrvSeries,
+    nuplSeries,
     minerRevenueSeries,
     percentSupplyInProfitSeries,
     reserveRiskSeries,
     livelinessSeries,
     lthSupplySeries,
     sthSupplySeries,
+    lthMvrvSeries,
+    sthMvrvSeries,
+    rhodlRatioSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -465,12 +471,16 @@ export async function updateDashboardCache() {
         })),
       ),
     ),
+    safePoints(() => fetchBGeometricsPlotlySeries("/reports/bitcoin_nupl_g.html", "NUPL")),
     safePoints(() => fetchBlockchainChart("miners-revenue", "1year")),
     safePoints(() => fetchBGeometricsSeries("/files/profit_loss.json")),
     safePoints(() => fetchBGeometricsSeries("/files/reserve_risk.json")),
     safePoints(() => fetchBGeometricsPlotlySeries("/reports/bitcoin_liveliness_g.html", "Liveliness")),
     safePoints(() => fetchBGeometricsSeries("/files/lth_supply.json")),
     safePoints(() => fetchBGeometricsSeries("/files/sth_supply.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/lth_mvrv.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/sth_mvrv.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/rhodl_1m.json")),
     safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
     safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
     safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
@@ -584,10 +594,26 @@ export async function updateDashboardCache() {
       timestamp: Number(row.timestamp),
       impliedRate: Number(row.impliedRate),
     }));
+  const lthNuplSeries = lthMvrvSeries
+    .map((point) => ({
+      timestamp: point.timestamp,
+      value: point.value > 0 ? 1 - 1 / point.value : 0,
+    }))
+    .filter((point) => Number.isFinite(point.value));
+  const sthNuplSeries = sthMvrvSeries
+    .map((point) => ({
+      timestamp: point.timestamp,
+      value: point.value > 0 ? 1 - 1 / point.value : 0,
+    }))
+    .filter((point) => Number.isFinite(point.value));
   const generatedAt = Date.now();
 
   if (!rateProbabilityRows.length) {
     warnings.push("Fed Rate Expectations fell back to a FRED proxy because the public meeting-probability feed was unavailable.");
+  }
+
+  if (lthNuplSeries.length || sthNuplSeries.length) {
+    warnings.push("LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series.");
   }
 
   if (cddValue) {
@@ -846,6 +872,99 @@ export async function updateDashboardCache() {
             isLive: true,
             asOf: mayerMultipleSeries.at(-1)?.timestamp,
             dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(nuplSeries.length > 0
+      ? {
+          nupl: {
+            metricId: "nupl",
+            currentValue: formatRatio(nuplSeries.at(-1)?.value ?? 0, 2),
+            deltaLabel: "Net unrealized profit / loss",
+            sourceLabel: "BGeometrics",
+            trend: inferTrend(nuplSeries.at(-1)?.value ?? 0, nuplSeries.at(-2)?.value ?? nuplSeries.at(-1)?.value ?? 0),
+            status:
+              (nuplSeries.at(-1)?.value ?? 0) > 0.75
+                ? "bearish"
+                : (nuplSeries.at(-1)?.value ?? 0) > 0.25
+                  ? "neutral"
+                  : "bullish",
+            series: toSeries(nuplSeries),
+            isLive: true,
+            asOf: nuplSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
+          },
+        }
+      : {}),
+    ...(lthNuplSeries.length > 0
+      ? {
+          "lth-nupl": {
+            metricId: "lth-nupl",
+            currentValue: formatRatio(lthNuplSeries.at(-1)?.value ?? 0, 2),
+            deltaLabel: "Derived from public LTH MVRV",
+            sourceLabel: "BGeometrics cohort proxy",
+            trend: inferTrend(
+              lthNuplSeries.at(-1)?.value ?? 0,
+              lthNuplSeries.at(-2)?.value ?? lthNuplSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (lthNuplSeries.at(-1)?.value ?? 0) > 0.6
+                ? "bearish"
+                : (lthNuplSeries.at(-1)?.value ?? 0) > 0.2
+                  ? "neutral"
+                  : "bullish",
+            series: toSeries(lthNuplSeries),
+            isLive: true,
+            asOf: lthNuplSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(sthNuplSeries.length > 0
+      ? {
+          "sth-nupl": {
+            metricId: "sth-nupl",
+            currentValue: formatRatio(sthNuplSeries.at(-1)?.value ?? 0, 2),
+            deltaLabel: "Derived from public STH MVRV",
+            sourceLabel: "BGeometrics cohort proxy",
+            trend: inferTrend(
+              sthNuplSeries.at(-1)?.value ?? 0,
+              sthNuplSeries.at(-2)?.value ?? sthNuplSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (sthNuplSeries.at(-1)?.value ?? 0) > 0.25
+                ? "bearish"
+                : (sthNuplSeries.at(-1)?.value ?? 0) > 0
+                  ? "neutral"
+                  : "bullish",
+            series: toSeries(sthNuplSeries),
+            isLive: true,
+            asOf: sthNuplSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(rhodlRatioSeries.length > 0
+      ? {
+          "rhodl-ratio": {
+            metricId: "rhodl-ratio",
+            currentValue: formatCompact(rhodlRatioSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "1M smoothed RHODL ratio",
+            sourceLabel: "BGeometrics",
+            trend: inferTrend(
+              rhodlRatioSeries.at(-1)?.value ?? 0,
+              rhodlRatioSeries.at(-2)?.value ?? rhodlRatioSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (rhodlRatioSeries.at(-1)?.value ?? 0) > 2000
+                ? "bearish"
+                : (rhodlRatioSeries.at(-1)?.value ?? 0) > 700
+                  ? "neutral"
+                  : "bullish",
+            series: toSeries(rhodlRatioSeries),
+            isLive: true,
+            asOf: rhodlRatioSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
           },
         }
       : {}),
@@ -1251,6 +1370,7 @@ export async function updateDashboardCache() {
 
   const liveMetricCount = Object.values(metrics).filter((metric) => metric?.isLive).length;
   const nextSuggestedRunAt = generatedAt + jitterMinutes * 60 * 1000;
+  const cycleEstimate = await estimateCyclePosition(metrics, generatedAt, existing.summary?.cycleEstimate);
 
   const payload = {
     meta: {
@@ -1265,13 +1385,16 @@ export async function updateDashboardCache() {
       mode: liveMetricCount === TOTAL_METRIC_COUNT ? "live" : liveMetricCount > 0 ? "mixed" : "fallback",
       warnings,
       lastUpdatedAt: generatedAt,
+      cycleEstimate,
     },
     metrics,
   };
 
-  await mkdir(publicDir, { recursive: true });
-  await writeFile(cacheFile, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
-  await writeFile(historyFile, `${JSON.stringify(history, null, 2)}\n`, "utf8");
+  if (persist) {
+    await mkdir(publicDir, { recursive: true });
+    await writeFile(cacheFile, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+    await writeFile(historyFile, `${JSON.stringify(history, null, 2)}\n`, "utf8");
+  }
 
   return payload;
 }

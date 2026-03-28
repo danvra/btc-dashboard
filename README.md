@@ -50,3 +50,27 @@ Commands:
 2. `npm run cache:watch`
 
 `cache:watch` runs forever and refreshes the cache roughly every 55-65 minutes.
+
+## Cycle estimate
+
+The header now supports a daily BTC cycle estimate that is derived from the dashboard indicators.
+
+- A deterministic first-pass estimator always runs
+- An optional LLM refinement layer runs when `OPENAI_API_KEY` is present
+- The estimator is designed to choose from a fixed set of verbose cycle positions instead of inventing labels
+
+## Vercel deployment
+
+Production should use the API cache route instead of the static `public/dashboard-cache.json` file:
+
+- The app first tries `/api/dashboard-cache`
+- That route rebuilds the payload server-side and returns CDN cache headers
+- `DASHBOARD_CACHE_TTL_HOURS` controls the cache freshness window and defaults to `24`
+- `vercel.json` warms the route once per day with a cron request at `00:00 UTC`
+
+Optional environment variables:
+
+- `DASHBOARD_CACHE_TTL_HOURS=24`
+- `OPENAI_API_KEY=...`
+- `CYCLE_ESTIMATE_MODEL=gpt-4o-mini`
+- `CYCLE_ESTIMATE_USE_LLM=true`

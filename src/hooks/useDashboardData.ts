@@ -14,14 +14,26 @@ export function useDashboardData() {
   const [error, setError] = useState<string | null>(null);
 
   async function loadFromCache() {
-    const response = await fetch(`/dashboard-cache.json?ts=${Date.now()}`);
+    const cacheEndpoints = ["/api/dashboard-cache", `/dashboard-cache.json?ts=${Date.now()}`];
+    let lastError: Error | null = null;
 
-    if (!response.ok) {
-      throw new Error(`Cache request failed: ${response.status}`);
+    for (const endpoint of cacheEndpoints) {
+      try {
+        const response = await fetch(endpoint);
+
+        if (!response.ok) {
+          lastError = new Error(`Cache request failed: ${response.status} for ${endpoint}`);
+          continue;
+        }
+
+        const payload = (await response.json()) as DashboardCachePayload;
+        return mergeCachePayload(payload);
+      } catch (cacheError) {
+        lastError = cacheError instanceof Error ? cacheError : new Error(`Cache request failed for ${endpoint}`);
+      }
     }
 
-    const payload = (await response.json()) as DashboardCachePayload;
-    return mergeCachePayload(payload);
+    throw lastError ?? new Error("Cache request failed.");
   }
 
   async function load(mode: "initial" | "refresh") {
