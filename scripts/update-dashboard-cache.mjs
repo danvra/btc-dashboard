@@ -14,7 +14,8 @@ const COINGECKO_API_BASE = "https://api.coingecko.com/api/v3";
 const MEMPOOL_API_BASE = "https://mempool.space/api/v1";
 const FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
-const TOTAL_METRIC_COUNT = 27;
+const RATE_PROBABILITY_API = "https://rateprobability.com/api/latest";
+const TOTAL_METRIC_COUNT = 31;
 
 const jitterMinutes = 55 + Math.floor(Math.random() * 11);
 
@@ -36,6 +37,10 @@ function formatCompact(value, digits = 1) {
 
 function formatPercent(value, digits = 2) {
   return `${value >= 0 ? "+" : ""}${value.toFixed(digits)}%`;
+}
+
+function formatUnsignedPercent(value, digits = 2) {
+  return `${value.toFixed(digits)}%`;
 }
 
 function formatRatio(value, digits = 2) {
@@ -76,10 +81,12 @@ function inferStatus(metricId, latest, previous) {
     "active-supply",
     "active-addresses",
     "mvrv",
+    "pi-cycle-top",
     "percent-supply-in-profit",
     "lth-supply",
     "lth-net-position-change",
     "hashrate",
+    "hash-ribbon",
     "difficulty",
     "fed-balance-sheet",
     "puell-multiple",
@@ -152,6 +159,14 @@ function combineSeries(left, right, combiner) {
     .filter((point) => point !== null && Number.isFinite(point.value));
 }
 
+function normalizePercentValue(value) {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.abs(value) <= 1 ? Number(value) * 100 : Number(value);
+}
+
 function buildMetric(metricId, points, currentValue, deltaLabel, sourceLabel) {
   const latest = points.at(-1)?.value ?? 0;
   const previous = points.at(-2)?.value ?? latest;
@@ -204,6 +219,10 @@ async function safePoints(fetcher) {
   } catch {
     return [];
   }
+}
+
+async function fetchRateProbability() {
+  return fetchJson(RATE_PROBABILITY_API);
 }
 
 async function fetchBlockchainChart(chart, timespan) {
@@ -384,12 +403,13 @@ export async function updateDashboardCache() {
   const existing = await readExistingCache();
   const history = await readExistingHistory();
   const warnings = [
-    "Exchange Netflow, Exchange Balance, and Fed Rate Expectations currently use approximation proxies.",
+    "Exchange Netflow and Exchange Balance currently use approximation proxies.",
     "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes.",
   ];
 
   const [
     priceSeries,
+    longPriceSeries,
     transactionVolumeBtc,
     totalBitcoins,
     activeAddresses,
@@ -410,15 +430,18 @@ export async function updateDashboardCache() {
     etfHoldingsSeries,
     asoprSeries,
     soprProxySeries,
+    fundingRateSeries,
     bitInfoSnapshot,
     dxy,
     realYield,
     fedBalanceSheet,
     onRrp,
+    rateProbability,
     oneYearTreasury,
     fedFundsEffective,
   ] = await Promise.all([
     fetchBlockchainChart("market-price", "30days"),
+    fetchBlockchainChart("market-price", "730days"),
     fetchBlockchainChart("estimated-transaction-volume", "30days"),
     fetchBlockchainChart("total-bitcoins", "30days"),
     fetchBlockchainChart("n-unique-addresses", "30days"),
@@ -452,11 +475,13 @@ export async function updateDashboardCache() {
     safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
     safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
     safePoints(() => fetchBGeometricsSeries("/files/sopr_7sma.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/funding_rate_7sma.json")),
     fetchBitInfoSnapshot(),
     fetchFREDSeries("DTWEXBGS"),
     fetchFREDSeries("DFII10"),
     fetchFREDSeries("WALCL"),
     fetchFREDSeries("RRPTSYD"),
+    fetchRateProbability().catch(() => null),
     fetchFREDSeries("DGS1"),
     fetchFREDSeries("DFF"),
   ]);
@@ -496,7 +521,74 @@ export async function updateDashboardCache() {
   const fedRateExpectationSeries = combineSeries(oneYearTreasury, fedFundsEffective, (dgs1, dff) => dgs1 - dff);
   const effectiveAsoprSeries = asoprSeries.length > 0 ? asoprSeries : soprProxySeries;
   const asoprIsExact = asoprSeries.length > 0;
+  const fundingRatePercentSeries = fundingRateSeries.map((point) => ({
+    timestamp: point.timestamp,
+    value: point.value * 100,
+  }));
+  const price200DayAverage = rollingAverage(longPriceSeries, 200);
+  const price111DayAverage = rollingAverage(longPriceSeries, 111);
+  const price350DayAverage = rollingAverage(longPriceSeries, 350);
+  const mayerMultipleSeries = longPriceSeries
+    .map((point, index) => {
+      if (index < 199 || price200DayAverage[index].value <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: point.value / price200DayAverage[index].value,
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
+  const piCycleTopBufferSeries = longPriceSeries
+    .map((point, index) => {
+      if (index < 349) {
+        return null;
+      }
+
+      const triggerLine = price350DayAverage[index].value * 2;
+
+      if (triggerLine <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: ((triggerLine - price111DayAverage[index].value) / triggerLine) * 100,
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
+  const hashrate30DayAverage = rollingAverage(hashrate, 30);
+  const hashrate60DayAverage = rollingAverage(hashrate, 60);
+  const hashRibbonSeries = hashrate
+    .map((point, index) => {
+      if (index < 59 || hashrate60DayAverage[index].value <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: hashrate30DayAverage[index].value / hashrate60DayAverage[index].value,
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
+  const rateProbabilityRows = (rateProbability?.today?.rows ?? rateProbability?.rows ?? [])
+    .map((row) => ({
+      ...row,
+      timestamp: row.meeting_iso ? new Date(row.meeting_iso).getTime() : Number.NaN,
+      impliedRate: Number(row.implied_rate_post_meeting),
+    }))
+    .filter((row) => Number.isFinite(row.timestamp) && Number.isFinite(row.impliedRate))
+    .map((row) => ({
+      ...row,
+      timestamp: Number(row.timestamp),
+      impliedRate: Number(row.impliedRate),
+    }));
   const generatedAt = Date.now();
+
+  if (!rateProbabilityRows.length) {
+    warnings.push("Fed Rate Expectations fell back to a FRED proxy because the public meeting-probability feed was unavailable.");
+  }
 
   if (cddValue) {
     appendHistoryPoint(history, "cdd", { timestamp: generatedAt, value: cddValue });
@@ -706,6 +798,57 @@ export async function updateDashboardCache() {
           },
         }
       : {}),
+    ...(piCycleTopBufferSeries.length > 0
+      ? {
+          "pi-cycle-top": {
+            metricId: "pi-cycle-top",
+            currentValue: formatUnsignedPercent(piCycleTopBufferSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel:
+              (piCycleTopBufferSeries.at(-1)?.value ?? 0) >= 0
+                ? "111DMA buffer to 2x 350DMA"
+                : `${formatUnsignedPercent(Math.abs(piCycleTopBufferSeries.at(-1)?.value ?? 0), 1)} above Pi trigger`,
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(
+              piCycleTopBufferSeries.at(-1)?.value ?? 0,
+              piCycleTopBufferSeries.at(-2)?.value ?? piCycleTopBufferSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (piCycleTopBufferSeries.at(-1)?.value ?? 0) > 25
+                ? "bullish"
+                : (piCycleTopBufferSeries.at(-1)?.value ?? 0) > 10
+                  ? "neutral"
+                  : "bearish",
+            series: toSeries(piCycleTopBufferSeries),
+            isLive: true,
+            asOf: piCycleTopBufferSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(mayerMultipleSeries.length > 0
+      ? {
+          "mayer-multiple": {
+            metricId: "mayer-multiple",
+            currentValue: formatRatio(mayerMultipleSeries.at(-1)?.value ?? 0, 2),
+            deltaLabel: "BTC spot divided by 200D moving average",
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(
+              mayerMultipleSeries.at(-1)?.value ?? 0,
+              mayerMultipleSeries.at(-2)?.value ?? mayerMultipleSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (mayerMultipleSeries.at(-1)?.value ?? 0) > 2.4
+                ? "bearish"
+                : (mayerMultipleSeries.at(-1)?.value ?? 0) < 0.8
+                  ? "bullish"
+                  : "neutral",
+            series: toSeries(mayerMultipleSeries),
+            isLive: true,
+            asOf: mayerMultipleSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
     ...(effectiveAsoprSeries.length > 0
       ? {
           asopr: {
@@ -726,6 +869,35 @@ export async function updateDashboardCache() {
             isLive: true,
             asOf: effectiveAsoprSeries.at(-1)?.timestamp,
             dataMode: asoprIsExact ? "scraped" : "approx",
+          },
+        }
+      : {}),
+    ...(hashRibbonSeries.length > 0
+      ? {
+          "hash-ribbon": {
+            metricId: "hash-ribbon",
+            currentValue:
+              (hashRibbonSeries.at(-1)?.value ?? 0) > 1.01
+                ? "Recovered"
+                : (hashRibbonSeries.at(-1)?.value ?? 0) < 0.99
+                  ? "Compressed"
+                  : "Neutral",
+            deltaLabel: `30D / 60D hash rate ratio: ${formatRatio(hashRibbonSeries.at(-1)?.value ?? 0, 3)}`,
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(
+              hashRibbonSeries.at(-1)?.value ?? 0,
+              hashRibbonSeries.at(-2)?.value ?? hashRibbonSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (hashRibbonSeries.at(-1)?.value ?? 0) > 1.01
+                ? "bullish"
+                : (hashRibbonSeries.at(-1)?.value ?? 0) < 0.99
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(hashRibbonSeries),
+            isLive: true,
+            asOf: hashRibbonSeries.at(-1)?.timestamp,
+            dataMode: "approx",
           },
         }
       : {}),
@@ -959,7 +1131,57 @@ export async function updateDashboardCache() {
           },
         }
       : {}),
-    ...(fedRateExpectationSeries.length > 0
+    ...(rateProbabilityRows.length > 0
+      ? {
+          "fed-rate-expectations": {
+            metricId: "fed-rate-expectations",
+            currentValue:
+              (() => {
+                const currentMidpoint = Number(rateProbability?.today?.midpoint ?? fedFundsEffective.at(-1)?.value ?? 0);
+                const nextMeeting = rateProbabilityRows[0];
+                const nextChangeBps =
+                  Number.isFinite(nextMeeting?.change_bps)
+                    ? Number(nextMeeting.change_bps)
+                    : ((nextMeeting?.impliedRate ?? currentMidpoint) - currentMidpoint) * 100;
+                const cutOdds = normalizePercentValue(nextMeeting?.prob_is_cut);
+                const moveOdds = normalizePercentValue(nextMeeting?.prob_move_pct);
+
+                if (nextChangeBps < 0) {
+                  return `${Math.round(cutOdds || moveOdds)}% cut odds`;
+                }
+
+                if (nextChangeBps > 0) {
+                  return `${Math.round(moveOdds)}% hike odds`;
+                }
+
+                return "Hold favored";
+              })(),
+            deltaLabel: `${rateProbabilityRows[0]?.meeting ?? "Next meeting"} | terminal ${formatRatio(rateProbabilityRows.at(-1)?.impliedRate ?? 0, 2)}%`,
+            sourceLabel: "Rate Probability",
+            trend: inferTrend(
+              rateProbabilityRows.at(-1)?.impliedRate ?? 0,
+              Number(rateProbability?.today?.midpoint ?? fedFundsEffective.at(-1)?.value ?? 0),
+            ),
+            status:
+              (rateProbabilityRows.at(-1)?.impliedRate ?? 0) <
+              Number(rateProbability?.today?.midpoint ?? fedFundsEffective.at(-1)?.value ?? 0) - 0.125
+                ? "bullish"
+                : (rateProbabilityRows.at(-1)?.impliedRate ?? 0) >
+                    Number(rateProbability?.today?.midpoint ?? fedFundsEffective.at(-1)?.value ?? 0) + 0.125
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(
+              rateProbabilityRows.map((row) => ({
+                timestamp: row.timestamp,
+                value: row.impliedRate,
+              })),
+            ),
+            isLive: true,
+            asOf: rateProbability?.today?.as_of ? new Date(rateProbability.today.as_of).getTime() : generatedAt,
+            dataMode: "scraped",
+          },
+        }
+      : fedRateExpectationSeries.length > 0
       ? {
           "fed-rate-expectations": {
             metricId: "fed-rate-expectations",
@@ -982,6 +1204,30 @@ export async function updateDashboardCache() {
             isLive: true,
             asOf: fedRateExpectationSeries.at(-1)?.timestamp,
             dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(fundingRatePercentSeries.length > 0
+      ? {
+          "funding-rate": {
+            metricId: "funding-rate",
+            currentValue: formatPercent(fundingRatePercentSeries.at(-1)?.value ?? 0, 4),
+            deltaLabel: "7D average perpetual funding rate",
+            sourceLabel: "BGeometrics",
+            trend: inferTrend(
+              fundingRatePercentSeries.at(-1)?.value ?? 0,
+              fundingRatePercentSeries.at(-2)?.value ?? fundingRatePercentSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (fundingRatePercentSeries.at(-1)?.value ?? 0) < -0.01
+                ? "bullish"
+                : (fundingRatePercentSeries.at(-1)?.value ?? 0) > 0.01
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(fundingRatePercentSeries),
+            isLive: true,
+            asOf: fundingRatePercentSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
           },
         }
       : {}),

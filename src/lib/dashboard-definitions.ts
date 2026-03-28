@@ -311,6 +311,42 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     valueFormat: "ratio",
   },
   {
+    id: "pi-cycle-top",
+    name: "Pi Cycle Top",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Compares the 111-day average with twice the 350-day average.",
+      why: "Helps flag when price momentum starts looking historically overheated.",
+    },
+    chartType: "line-with-zones",
+    updateFrequency: "daily",
+    bullishInterpretation: "A wide buffer between the two lines suggests less immediate top-risk.",
+    bearishInterpretation: "A tight or crossed setup can signal a hotter late-cycle market.",
+    learnMore:
+      "The Pi Cycle Top indicator is a price-only cycle model built from two moving averages. It is popular in BTC communities because past major tops tended to arrive when the faster average met the slower multiplied average.",
+    defaultVisible: true,
+    mobilePriority: 2,
+    valueFormat: "percent",
+  },
+  {
+    id: "mayer-multiple",
+    name: "Mayer Multiple",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Measures price relative to the 200-day moving average.",
+      why: "Helps show whether BTC looks extended, neutral, or compressed versus long-term trend.",
+    },
+    chartType: "line-with-zones",
+    updateFrequency: "daily",
+    bullishInterpretation: "Lower readings can suggest BTC is closer to long-term support than euphoria.",
+    bearishInterpretation: "Very high readings can signal that BTC is stretched above trend.",
+    learnMore:
+      "Mayer Multiple divides spot price by the 200-day moving average. It is a simple long-cycle trend gauge that many BTC users watch for signs of overextension or reset.",
+    defaultVisible: true,
+    mobilePriority: 2,
+    valueFormat: "ratio",
+  },
+  {
     id: "active-supply",
     name: "Active Supply",
     panelId: "context-confirmation",
@@ -417,6 +453,24 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
       "Bitcoin adjusts mining difficulty to keep block production relatively stable. It is a slower-moving structural indicator that often complements hashrate.",
     defaultVisible: true,
     mobilePriority: 3,
+    valueFormat: "number",
+  },
+  {
+    id: "hash-ribbon",
+    name: "Hash Ribbon",
+    panelId: "context-confirmation",
+    tooltip: {
+      what: "Compares shorter and longer hashrate averages.",
+      why: "Helps spot miner stress, compression, and recovery phases.",
+    },
+    chartType: "line-with-zones",
+    updateFrequency: "daily",
+    bullishInterpretation: "A recovered ribbon can suggest miner stress is easing.",
+    bearishInterpretation: "A compressed ribbon can suggest miners are still under pressure.",
+    learnMore:
+      "Hash Ribbon is a miner-cycle model built from short and long moving averages of hashrate. It is often used to identify periods of miner capitulation and later recovery.",
+    defaultVisible: true,
+    mobilePriority: 2,
     valueFormat: "number",
   },
   {
@@ -529,6 +583,24 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     defaultVisible: true,
     mobilePriority: 3,
     valueFormat: "usd",
+  },
+  {
+    id: "funding-rate",
+    name: "Funding Rate",
+    panelId: "macro-market-structure",
+    tooltip: {
+      what: "Tracks the periodic cost of holding perpetual futures positions.",
+      why: "Helps show when leverage is leaning too aggressively long or short.",
+    },
+    chartType: "line",
+    updateFrequency: "daily",
+    bullishInterpretation: "Flat or slightly negative funding can suggest leverage is less crowded.",
+    bearishInterpretation: "Persistently high positive funding can signal crowded longs and froth.",
+    learnMore:
+      "Funding Rate reflects whether perpetual futures traders are paying to stay long or short. BTC communities watch it closely because sustained positive funding often appears when leverage gets crowded.",
+    defaultVisible: true,
+    mobilePriority: 2,
+    valueFormat: "percent",
   },
   {
     id: "spot-btc-etf-flows",
