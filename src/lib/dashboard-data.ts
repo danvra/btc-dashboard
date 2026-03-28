@@ -35,6 +35,21 @@ export interface DashboardCycleEstimate {
   change: "earlier" | "later" | "unchanged";
 }
 
+export interface DashboardCycleAnalog {
+  asOfDate: string;
+  label: string;
+  phaseId: DashboardCyclePhaseId;
+  agreement: number;
+  confidence: number;
+  closestDates: string[];
+  closestDateLabels?: string[];
+  closestPhaseIds: DashboardCyclePhaseId[];
+  summary: string;
+  methodology: "historical-nearest-neighbor";
+  matchCount: number;
+  indicatorIds: string[];
+}
+
 export interface DashboardDataSummary {
   btcPrice: string;
   btcPriceChange: string;
@@ -43,6 +58,7 @@ export interface DashboardDataSummary {
   warnings: string[];
   lastUpdatedAt?: number;
   cycleEstimate?: DashboardCycleEstimate;
+  cycleAnalog?: DashboardCycleAnalog;
 }
 
 export interface DashboardDataSnapshot {

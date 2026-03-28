@@ -1,12 +1,12 @@
 {
   "meta": {
-    "generatedAt": 1774713015132,
-    "nextSuggestedRunAt": 1774716855132,
+    "generatedAt": 1774732876379,
+    "nextSuggestedRunAt": 1774736716379,
     "scheduler": "55-65 minute jitter; next target in ~64 minutes"
   },
   "summary": {
     "btcPrice": "$67K",
-    "btcPriceChange": "+1.02% 24h",
+    "btcPriceChange": "+1.01% 24h",
     "liveMetricCount": 42,
     "mode": "live",
     "warnings": [
@@ -14,14 +14,14 @@
       "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes.",
       "LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series."
     ],
-    "lastUpdatedAt": 1774713015132,
+    "lastUpdatedAt": 1774732876379,
     "cycleEstimate": {
       "asOfDate": "2026-03-28",
       "phaseId": "early-recovery-under-disbelief",
       "label": "Early Recovery Under Disbelief",
-      "confidence": 81,
-      "score": 24,
-      "heatScore": 24,
+      "confidence": 82,
+      "score": 25,
+      "heatScore": 25,
       "damageScore": 38,
       "distributionScore": 1,
       "summary": "Cycle signals are improving from lower-risk territory, but the mix still looks more skeptical and rebuilding than broadly euphoric.",
@@ -38,32 +38,67 @@
       ],
       "source": "rule-based",
       "change": "unchanged"
+    },
+    "cycleAnalog": {
+      "asOfDate": "2026-03-28",
+      "label": "Capitulation",
+      "phaseId": "deep-capitulation",
+      "agreement": 90,
+      "confidence": 91,
+      "closestDates": [
+        "2026-02-10",
+        "2026-02-07",
+        "2022-05-16"
+      ],
+      "closestDateLabels": [
+        "Feb 2026",
+        "Feb 2026",
+        "May 2022"
+      ],
+      "closestPhaseIds": [
+        "deep-capitulation",
+        "deep-capitulation",
+        "deep-capitulation"
+      ],
+      "summary": "Current conditions most closely resemble prior washout periods with high damage and limited expansion.",
+      "methodology": "historical-nearest-neighbor",
+      "matchCount": 20,
+      "indicatorIds": [
+        "mvrv",
+        "percent-supply-in-profit",
+        "reserve-risk",
+        "price-vs-realized-price",
+        "asopr",
+        "nupl",
+        "liveliness",
+        "lth-net-position-change"
+      ]
     }
   },
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.22x",
-      "deltaLabel": "Spot $67K vs realized $55K",
+      "currentValue": "1.28x",
+      "deltaLabel": "Spot $67K vs realized $52K",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bullish",
       "series": [
-        1.2964738204605109,
-        1.3017071178800212,
-        1.3053003962292988,
-        1.303869495161149,
-        1.297857728241058,
-        1.2887386041298614,
-        1.278075402289202,
-        1.2707973085630444,
-        1.2600321649982482,
-        1.2462698471884837,
-        1.2334088191424848,
-        1.2224355012061052
+        1.2492505270077015,
+        1.2347744057278016,
+        1.2128877915103229,
+        1.2053233264588574,
+        1.2282951649990868,
+        1.2680117823492065,
+        1.2728080675653033,
+        1.2808948667681497,
+        1.3238478080392662,
+        1.321683931860363,
+        1.2866203575416877,
+        1.279095487928946
       ],
       "isLive": true,
-      "asOf": 1774691161000,
+      "asOf": 1774650329000,
       "dataMode": "scraped"
     },
     "adjusted-transfer-volume": {
@@ -144,7 +179,7 @@
     "difficulty": {
       "metricId": "difficulty",
       "currentValue": "133.8T",
-      "deltaLabel": "Next adjustment +6.49%",
+      "deltaLabel": "Next adjustment +6.73%",
       "sourceLabel": "Blockchain.com + mempool.space",
       "trend": "down",
       "status": "bearish",
@@ -268,42 +303,43 @@
     },
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.64",
+      "currentValue": "4.63",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
       "trend": "flat",
       "status": "bullish",
       "series": [
         4.625864784321585,
-        4.6399425979447715
+        4.6399425979447715,
+        4.626423861836331
       ],
       "isLive": true,
-      "asOf": 1774712994000,
+      "asOf": 1774732830000,
       "dataMode": "approx"
     },
     "mvrv": {
       "metricId": "mvrv",
-      "currentValue": "1.22",
+      "currentValue": "1.28",
       "deltaLabel": "Market value to realized value",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bearish",
       "series": [
-        1.2964738204605109,
-        1.3017071178800212,
-        1.3053003962292988,
-        1.303869495161149,
-        1.297857728241058,
-        1.2887386041298614,
-        1.278075402289202,
-        1.2707973085630444,
-        1.2600321649982482,
-        1.2462698471884837,
-        1.2334088191424848,
-        1.2224355012061052
+        1.2492505270077015,
+        1.2347744057278016,
+        1.2128877915103229,
+        1.2053233264588574,
+        1.2282951649990868,
+        1.2680117823492065,
+        1.2728080675653033,
+        1.2808948667681497,
+        1.3238478080392662,
+        1.321683931860363,
+        1.2866203575416877,
+        1.279095487928946
       ],
       "isLive": true,
-      "asOf": 1774691161000,
+      "asOf": 1774650329000,
       "dataMode": "scraped"
     },
     "puell-multiple": {
@@ -358,32 +394,34 @@
     },
     "cdd": {
       "metricId": "cdd",
-      "currentValue": "6.8M BTC-days",
-      "deltaLabel": "0.3379 days destroyed per BTC",
+      "currentValue": "4.4M BTC-days",
+      "deltaLabel": "0.2206 days destroyed per BTC",
       "sourceLabel": "BitInfoCharts derived",
-      "trend": "up",
-      "status": "bearish",
+      "trend": "down",
+      "status": "bullish",
       "series": [
         6498577.085,
-        6760681.025312499
+        6760681.025312499,
+        4413750.323125
       ],
       "isLive": true,
-      "asOf": 1774713015132,
+      "asOf": 1774732876379,
       "dataMode": "scraped"
     },
     "dormancy": {
       "metricId": "dormancy",
-      "currentValue": "25.7d",
+      "currentValue": "16.7d",
       "deltaLabel": "Derived from days destroyed / BTC sent",
       "sourceLabel": "BitInfoCharts derived",
-      "trend": "up",
-      "status": "bearish",
+      "trend": "down",
+      "status": "bullish",
       "series": [
         24.568732221575313,
-        25.663466744531874
+        25.663466744531874,
+        16.7421521866738
       ],
       "isLive": true,
-      "asOf": 1774713015132,
+      "asOf": 1774732876379,
       "dataMode": "approx"
     },
     "percent-supply-in-profit": {
@@ -759,13 +797,12 @@
     },
     "funding-rate": {
       "metricId": "funding-rate",
-      "currentValue": "-0.0004%",
+      "currentValue": "-0.0011%",
       "deltaLabel": "7D average perpetual funding rate",
       "sourceLabel": "BGeometrics",
       "trend": "down",
       "status": "neutral",
       "series": [
-        0.00010657,
         0.00099771,
         0.00040457,
         -0.00005986,
@@ -776,10 +813,11 @@
         0.00099686,
         0.00090971,
         0.00011542999999999998,
-        -0.000422
+        -0.000422,
+        -0.00105086
       ],
       "isLive": true,
-      "asOf": 1774630800000,
+      "asOf": 1774717200000,
       "dataMode": "scraped"
     },
     "nupl": {

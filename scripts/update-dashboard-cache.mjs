@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { estimateCycleAnalog } from "../lib/server/cycle-analog.mjs";
 import { estimateCyclePosition } from "../lib/server/cycle-estimate.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -516,7 +517,7 @@ export async function updateDashboardCache(options = {}) {
     fetchFearAndGreedIndex().catch(() => []),
     safePoints(() =>
       fetchJson(
-        `${BLOCKCHAIN_API_BASE}/mvrv?timespan=1year&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
+        `${BLOCKCHAIN_API_BASE}/mvrv?timespan=10years&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
       ).then((payload) =>
         payload.values.map((point) => ({
           timestamp: point.x * 1000,
@@ -1666,6 +1667,21 @@ export async function updateDashboardCache(options = {}) {
   const liveMetricCount = Object.values(metrics).filter((metric) => metric?.isLive).length;
   const nextSuggestedRunAt = generatedAt + jitterMinutes * 60 * 1000;
   const cycleEstimate = await estimateCyclePosition(metrics, generatedAt, existing.summary?.cycleEstimate);
+  const cycleAnalog = estimateCycleAnalog({
+    currentMetrics: metrics,
+    generatedAt,
+    historicalSeries: {
+      mvrv: mvrvSeries,
+      "percent-supply-in-profit": percentSupplyInProfitSeries,
+      "reserve-risk": reserveRiskSeries,
+      "price-vs-realized-price": mvrvSeries,
+      asopr: effectiveAsoprSeries,
+      nupl: nuplSeries,
+      liveliness: livelinessSeries,
+      dormancy: history.metrics?.dormancy ?? [],
+      "lth-net-position-change": lthNetPositionChangeSeries,
+    },
+  });
 
   const payload = {
     meta: {
@@ -1681,6 +1697,7 @@ export async function updateDashboardCache(options = {}) {
       warnings,
       lastUpdatedAt: generatedAt,
       cycleEstimate,
+      cycleAnalog,
     },
     metrics,
   };

@@ -7,7 +7,11 @@ import {
 } from "../lib/dashboard-definitions";
 import { getMetricSample } from "../lib/dashboard-samples";
 import { useDashboardData } from "../hooks/useDashboardData";
-import type { DashboardCycleEstimate, DashboardMetricState } from "../lib/dashboard-data";
+import type {
+  DashboardCycleAnalog,
+  DashboardCycleEstimate,
+  DashboardMetricState,
+} from "../lib/dashboard-data";
 
 const panelAccent: Record<DashboardPanelId, string> = {
   "price-action": "from-orange-500/20 to-amber-300/10",
@@ -110,6 +114,22 @@ function cycleChangeLabel(change?: DashboardCycleEstimate["change"]) {
   }
 
   return "Unchanged";
+}
+
+function cycleAnalogDatesLabel(dateLabels?: string[]) {
+  if (!dateLabels || dateLabels.length === 0) {
+    return "Historical comparison appears once enough analog data is available";
+  }
+
+  return `Closest to ${dateLabels.slice(0, 2).join(", ")}`;
+}
+
+function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
+  if (!cycleAnalog) {
+    return "Waiting for cross-cycle matches";
+  }
+
+  return `${cycleAnalog.agreement}% of top ${cycleAnalog.matchCount} matches`;
 }
 
 function Sparkline({
@@ -449,6 +469,7 @@ export function BtcDashboard() {
   const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
   const scheduler = snapshot?.meta?.scheduler;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
+  const cycleAnalog = snapshot?.summary.cycleAnalog;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
@@ -552,6 +573,16 @@ export function BtcDashboard() {
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Coverage</p>
                 <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
                 <p className="mt-1 text-sm text-stone-300">Metrics across 4 dashboard panels</p>
+              </div>
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Cycle analog</p>
+                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? "Pending"}</p>
+                <p className="mt-1 text-sm text-stone-300">
+                  {cycleAnalogDatesLabel(cycleAnalog?.closestDateLabels)}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {cycleAnalogAgreementLabel(cycleAnalog)}
+                </p>
               </div>
             </div>
           </div>
