@@ -389,10 +389,20 @@ export function BtcDashboard() {
         <header className="overflow-hidden rounded-[2rem] border border-stone-200 bg-stone-950 text-stone-50 shadow-panel">
           <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1.6fr_1fr] lg:px-8">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.26em] text-orange-300">
-                BTC Monitoring Dashboard
-              </p>
-              <h1 className="mt-3 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
+              <div className="flex items-center gap-4">
+                <img
+                  src="/brand-mark.svg"
+                  alt="BTC Dashboard logo"
+                  className="h-14 w-14 rounded-[1.25rem] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(249,115,22,0.18)]"
+                />
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.26em] text-orange-300">
+                    BTC Dashboard
+                  </p>
+                  <p className="mt-1 text-sm text-stone-400">Bitcoin market intelligence</p>
+                </div>
+              </div>
+              <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight sm:text-5xl">
                 Track price action, cycle regime, network health, and macro structure in one place.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">

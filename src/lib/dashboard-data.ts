@@ -205,6 +205,29 @@ function rollingAverage(points: NumericPoint[], window: number) {
   });
 }
 
+function combineSeries(
+  left: NumericPoint[],
+  right: NumericPoint[],
+  combiner: (leftValue: number, rightValue: number) => number,
+) {
+  const rightMap = new Map(right.map((point) => [point.timestamp, point.value]));
+
+  return left
+    .map((point) => {
+      const rightValue = rightMap.get(point.timestamp);
+
+      if (!Number.isFinite(rightValue)) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: combiner(point.value, Number(rightValue)),
+      };
+    })
+    .filter((point): point is NumericPoint => point !== null && Number.isFinite(point.value));
+}
+
 function lastPoint(points: NumericPoint[]) {
   return points[points.length - 1];
 }
@@ -250,6 +273,7 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "ssr",
     "dxy",
     "10y-real-yield",
+    "fed-rate-expectations",
     "on-rrp",
   ]);
 
@@ -505,6 +529,8 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     etfHoldingsSeries,
     asoprSeries,
     soprProxySeries,
+    oneYearTreasury,
+    fedFundsEffective,
   ] =
     await Promise.all([
       fetchBlockchainChart("market-price", `${LIVE_WINDOW_DAYS}days`),
@@ -534,12 +560,16 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
       safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
       safePoints(() => fetchBGeometricsSeries("/files/sopr_7sma.json")),
+      safePoints(() => fetchFredSeries("DGS1")),
+      safePoints(() => fetchFredSeries("DFF")),
     ]);
 
   const latestPrice = coingecko.bitcoin?.usd ?? lastPoint(priceSeries)?.value ?? 0;
   const dailyChange = coingecko.bitcoin?.usd_24h_change ?? 0;
   const lastUpdatedAt = (coingecko.bitcoin?.last_updated_at ?? 0) * 1000;
   const lthNetPositionChangeSeries = deriveLaggedDelta(lthSupplySeries, 30);
+  const sthNetPositionChangeSeries = deriveLaggedDelta(sthSupplySeries, 1);
+  const fedRateExpectationSeries = combineSeries(oneYearTreasury, fedFundsEffective, (dgs1, dff) => dgs1 - dff);
   const effectiveAsoprSeries = asoprSeries.length > 0 ? asoprSeries : soprProxySeries;
   const asoprIsExact = asoprSeries.length > 0;
 
@@ -747,6 +777,24 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     );
   }
 
+  if (sthNetPositionChangeSeries.length > 0) {
+    publicUpdates["exchange-netflow"] = buildMetricState("exchange-netflow", sthNetPositionChangeSeries, {
+      currentValue: formatBtc(lastPoint(sthNetPositionChangeSeries)?.value ?? 0, 1),
+      deltaLabel: "STH supply day-over-day proxy for exchange flow",
+      sourceLabel: "BGeometrics liquid-supply proxy",
+      dataMode: "approx",
+    });
+  }
+
+  if (sthSupplySeries.length > 0) {
+    publicUpdates["exchange-balance"] = buildMetricState("exchange-balance", sthSupplySeries, {
+      currentValue: formatBtc(lastPoint(sthSupplySeries)?.value ?? 0, 1),
+      deltaLabel: "STH supply proxy for exchange-ready BTC",
+      sourceLabel: "BGeometrics liquid-supply proxy",
+      dataMode: "approx",
+    });
+  }
+
   if (etfFlowSeries.length > 0) {
     publicUpdates["spot-btc-etf-flows"] = buildMetricState("spot-btc-etf-flows", etfFlowSeries, {
       currentValue: formatBtc(lastPoint(etfFlowSeries)?.value ?? 0, 1),
@@ -754,6 +802,24 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       sourceLabel: "BGeometrics",
       dataMode: "scraped",
     });
+  }
+
+  if (fedRateExpectationSeries.length > 0) {
+    const latestSpread = lastPoint(fedRateExpectationSeries)?.value ?? 0;
+    const spreadBps = Math.round(latestSpread * 100);
+    const directionLabel =
+      spreadBps < 0 ? `${Math.abs(spreadBps)} bps cuts priced` : `${Math.abs(spreadBps)} bps hikes priced`;
+
+    publicUpdates["fed-rate-expectations"] = buildMetricState(
+      "fed-rate-expectations",
+      fedRateExpectationSeries,
+      {
+        currentValue: directionLabel,
+        deltaLabel: "1Y Treasury minus effective fed funds proxy",
+        sourceLabel: "FRED yield-curve proxy",
+        dataMode: "approx",
+      },
+    );
   }
 
   if (etfHoldingsSeries.length > 0) {
@@ -1047,7 +1113,7 @@ export async function fetchDashboardData(): Promise<DashboardDataSnapshot> {
   metrics = publicData.metrics;
 
   if (!GLASSNODE_API_KEY) {
-    warnings.push("Still using placeholders for Exchange Netflow, Exchange Balance, and Fed Rate Expectations.");
+    warnings.push("Exchange Netflow, Exchange Balance, and Fed Rate Expectations currently use approximation proxies.");
   } else {
     metrics = await fetchGlassnodeMetrics(metrics);
   }

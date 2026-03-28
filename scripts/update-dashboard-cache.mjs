@@ -14,6 +14,7 @@ const COINGECKO_API_BASE = "https://api.coingecko.com/api/v3";
 const MEMPOOL_API_BASE = "https://mempool.space/api/v1";
 const FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
+const TOTAL_METRIC_COUNT = 27;
 
 const jitterMinutes = 55 + Math.floor(Math.random() * 11);
 
@@ -97,6 +98,7 @@ function inferStatus(metricId, latest, previous) {
     "ssr",
     "dxy",
     "10y-real-yield",
+    "fed-rate-expectations",
     "on-rrp",
   ]);
 
@@ -129,6 +131,25 @@ function rollingAverage(points, window) {
       value: average,
     };
   });
+}
+
+function combineSeries(left, right, combiner) {
+  const rightMap = new Map(right.map((point) => [point.timestamp, point.value]));
+
+  return left
+    .map((point) => {
+      const rightValue = rightMap.get(point.timestamp);
+
+      if (!Number.isFinite(rightValue)) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: combiner(point.value, Number(rightValue)),
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
 }
 
 function buildMetric(metricId, points, currentValue, deltaLabel, sourceLabel) {
@@ -363,7 +384,7 @@ export async function updateDashboardCache() {
   const existing = await readExistingCache();
   const history = await readExistingHistory();
   const warnings = [
-    "Prototype mode: Exchange Netflow, Exchange Balance, and Fed Rate Expectations are still seeded placeholders.",
+    "Exchange Netflow, Exchange Balance, and Fed Rate Expectations currently use approximation proxies.",
     "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes.",
   ];
 
@@ -394,6 +415,8 @@ export async function updateDashboardCache() {
     realYield,
     fedBalanceSheet,
     onRrp,
+    oneYearTreasury,
+    fedFundsEffective,
   ] = await Promise.all([
     fetchBlockchainChart("market-price", "30days"),
     fetchBlockchainChart("estimated-transaction-volume", "30days"),
@@ -434,6 +457,8 @@ export async function updateDashboardCache() {
     fetchFREDSeries("DFII10"),
     fetchFREDSeries("WALCL"),
     fetchFREDSeries("RRPTSYD"),
+    fetchFREDSeries("DGS1"),
+    fetchFREDSeries("DFF"),
   ]);
 
   const btcPrice = coingecko?.bitcoin?.usd ?? priceSeries.at(-1)?.value ?? 0;
@@ -467,6 +492,8 @@ export async function updateDashboardCache() {
   }));
   const latestPuell = puellSeries.at(-1)?.value ?? null;
   const lthNetPositionChangeSeries = deriveLaggedDelta(lthSupplySeries, 30);
+  const sthNetPositionChangeSeries = deriveLaggedDelta(sthSupplySeries, 1);
+  const fedRateExpectationSeries = combineSeries(oneYearTreasury, fedFundsEffective, (dgs1, dff) => dgs1 - dff);
   const effectiveAsoprSeries = asoprSeries.length > 0 ? asoprSeries : soprProxySeries;
   const asoprIsExact = asoprSeries.length > 0;
   const generatedAt = Date.now();
@@ -702,6 +729,52 @@ export async function updateDashboardCache() {
           },
         }
       : {}),
+    ...(sthNetPositionChangeSeries.length > 0
+      ? {
+          "exchange-netflow": {
+            metricId: "exchange-netflow",
+            currentValue: formatBtc(sthNetPositionChangeSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "STH supply day-over-day proxy for exchange flow",
+            sourceLabel: "BGeometrics liquid-supply proxy",
+            trend: inferTrend(
+              sthNetPositionChangeSeries.at(-1)?.value ?? 0,
+              sthNetPositionChangeSeries.at(-2)?.value ?? sthNetPositionChangeSeries.at(-1)?.value ?? 0,
+            ),
+            status: inferStatus(
+              "exchange-netflow",
+              sthNetPositionChangeSeries.at(-1)?.value ?? 0,
+              sthNetPositionChangeSeries.at(-2)?.value ?? sthNetPositionChangeSeries.at(-1)?.value ?? 0,
+            ),
+            series: toSeries(sthNetPositionChangeSeries),
+            isLive: true,
+            asOf: sthNetPositionChangeSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(sthSupplySeries.length > 0
+      ? {
+          "exchange-balance": {
+            metricId: "exchange-balance",
+            currentValue: formatBtc(sthSupplySeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "STH supply proxy for exchange-ready BTC",
+            sourceLabel: "BGeometrics liquid-supply proxy",
+            trend: inferTrend(
+              sthSupplySeries.at(-1)?.value ?? 0,
+              sthSupplySeries.at(-2)?.value ?? sthSupplySeries.at(-1)?.value ?? 0,
+            ),
+            status: inferStatus(
+              "exchange-balance",
+              sthSupplySeries.at(-1)?.value ?? 0,
+              sthSupplySeries.at(-2)?.value ?? sthSupplySeries.at(-1)?.value ?? 0,
+            ),
+            series: toSeries(sthSupplySeries),
+            isLive: true,
+            asOf: sthSupplySeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
     ...(percentSupplyInProfitSeries.length > 0
       ? {
           "percent-supply-in-profit": {
@@ -886,6 +959,32 @@ export async function updateDashboardCache() {
           },
         }
       : {}),
+    ...(fedRateExpectationSeries.length > 0
+      ? {
+          "fed-rate-expectations": {
+            metricId: "fed-rate-expectations",
+            currentValue:
+              Math.round((fedRateExpectationSeries.at(-1)?.value ?? 0) * 100) < 0
+                ? `${Math.abs(Math.round((fedRateExpectationSeries.at(-1)?.value ?? 0) * 100))} bps cuts priced`
+                : `${Math.abs(Math.round((fedRateExpectationSeries.at(-1)?.value ?? 0) * 100))} bps hikes priced`,
+            deltaLabel: "1Y Treasury minus effective fed funds proxy",
+            sourceLabel: "FRED yield-curve proxy",
+            trend: inferTrend(
+              fedRateExpectationSeries.at(-1)?.value ?? 0,
+              fedRateExpectationSeries.at(-2)?.value ?? fedRateExpectationSeries.at(-1)?.value ?? 0,
+            ),
+            status: inferStatus(
+              "fed-rate-expectations",
+              fedRateExpectationSeries.at(-1)?.value ?? 0,
+              fedRateExpectationSeries.at(-2)?.value ?? fedRateExpectationSeries.at(-1)?.value ?? 0,
+            ),
+            series: toSeries(fedRateExpectationSeries),
+            isLive: true,
+            asOf: fedRateExpectationSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
     ...(latestPuell
       ? {
           "puell-multiple": {
@@ -917,7 +1016,7 @@ export async function updateDashboardCache() {
       btcPrice: formatUsd(btcPrice, 0),
       btcPriceChange: `${formatPercent(btcChange)} 24h`,
       liveMetricCount,
-      mode: liveMetricCount > 0 ? "mixed" : "fallback",
+      mode: liveMetricCount === TOTAL_METRIC_COUNT ? "live" : liveMetricCount > 0 ? "mixed" : "fallback",
       warnings,
       lastUpdatedAt: generatedAt,
     },

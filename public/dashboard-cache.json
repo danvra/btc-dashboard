@@ -1,44 +1,44 @@
 {
   "meta": {
-    "generatedAt": 1774707638158,
-    "nextSuggestedRunAt": 1774711058158,
-    "scheduler": "55-65 minute jitter; next target in ~57 minutes"
+    "generatedAt": 1774708180175,
+    "nextSuggestedRunAt": 1774711840175,
+    "scheduler": "55-65 minute jitter; next target in ~61 minutes"
   },
   "summary": {
     "btcPrice": "$67K",
-    "btcPriceChange": "+0.80% 24h",
-    "liveMetricCount": 24,
-    "mode": "mixed",
+    "btcPriceChange": "+1.60% 24h",
+    "liveMetricCount": 27,
+    "mode": "live",
     "warnings": [
-      "Prototype mode: Exchange Netflow, Exchange Balance, and Fed Rate Expectations are still seeded placeholders.",
+      "Exchange Netflow, Exchange Balance, and Fed Rate Expectations currently use approximation proxies.",
       "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes."
     ],
-    "lastUpdatedAt": 1774707638158
+    "lastUpdatedAt": 1774708180175
   },
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.28x",
-      "deltaLabel": "Spot $67K vs realized $52K",
+      "currentValue": "1.22x",
+      "deltaLabel": "Spot $67K vs realized $55K",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bullish",
       "series": [
-        1.288698868777874,
-        1.2885880221961772,
-        1.2886777563411485,
-        1.288897661248816,
-        1.288870718536862,
-        1.2884840181678845,
-        1.2873715672844324,
-        1.2861989466837216,
-        1.2848612370775303,
-        1.2818511018395606,
-        1.278795773538976,
-        1.275862368927965
+        1.29776622551931,
+        1.303930018993061,
+        1.3058552820347487,
+        1.3017041567235041,
+        1.2945980126001824,
+        1.2834721275865648,
+        1.2742878749963809,
+        1.2674717714796586,
+        1.2530920780780976,
+        1.240560507098165,
+        1.2281526074631268,
+        1.220219860663808
       ],
       "isLive": true,
-      "asOf": 1774684681000,
+      "asOf": 1774697963000,
       "dataMode": "scraped"
     },
     "adjusted-transfer-volume": {
@@ -243,41 +243,41 @@
     },
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.62",
+      "currentValue": "4.63",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
       "trend": "flat",
       "status": "bullish",
       "series": [
-        4.6210976629866725
+        4.625864784321585
       ],
       "isLive": true,
-      "asOf": 1774707580000,
+      "asOf": 1774708121000,
       "dataMode": "approx"
     },
     "mvrv": {
       "metricId": "mvrv",
-      "currentValue": "1.28",
+      "currentValue": "1.22",
       "deltaLabel": "Market value to realized value",
       "sourceLabel": "Blockchain.com market signals",
       "trend": "down",
       "status": "bearish",
       "series": [
-        1.288698868777874,
-        1.2885880221961772,
-        1.2886777563411485,
-        1.288897661248816,
-        1.288870718536862,
-        1.2884840181678845,
-        1.2873715672844324,
-        1.2861989466837216,
-        1.2848612370775303,
-        1.2818511018395606,
-        1.278795773538976,
-        1.275862368927965
+        1.29776622551931,
+        1.303930018993061,
+        1.3058552820347487,
+        1.3017041567235041,
+        1.2945980126001824,
+        1.2834721275865648,
+        1.2742878749963809,
+        1.2674717714796586,
+        1.2530920780780976,
+        1.240560507098165,
+        1.2281526074631268,
+        1.220219860663808
       ],
       "isLive": true,
-      "asOf": 1774684681000,
+      "asOf": 1774697963000,
       "dataMode": "scraped"
     },
     "puell-multiple": {
@@ -341,7 +341,7 @@
         6498577.085
       ],
       "isLive": true,
-      "asOf": 1774707638158,
+      "asOf": 1774708180175,
       "dataMode": "scraped"
     },
     "dormancy": {
@@ -355,7 +355,7 @@
         24.568732221575313
       ],
       "isLive": true,
-      "asOf": 1774707638158,
+      "asOf": 1774708180175,
       "dataMode": "approx"
     },
     "percent-supply-in-profit": {
@@ -582,6 +582,81 @@
       "isLive": true,
       "asOf": 1774483200000,
       "dataMode": "scraped"
+    },
+    "exchange-netflow": {
+      "metricId": "exchange-netflow",
+      "currentValue": "56.6 BTC",
+      "deltaLabel": "STH supply day-over-day proxy for exchange flow",
+      "sourceLabel": "BGeometrics liquid-supply proxy",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        -19899.5629767403,
+        -15260.975133310072,
+        38868.32845713012,
+        -3502.0152184404433,
+        -13386.54747082945,
+        24207.065154340118,
+        1334.3012252692133,
+        -10845.094646429643,
+        -14732.255030999891,
+        -11755.899144900031,
+        -8550.927876420319,
+        56.5694943703711
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "approx"
+    },
+    "exchange-balance": {
+      "metricId": "exchange-balance",
+      "currentValue": "5.8M BTC",
+      "deltaLabel": "STH supply proxy for exchange-ready BTC",
+      "sourceLabel": "BGeometrics liquid-supply proxy",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        5801188.46707708,
+        5785927.49194377,
+        5824795.8204009,
+        5821293.80518246,
+        5807907.25771163,
+        5832114.32286597,
+        5833448.62409124,
+        5822603.52944481,
+        5807871.27441381,
+        5796115.37526891,
+        5787564.44739249,
+        5787621.01688686
+      ],
+      "isLive": true,
+      "asOf": 1766880000000,
+      "dataMode": "approx"
+    },
+    "fed-rate-expectations": {
+      "metricId": "fed-rate-expectations",
+      "currentValue": "19 bps hikes priced",
+      "deltaLabel": "1Y Treasury minus effective fed funds proxy",
+      "sourceLabel": "FRED yield-curve proxy",
+      "trend": "up",
+      "status": "bearish",
+      "series": [
+        -0.040000000000000036,
+        0.020000000000000018,
+        0.020000000000000018,
+        0,
+        -0.010000000000000231,
+        0.040000000000000036,
+        0.08999999999999986,
+        0.1599999999999997,
+        0.11999999999999966,
+        0.16999999999999993,
+        0.1299999999999999,
+        0.18999999999999995
+      ],
+      "isLive": true,
+      "asOf": 1774483200000,
+      "dataMode": "approx"
     }
   }
 }
