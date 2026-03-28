@@ -141,19 +141,21 @@ function formatMonthYear(dateKey?: string) {
 }
 
 function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
-  if (cycleAnalog?.topMatchDates?.length) {
+  if (cycleAnalog?.perCycleMatches?.length && cycleAnalog.topMatchDates?.length) {
     return cycleAnalog.topMatchDates
       .slice(0, 2)
       .map((dateKey) => formatMonthYear(dateKey))
       .filter(Boolean) as string[];
   }
 
-  const legacyLabels = (cycleAnalog as (DashboardCycleAnalog & { closestDateLabels?: string[] }) | undefined)
-    ?.closestDateLabels;
-  return legacyLabels?.slice(0, 2) ?? [];
+  return [];
 }
 
 function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
+  if (!cycleAnalog?.perCycleMatches?.length) {
+    return "Historical phase-window analog appears after the next synthetic refresh";
+  }
+
   const dateLabels = cycleAnalogTopDateLabels(cycleAnalog);
 
   if (dateLabels.length === 0) {
@@ -959,6 +961,7 @@ export function BtcDashboard() {
   const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
   const cycleAnalog = snapshot?.summary.cycleAnalog;
+  const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
 
   useEffect(() => {
     if (!cycleAnalog) {
@@ -1081,13 +1084,13 @@ export function BtcDashboard() {
               <button
                 ref={cycleAnalogTriggerRef}
                 type="button"
-                onClick={() => cycleAnalog && setShowCycleAnalogModal(true)}
-                disabled={!cycleAnalog}
+                onClick={() => hasPhaseWindowAnalog && setShowCycleAnalogModal(true)}
+                disabled={!hasPhaseWindowAnalog}
                 aria-haspopup="dialog"
                 aria-expanded={showCycleAnalogModal}
                 className={[
                   "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
-                  cycleAnalog
+                  hasPhaseWindowAnalog
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                     : "cursor-default opacity-80",
                 ].join(" ")}
