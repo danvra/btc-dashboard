@@ -147,6 +147,15 @@ export const METRIC_SAMPLES: MetricSample[] = [
     sourceLabel: "Trend model",
   },
   {
+    metricId: "2-year-ma-multiplier",
+    currentValue: "82.4%",
+    deltaLabel: "Buffer below 5x 2Y MA top band",
+    trend: "up",
+    status: "bullish",
+    series: [70, 71, 72, 73, 74, 75, 77, 78, 79, 80, 81, 82],
+    sourceLabel: "Cycle model",
+  },
+  {
     metricId: "nupl",
     currentValue: "0.54",
     deltaLabel: "Optimism, not euphoria",
@@ -181,6 +190,15 @@ export const METRIC_SAMPLES: MetricSample[] = [
     status: "neutral",
     series: [58, 56, 54, 53, 51, 49, 47, 45, 43, 41, 39, 37],
     sourceLabel: "Cycle model",
+  },
+  {
+    metricId: "fear-and-greed",
+    currentValue: "23",
+    deltaLabel: "Fear still dominates sentiment",
+    trend: "down",
+    status: "bullish",
+    series: [41, 38, 36, 34, 32, 30, 28, 26, 25, 24, 23, 23],
+    sourceLabel: "Sentiment index",
   },
   {
     metricId: "hodl-waves",
@@ -343,6 +361,15 @@ export const METRIC_SAMPLES: MetricSample[] = [
     status: "bullish",
     series: [58, 56, 54, 53, 51, 49, 47, 45, 43, 41, 39, 37],
     sourceLabel: "Model overlay",
+  },
+  {
+    metricId: "stock-to-flow",
+    currentValue: "118",
+    deltaLabel: "Scarcity rising into current halving era",
+    trend: "up",
+    status: "bullish",
+    series: [84, 85, 87, 89, 91, 94, 97, 101, 106, 111, 115, 118],
+    sourceLabel: "Scarcity model",
   },
   {
     metricId: "spot-btc-etf-flows",

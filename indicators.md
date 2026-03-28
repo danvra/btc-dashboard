@@ -10,9 +10,9 @@ Status labels:
 
 Current snapshot:
 
-- Total indicators in the dashboard: `39`
-- `scraped`: `24`
-- `approx`: `15`
+- Total indicators in the dashboard: `42`
+- `scraped`: `25`
+- `approx`: `17`
 - `seeded`: `0`
 
 ## Priority Caveats
@@ -144,6 +144,20 @@ Current snapshot:
 - Improve by:
   - Adding exact model bands or richer zone logic if desired.
 
+### 2-Year MA Multiplier (`2-year-ma-multiplier`)
+
+- Current status: `approx`
+- Current source: `Blockchain.com derived`
+- How it is generated:
+  - Pull long BTC price history.
+  - Compute the `2-year moving average`.
+  - Compute the `5x 2-year MA` upper band.
+  - Display the current percentage buffer between spot price and that upper band.
+- Why we came to this:
+  - This is a community-followed cycle model derived entirely from price, so a public price series is enough for a useful prototype.
+- Improve by:
+  - Adding the actual 2Y MA and 5x band lines in expanded chart mode.
+
 ### NUPL (`nupl`)
 
 - Current status: `scraped`
@@ -237,6 +251,19 @@ Current snapshot:
 - Improve by:
   - Adding the unsmoothed `rhodl.json` in expanded views if needed.
 
+### Fear and Greed (`fear-and-greed`)
+
+- Current status: `scraped`
+- Current source: `Alternative.me`
+- How it is generated:
+  - Pull `https://api.alternative.me/fng/?limit=30&format=json`.
+  - Use the latest index value and classification directly.
+  - Use the returned historical points for the sparkline series.
+- Why we came to this:
+  - It is a widely recognized cycle-sentiment overlay and the public API is easy to scrape reliably.
+- Improve by:
+  - None urgently needed for the prototype; this is already a straightforward public feed.
+
 ### HODL Waves (`hodl-waves`)
 
 - Current status: `approx`
@@ -254,13 +281,29 @@ Current snapshot:
 - Current status: `approx`
 - Current source: `BGeometrics model`
 - How it is generated:
-  - Load `power_law.json` and `power_law_floor.json`.
-  - Compare spot price with the power-law midline and floor.
+  - Load `power_law.json`, `power_law_floor.json`, and `power_law_top.json`.
+  - Compare spot price with the power-law midline, floor, and top band.
   - Display the `spot / power-law midline` ratio.
 - Why we came to this:
   - This is a model overlay rather than an on-chain truth metric, so it should stay marked `approx`.
 - Improve by:
   - Adding fuller band context in expanded mode and keeping the UI explicit that this is a model.
+
+### Stock-to-Flow (`stock-to-flow`)
+
+- Current status: `approx`
+- Current source: `Blockchain.com derived`
+- How it is generated:
+  - Pull long `total-bitcoins` history from Blockchain.com.
+  - Compute trailing 1-year issuance as the change in circulating supply over 365 days.
+  - Compute `stock / annual issuance`.
+- Why we came to this:
+  - Clean public no-key S2F feeds were either unavailable or protected, while the scarcity ratio itself can be derived transparently from public supply data.
+- Main weakness:
+  - This is the raw Stock-to-Flow ratio, not a vendor-supplied S2F price model.
+  - It should be treated as a scarcity context metric rather than a standalone predictive signal.
+- Improve by:
+  - Adding a clearly separated S2F model-price overlay only if we can source it transparently and present it with strong caveats.
 
 ### Puell Multiple (`puell-multiple`)
 
@@ -455,5 +498,5 @@ Current snapshot:
    - Useful now, but still cohort-derived rather than exact.
 4. `asopr`
    - Exact endpoint exists, but free-plan rate limits still force the proxy path sometimes.
-5. `lth-net-position-change`, `puell-multiple`, `active-supply`, `dormancy`, `ssr`, `hodl-waves`, `power-law`
-   - These are already useful, but they remain derived/model-style implementations rather than direct canonical series.
+5. `lth-net-position-change`, `puell-multiple`, `active-supply`, `dormancy`, `ssr`, `hodl-waves`, `power-law`, `stock-to-flow`, `2-year-ma-multiplier`
+  - These are already useful, but they remain derived/model-style implementations rather than direct canonical series.

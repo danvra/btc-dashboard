@@ -347,6 +347,25 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     valueFormat: "ratio",
   },
   {
+    id: "2-year-ma-multiplier",
+    name: "2-Year MA Multiplier",
+    shortName: "2Y MA Multiplier",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Compares BTC with the 2-year moving average and its 5x upper band.",
+      why: "Helps show whether price is closer to washed-out levels or overheated cycle territory.",
+    },
+    chartType: "line-with-zones",
+    updateFrequency: "daily",
+    bullishInterpretation: "A large buffer below the 5x upper band can suggest lower cycle-overheat risk.",
+    bearishInterpretation: "A small buffer to the 5x upper band can signal hotter cycle conditions.",
+    learnMore:
+      "The 2-Year MA Multiplier is a popular cycle framework that watches BTC against its 2-year moving average and the 5x upper band. It is used mostly for long-cycle context rather than short-term trading.",
+    defaultVisible: true,
+    mobilePriority: 2,
+    valueFormat: "percent",
+  },
+  {
     id: "nupl",
     name: "NUPL",
     panelId: "cycle-regime",
@@ -416,6 +435,25 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
       "RHODL compares the realized value of younger coins to older coins and adjusts for market age. It is widely used to judge whether cycle wealth is concentrated in fresh speculation or long-held conviction.",
     defaultVisible: true,
     mobilePriority: 1,
+    valueFormat: "number",
+  },
+  {
+    id: "fear-and-greed",
+    name: "Fear and Greed",
+    shortName: "Fear & Greed",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Tracks broad crypto market sentiment on a 0 to 100 scale.",
+      why: "Helps show whether the market mood is fearful, balanced, or overheated.",
+    },
+    chartType: "gauge",
+    updateFrequency: "daily",
+    bullishInterpretation: "Lower readings often reflect fear, stress, or washed-out positioning.",
+    bearishInterpretation: "Very high readings can signal greed, crowding, and hotter risk conditions.",
+    learnMore:
+      "The Fear and Greed Index is a sentiment overlay rather than an on-chain metric. It is useful for context because extreme fear often appears near stressed conditions, while extreme greed can show crowding and complacency.",
+    defaultVisible: true,
+    mobilePriority: 2,
     valueFormat: "number",
   },
   {
@@ -746,6 +784,25 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     defaultVisible: true,
     mobilePriority: 3,
     valueFormat: "ratio",
+  },
+  {
+    id: "stock-to-flow",
+    name: "Stock-to-Flow",
+    shortName: "S2F",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Measures BTC scarcity as circulating supply divided by annual new issuance.",
+      why: "Helps place Bitcoin within a long-term scarcity model tied to halvings and supply expansion.",
+    },
+    chartType: "line-with-zones",
+    updateFrequency: "daily",
+    bullishInterpretation: "Higher stock-to-flow means lower annual supply expansion and greater modeled scarcity.",
+    bearishInterpretation: "Lower stock-to-flow means faster relative supply growth and less modeled scarcity.",
+    learnMore:
+      "Stock-to-Flow is a scarcity model popularized in Bitcoin circles. It is based on circulating supply divided by annual new issuance, so it steps higher across halving eras and should be treated as a long-term model rather than a trading signal.",
+    defaultVisible: true,
+    mobilePriority: 3,
+    valueFormat: "number",
   },
   {
     id: "spot-btc-etf-flows",

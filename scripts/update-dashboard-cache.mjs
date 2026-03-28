@@ -16,7 +16,8 @@ const MEMPOOL_API_BASE = "https://mempool.space/api/v1";
 const FRED_CSV_BASE = "https://fred.stlouisfed.org/graph/fredgraph.csv";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
 const RATE_PROBABILITY_API = "https://rateprobability.com/api/latest";
-const TOTAL_METRIC_COUNT = 39;
+const FEAR_GREED_API = "https://api.alternative.me/fng/?limit=30&format=json";
+const TOTAL_METRIC_COUNT = 42;
 
 const jitterMinutes = 55 + Math.floor(Math.random() * 11);
 
@@ -83,6 +84,7 @@ function inferStatus(metricId, latest, previous) {
     "active-addresses",
     "mvrv",
     "pi-cycle-top",
+    "stock-to-flow",
     "percent-supply-in-profit",
     "lth-supply",
     "lth-net-position-change",
@@ -107,6 +109,7 @@ function inferStatus(metricId, latest, previous) {
     "ssr",
     "dxy",
     "10y-real-yield",
+    "2-year-ma-multiplier",
     "nvt-signal",
     "fed-rate-expectations",
     "on-rrp",
@@ -245,6 +248,19 @@ async function safePoints(fetcher) {
 
 async function fetchRateProbability() {
   return fetchJson(RATE_PROBABILITY_API);
+}
+
+async function fetchFearAndGreedIndex() {
+  const payload = await fetchJson(FEAR_GREED_API);
+
+  return (payload.data ?? [])
+    .map((point) => ({
+      timestamp: Number(point.timestamp) * 1000,
+      value: Number(point.value),
+      classification: point.value_classification ?? "",
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value))
+    .sort((left, right) => left.timestamp - right.timestamp);
 }
 
 async function fetchBlockchainChart(chart, timespan) {
@@ -433,6 +449,7 @@ export async function updateDashboardCache(options = {}) {
   const [
     priceSeries,
     longPriceSeries,
+    totalBitcoinsLongSeries,
     transactionVolumeBtc,
     totalBitcoins,
     activeAddresses,
@@ -442,6 +459,7 @@ export async function updateDashboardCache(options = {}) {
     coingecko,
     mempoolDifficulty,
     markets,
+    fearGreedSeries,
     mvrvSeries,
     nuplSeries,
     minerRevenueSeries,
@@ -464,6 +482,7 @@ export async function updateDashboardCache(options = {}) {
     openInterestSeries,
     powerLawSeries,
     powerLawFloorSeries,
+    powerLawTopSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -480,6 +499,7 @@ export async function updateDashboardCache(options = {}) {
   ] = await Promise.all([
     fetchBlockchainChart("market-price", "30days"),
     fetchBlockchainChart("market-price", "730days"),
+    fetchBlockchainChart("total-bitcoins", "730days"),
     fetchBlockchainChart("estimated-transaction-volume", "30days"),
     fetchBlockchainChart("total-bitcoins", "30days"),
     fetchBlockchainChart("n-unique-addresses", "30days"),
@@ -493,6 +513,7 @@ export async function updateDashboardCache(options = {}) {
     fetchJson(
       `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&ids=bitcoin,tether,usd-coin,ethena-usde,dai,first-digital-usd,usds,paypal-usd,frax,usdd`,
     ),
+    fetchFearAndGreedIndex().catch(() => []),
     safePoints(() =>
       fetchJson(
         `${BLOCKCHAIN_API_BASE}/mvrv?timespan=1year&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
@@ -524,6 +545,7 @@ export async function updateDashboardCache(options = {}) {
     safePoints(() => fetchBGeometricsSeries("/files/oi_total.json")),
     safePoints(() => fetchBGeometricsSeries("/files/power_law.json")),
     safePoints(() => fetchBGeometricsSeries("/files/power_law_floor.json")),
+    safePoints(() => fetchBGeometricsSeries("/files/power_law_top.json")),
     safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
     safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
     safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
@@ -579,6 +601,7 @@ export async function updateDashboardCache(options = {}) {
     value: point.value * 100,
   }));
   const price200DayAverage = rollingAverage(longPriceSeries, 200);
+  const price730DayAverage = rollingAverage(longPriceSeries, 730);
   const price111DayAverage = rollingAverage(longPriceSeries, 111);
   const price350DayAverage = rollingAverage(longPriceSeries, 350);
   const mayerMultipleSeries = longPriceSeries
@@ -671,6 +694,47 @@ export async function updateDashboardCache(options = {}) {
     powerLawFloorSeries,
     (priceValue, floorValue) => (floorValue > 0 ? priceValue / floorValue : 0),
   );
+  const powerLawTopRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawTopSeries,
+    (priceValue, topValue) => (topValue > 0 ? priceValue / topValue : 0),
+  );
+  const twoYearMaBufferSeries = longPriceSeries
+    .map((point, index) => {
+      if (index < 729) {
+        return null;
+      }
+
+      const topBand = price730DayAverage[index].value * 5;
+
+      if (topBand <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: ((topBand - point.value) / topBand) * 100,
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
+  const stockToFlowSeries = totalBitcoinsLongSeries
+    .map((point, index) => {
+      if (index < 365) {
+        return null;
+      }
+
+      const annualIssuance = point.value - totalBitcoinsLongSeries[index - 365].value;
+
+      if (annualIssuance <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: point.value / annualIssuance,
+      };
+    })
+    .filter((point) => point !== null && Number.isFinite(point.value));
   const generatedAt = Date.now();
 
   if (!rateProbabilityRows.length) {
@@ -940,6 +1004,30 @@ export async function updateDashboardCache(options = {}) {
           },
         }
       : {}),
+    ...(twoYearMaBufferSeries.length > 0
+      ? {
+          "2-year-ma-multiplier": {
+            metricId: "2-year-ma-multiplier",
+            currentValue: formatUnsignedPercent(twoYearMaBufferSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: `Buffer to 5x band | spot / 2Y MA ${formatRatio((btcPrice / (price730DayAverage.at(-1)?.value ?? btcPrice)) || 0, 2)}x`,
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(
+              twoYearMaBufferSeries.at(-1)?.value ?? 0,
+              twoYearMaBufferSeries.at(-2)?.value ?? twoYearMaBufferSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (twoYearMaBufferSeries.at(-1)?.value ?? 0) > 70
+                ? "bullish"
+                : (twoYearMaBufferSeries.at(-1)?.value ?? 0) > 35
+                  ? "neutral"
+                  : "bearish",
+            series: toSeries(twoYearMaBufferSeries),
+            isLive: true,
+            asOf: twoYearMaBufferSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
     ...(nuplSeries.length > 0
       ? {
           nupl: {
@@ -1029,6 +1117,30 @@ export async function updateDashboardCache(options = {}) {
             series: toSeries(rhodlRatioSeries),
             isLive: true,
             asOf: rhodlRatioSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
+          },
+        }
+      : {}),
+    ...(fearGreedSeries.length > 0
+      ? {
+          "fear-and-greed": {
+            metricId: "fear-and-greed",
+            currentValue: formatCompact(fearGreedSeries.at(-1)?.value ?? 0, 0),
+            deltaLabel: fearGreedSeries.at(-1)?.classification ?? "Sentiment index",
+            sourceLabel: "Alternative.me",
+            trend: inferTrend(
+              fearGreedSeries.at(-1)?.value ?? 0,
+              fearGreedSeries.at(-2)?.value ?? fearGreedSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (fearGreedSeries.at(-1)?.value ?? 0) < 25
+                ? "bullish"
+                : (fearGreedSeries.at(-1)?.value ?? 0) > 75
+                  ? "bearish"
+                  : "neutral",
+            series: toSeries(fearGreedSeries),
+            isLive: true,
+            asOf: fearGreedSeries.at(-1)?.timestamp,
             dataMode: "scraped",
           },
         }
@@ -1487,7 +1599,10 @@ export async function updateDashboardCache(options = {}) {
           "power-law": {
             metricId: "power-law",
             currentValue: formatRatio(powerLawRatioSeries.at(-1)?.value ?? 0, 2),
-            deltaLabel: `Spot ${formatRatio(powerLawFloorRatioSeries.at(-1)?.value ?? 0, 2)}x power-law floor`,
+            deltaLabel:
+              powerLawTopRatioSeries.length > 0
+                ? `Floor ${formatRatio(powerLawFloorRatioSeries.at(-1)?.value ?? 0, 2)}x | Top ${formatRatio(powerLawTopRatioSeries.at(-1)?.value ?? 0, 2)}x`
+                : `Floor ${formatRatio(powerLawFloorRatioSeries.at(-1)?.value ?? 0, 2)}x | Top band unavailable`,
             sourceLabel: "BGeometrics model",
             trend: inferTrend(
               powerLawRatioSeries.at(-1)?.value ?? 0,
@@ -1502,6 +1617,30 @@ export async function updateDashboardCache(options = {}) {
             series: toSeries(powerLawRatioSeries),
             isLive: true,
             asOf: powerLawRatioSeries.at(-1)?.timestamp,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(stockToFlowSeries.length > 0
+      ? {
+          "stock-to-flow": {
+            metricId: "stock-to-flow",
+            currentValue: formatCompact(stockToFlowSeries.at(-1)?.value ?? 0, 1),
+            deltaLabel: "Circulating supply divided by trailing 1Y issuance",
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(
+              stockToFlowSeries.at(-1)?.value ?? 0,
+              stockToFlowSeries.at(-2)?.value ?? stockToFlowSeries.at(-1)?.value ?? 0,
+            ),
+            status:
+              (stockToFlowSeries.at(-1)?.value ?? 0) > 80
+                ? "bullish"
+                : (stockToFlowSeries.at(-1)?.value ?? 0) > 40
+                  ? "neutral"
+                  : "bearish",
+            series: toSeries(stockToFlowSeries),
+            isLive: true,
+            asOf: stockToFlowSeries.at(-1)?.timestamp,
             dataMode: "approx",
           },
         }

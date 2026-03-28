@@ -110,6 +110,14 @@ interface RateProbabilityPayload {
   rows?: RateProbabilityRow[];
 }
 
+interface FearAndGreedResponse {
+  data?: Array<{
+    value?: string;
+    value_classification?: string;
+    timestamp?: string;
+  }>;
+}
+
 interface GlassnodePoint {
   t: number;
   v: number;
@@ -121,6 +129,7 @@ const GLASSNODE_API_BASE = "https://api.glassnode.com/v1/metrics";
 const FRED_API_BASE = "https://api.stlouisfed.org/fred/series/observations";
 const BGEOMETRICS_BASE = "https://charts.bgeometrics.com";
 const RATE_PROBABILITY_API = "https://rateprobability.com/api/latest";
+const FEAR_GREED_API = "https://api.alternative.me/fng/?limit=30&format=json";
 
 const GLASSNODE_API_KEY = import.meta.env.VITE_GLASSNODE_API_KEY;
 const FRED_API_KEY = import.meta.env.VITE_FRED_API_KEY;
@@ -333,6 +342,7 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "adjusted-transfer-volume",
     "mvrv",
     "pi-cycle-top",
+    "stock-to-flow",
     "percent-supply-in-profit",
     "lth-supply",
     "lth-net-position-change",
@@ -356,6 +366,7 @@ function inferStatus(metricId: string, latest: number, previous: number): Metric
     "ssr",
     "dxy",
     "10y-real-yield",
+    "2-year-ma-multiplier",
     "nvt-signal",
     "fed-rate-expectations",
     "on-rrp",
@@ -428,6 +439,19 @@ async function fetchText(url: string) {
 
 async function fetchRateProbability() {
   return fetchJson<RateProbabilityPayload>(RATE_PROBABILITY_API);
+}
+
+async function fetchFearAndGreedIndex() {
+  const payload = await fetchJson<FearAndGreedResponse>(FEAR_GREED_API);
+
+  return (payload.data ?? [])
+    .map((point) => ({
+      timestamp: Number(point.timestamp) * 1000,
+      value: Number(point.value),
+      classification: point.value_classification ?? "",
+    }))
+    .filter((point) => Number.isFinite(point.timestamp) && Number.isFinite(point.value))
+    .sort((left, right) => left.timestamp - right.timestamp);
 }
 
 async function safePoints(fetcher: () => Promise<NumericPoint[]>) {
@@ -602,12 +626,14 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
   const [
     priceSeries,
     longPriceSeries,
+    totalBitcoinsLongSeries,
     activeAddresses,
     transferVolume,
     hashrate,
     difficulty,
     coingecko,
     markets,
+    fearGreedSeries,
     mvrvSeries,
     nuplSeries,
     minerRevenueSeries,
@@ -630,6 +656,7 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     openInterestSeries,
     powerLawSeries,
     powerLawFloorSeries,
+    powerLawTopSeries,
     etfFlowSeries,
     etfHoldingsSeries,
     asoprSeries,
@@ -642,12 +669,14 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     await Promise.all([
       fetchBlockchainChart("market-price", `${LIVE_WINDOW_DAYS}days`),
       fetchBlockchainChart("market-price", "730days"),
+      fetchBlockchainChart("total-bitcoins", "730days"),
       fetchBlockchainChart("n-unique-addresses", `${LIVE_WINDOW_DAYS}days`),
       fetchBlockchainChart("estimated-transaction-volume-usd", `${LIVE_WINDOW_DAYS}days`),
       fetchBlockchainChart("hash-rate", "90days"),
       fetchBlockchainChart("difficulty", "90days"),
       fetchCoinGeckoPrice(),
       fetchCoinGeckoMarkets(stablecoinIds),
+      fetchFearAndGreedIndex().catch(() => []),
       safePoints(() =>
         fetchJson<BlockchainChartResponse>(
         `${BLOCKCHAIN_API_BASE}/mvrv?timespan=1year&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
@@ -679,6 +708,7 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       safePoints(() => fetchBGeometricsSeries("/files/oi_total.json")),
       safePoints(() => fetchBGeometricsSeries("/files/power_law.json")),
       safePoints(() => fetchBGeometricsSeries("/files/power_law_floor.json")),
+      safePoints(() => fetchBGeometricsSeries("/files/power_law_top.json")),
       safePoints(() => fetchBGeometricsSeries("/files/flow_btc_etf_btc.json")),
       safePoints(() => fetchBGeometricsSeries("/files/total_btc_etf_btc.json")),
       safePoints(() => fetchBitcoinDataSeries("/v1/asopr", "asopr")),
@@ -702,6 +732,7 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     value: point.value * 100,
   }));
   const price200DayAverage = rollingAverage(longPriceSeries, 200);
+  const price730DayAverage = rollingAverage(longPriceSeries, 730);
   const price111DayAverage = rollingAverage(longPriceSeries, 111);
   const price350DayAverage = rollingAverage(longPriceSeries, 350);
   const mayerMultipleSeries = longPriceSeries
@@ -794,6 +825,47 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     powerLawFloorSeries,
     (priceValue, floorValue) => (floorValue > 0 ? priceValue / floorValue : 0),
   );
+  const powerLawTopRatioSeries = combineSeries(
+    longPriceSeries,
+    powerLawTopSeries,
+    (priceValue, topValue) => (topValue > 0 ? priceValue / topValue : 0),
+  );
+  const twoYearMaBufferSeries = longPriceSeries
+    .map((point, index) => {
+      if (index < 729) {
+        return null;
+      }
+
+      const topBand = price730DayAverage[index].value * 5;
+
+      if (topBand <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: ((topBand - point.value) / topBand) * 100,
+      };
+    })
+    .filter((point): point is NumericPoint => point !== null && Number.isFinite(point.value));
+  const stockToFlowSeries = totalBitcoinsLongSeries
+    .map((point, index) => {
+      if (index < 365) {
+        return null;
+      }
+
+      const annualIssuance = point.value - totalBitcoinsLongSeries[index - 365].value;
+
+      if (annualIssuance <= 0) {
+        return null;
+      }
+
+      return {
+        timestamp: point.timestamp,
+        value: point.value / annualIssuance,
+      };
+    })
+    .filter((point): point is NumericPoint => point !== null && Number.isFinite(point.value));
 
   const publicUpdates: Record<string, DashboardMetricState> = {
     "active-addresses": buildMetricState("active-addresses", activeAddresses, {
@@ -918,6 +990,28 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     };
   }
 
+  if (twoYearMaBufferSeries.length > 0) {
+    const latestTwoYearBuffer = lastPoint(twoYearMaBufferSeries)?.value ?? 0;
+    const previousTwoYearBuffer = previousPoint(twoYearMaBufferSeries)?.value ?? latestTwoYearBuffer;
+    const latestTwoYearMaRatio =
+      price730DayAverage.length > 0 && lastPoint(price730DayAverage)?.value
+        ? latestPrice / (lastPoint(price730DayAverage)?.value ?? latestPrice)
+        : 0;
+
+    publicUpdates["2-year-ma-multiplier"] = {
+      ...metrics["2-year-ma-multiplier"],
+      currentValue: formatPercent(latestTwoYearBuffer, 1),
+      deltaLabel: `Buffer to 5x band | spot / 2Y MA ${formatRatio(latestTwoYearMaRatio, 2)}x`,
+      trend: inferTrend(latestTwoYearBuffer, previousTwoYearBuffer),
+      status: latestTwoYearBuffer > 70 ? "bullish" : latestTwoYearBuffer > 35 ? "neutral" : "bearish",
+      series: toSeries(twoYearMaBufferSeries),
+      sourceLabel: "Blockchain.com derived",
+      isLive: true,
+      asOf: lastPoint(twoYearMaBufferSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
+
   if (nuplSeries.length > 0) {
     const latestNupl = lastPoint(nuplSeries)?.value ?? 0;
     const previousNupl = previousPoint(nuplSeries)?.value ?? latestNupl;
@@ -986,6 +1080,25 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       sourceLabel: "BGeometrics",
       isLive: true,
       asOf: lastPoint(rhodlRatioSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (fearGreedSeries.length > 0) {
+    const latestFearGreed = lastPoint(fearGreedSeries)?.value ?? 0;
+    const previousFearGreed = previousPoint(fearGreedSeries)?.value ?? latestFearGreed;
+    const latestClassification = fearGreedSeries[fearGreedSeries.length - 1]?.classification ?? "Sentiment index";
+
+    publicUpdates["fear-and-greed"] = {
+      ...metrics["fear-and-greed"],
+      currentValue: formatCompactNumber(latestFearGreed, 0),
+      deltaLabel: latestClassification,
+      trend: inferTrend(latestFearGreed, previousFearGreed),
+      status: latestFearGreed < 25 ? "bullish" : latestFearGreed > 75 ? "bearish" : "neutral",
+      series: toSeries(fearGreedSeries),
+      sourceLabel: "Alternative.me",
+      isLive: true,
+      asOf: lastPoint(fearGreedSeries)?.timestamp,
       dataMode: "scraped",
     };
   }
@@ -1294,18 +1407,40 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
   if (powerLawRatioSeries.length > 0) {
     const latestPowerLawRatio = lastPoint(powerLawRatioSeries)?.value ?? 0;
     const latestFloorRatio = lastPoint(powerLawFloorRatioSeries)?.value ?? 0;
+    const latestTopRatio = powerLawTopRatioSeries.length > 0 ? lastPoint(powerLawTopRatioSeries)?.value ?? 0 : null;
     const previousPowerLawRatio = previousPoint(powerLawRatioSeries)?.value ?? latestPowerLawRatio;
 
     publicUpdates["power-law"] = {
       ...metrics["power-law"],
       currentValue: formatRatio(latestPowerLawRatio, 2),
-      deltaLabel: `Spot ${formatRatio(latestFloorRatio, 2)}x power-law floor`,
+      deltaLabel:
+        latestTopRatio !== null
+          ? `Floor ${formatRatio(latestFloorRatio, 2)}x | Top ${formatRatio(latestTopRatio, 2)}x`
+          : `Floor ${formatRatio(latestFloorRatio, 2)}x | Top band unavailable`,
       trend: inferTrend(latestPowerLawRatio, previousPowerLawRatio),
       status: latestPowerLawRatio < 0.75 ? "bullish" : latestPowerLawRatio > 1.2 ? "bearish" : "neutral",
       series: toSeries(powerLawRatioSeries),
       sourceLabel: "BGeometrics model",
       isLive: true,
       asOf: lastPoint(powerLawRatioSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
+
+  if (stockToFlowSeries.length > 0) {
+    const latestStockToFlow = lastPoint(stockToFlowSeries)?.value ?? 0;
+    const previousStockToFlow = previousPoint(stockToFlowSeries)?.value ?? latestStockToFlow;
+
+    publicUpdates["stock-to-flow"] = {
+      ...metrics["stock-to-flow"],
+      currentValue: formatCompactNumber(latestStockToFlow, 1),
+      deltaLabel: "Circulating supply divided by trailing 1Y issuance",
+      trend: inferTrend(latestStockToFlow, previousStockToFlow),
+      status: latestStockToFlow > 80 ? "bullish" : latestStockToFlow > 40 ? "neutral" : "bearish",
+      series: toSeries(stockToFlowSeries),
+      sourceLabel: "Blockchain.com derived",
+      isLive: true,
+      asOf: lastPoint(stockToFlowSeries)?.timestamp,
       dataMode: "approx",
     };
   }
