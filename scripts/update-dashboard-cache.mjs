@@ -97,6 +97,18 @@ function toSeries(points) {
   return points.slice(-12).map((point) => point.value);
 }
 
+function rollingAverage(points, window) {
+  return points.map((point, index) => {
+    const slice = points.slice(Math.max(0, index - window + 1), index + 1);
+    const average = slice.reduce((sum, entry) => sum + entry.value, 0) / slice.length;
+
+    return {
+      timestamp: point.timestamp,
+      value: average,
+    };
+  });
+}
+
 function buildMetric(metricId, points, currentValue, deltaLabel, sourceLabel) {
   const latest = points.at(-1)?.value ?? 0;
   const previous = points.at(-2)?.value ?? latest;
@@ -141,6 +153,14 @@ async function fetchText(url) {
   }
 
   return response.text();
+}
+
+async function safePoints(fetcher) {
+  try {
+    return await fetcher();
+  } catch {
+    return [];
+  }
 }
 
 async function fetchBlockchainChart(chart, timespan) {
@@ -201,6 +221,8 @@ export async function updateDashboardCache() {
     coingecko,
     mempoolDifficulty,
     markets,
+    mvrvSeries,
+    minerRevenueSeries,
     dxy,
     realYield,
     fedBalanceSheet,
@@ -218,6 +240,17 @@ export async function updateDashboardCache() {
     fetchJson(
       `${COINGECKO_API_BASE}/coins/markets?vs_currency=usd&ids=bitcoin,tether,usd-coin,ethena-usde,dai,first-digital-usd,usds,paypal-usd,frax,usdd`,
     ),
+    safePoints(() =>
+      fetchJson(
+        `${BLOCKCHAIN_API_BASE}/mvrv?timespan=1year&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
+      ).then((payload) =>
+        payload.values.map((point) => ({
+          timestamp: point.x * 1000,
+          value: point.y,
+        })),
+      ),
+    ),
+    safePoints(() => fetchBlockchainChart("miners-revenue", "1year")),
     fetchFREDSeries("DTWEXBGS"),
     fetchFREDSeries("DFII10"),
     fetchFREDSeries("WALCL"),
@@ -231,20 +264,40 @@ export async function updateDashboardCache() {
     .filter((asset) => asset.id !== "bitcoin")
     .reduce((sum, asset) => sum + (asset.market_cap ?? 0), 0);
   const ssrValue = bitcoinMarketCap > 0 && stablecoinMarketCap > 0 ? bitcoinMarketCap / stablecoinMarketCap : null;
+  const latestMvrv = mvrvSeries.at(-1)?.value ?? null;
+  const realizedPrice = latestMvrv ? btcPrice / latestMvrv : null;
+  const minerRevenueAverage = rollingAverage(minerRevenueSeries, 365);
+  const puellSeries = minerRevenueSeries.map((point, index) => ({
+    timestamp: point.timestamp,
+    value: minerRevenueAverage[index].value > 0 ? point.value / minerRevenueAverage[index].value : 0,
+  }));
+  const latestPuell = puellSeries.at(-1)?.value ?? null;
 
   const metrics = {
     ...(existing.metrics ?? {}),
     "price-vs-realized-price": {
       metricId: "price-vs-realized-price",
-      currentValue: formatUsd(btcPrice, 0),
-      deltaLabel: `Proxy only: BTC spot ${formatPercent(btcChange)} over 24h`,
-      sourceLabel: "CoinGecko proxy",
-      trend: btcChange >= 0 ? "up" : "down",
-      status: btcChange >= 0 ? "bullish" : "bearish",
-      series: toSeries(priceSeries),
+      currentValue: latestMvrv ? `${formatRatio(latestMvrv, 2)}x` : formatUsd(btcPrice, 0),
+      deltaLabel: latestMvrv && realizedPrice
+        ? `Spot ${formatUsd(btcPrice, 0)} vs realized ${formatUsd(realizedPrice, 0)}`
+        : `Proxy only: BTC spot ${formatPercent(btcChange)} over 24h`,
+      sourceLabel: latestMvrv ? "Blockchain.com market signals" : "CoinGecko proxy",
+      trend: latestMvrv
+        ? inferTrend(latestMvrv, mvrvSeries.at(-2)?.value ?? latestMvrv)
+        : btcChange >= 0
+          ? "up"
+          : "down",
+      status: latestMvrv
+        ? latestMvrv >= 1
+          ? "bullish"
+          : "bearish"
+        : btcChange >= 0
+          ? "bullish"
+          : "bearish",
+      series: latestMvrv ? toSeries(mvrvSeries) : toSeries(priceSeries),
       isLive: true,
-      asOf: (coingecko?.bitcoin?.last_updated_at ?? 0) * 1000,
-      dataMode: "approx",
+      asOf: latestMvrv ? mvrvSeries.at(-1)?.timestamp : (coingecko?.bitcoin?.last_updated_at ?? 0) * 1000,
+      dataMode: latestMvrv ? "scraped" : "approx",
     },
     "adjusted-transfer-volume": buildMetric(
       "adjusted-transfer-volume",
@@ -314,6 +367,38 @@ export async function updateDashboardCache() {
             series: existing.metrics?.ssr?.series ?? [ssrValue],
             isLive: true,
             asOf: (coingecko?.bitcoin?.last_updated_at ?? 0) * 1000,
+            dataMode: "approx",
+          },
+        }
+      : {}),
+    ...(latestMvrv
+      ? {
+          mvrv: {
+            metricId: "mvrv",
+            currentValue: formatRatio(latestMvrv, 2),
+            deltaLabel: "Market value to realized value",
+            sourceLabel: "Blockchain.com market signals",
+            trend: inferTrend(latestMvrv, mvrvSeries.at(-2)?.value ?? latestMvrv),
+            status: inferStatus("mvrv", latestMvrv, mvrvSeries.at(-2)?.value ?? latestMvrv),
+            series: toSeries(mvrvSeries),
+            isLive: true,
+            asOf: mvrvSeries.at(-1)?.timestamp,
+            dataMode: "scraped",
+          },
+        }
+      : {}),
+    ...(latestPuell
+      ? {
+          "puell-multiple": {
+            metricId: "puell-multiple",
+            currentValue: formatRatio(latestPuell, 2),
+            deltaLabel: "Miner revenue vs 365D average",
+            sourceLabel: "Blockchain.com derived",
+            trend: inferTrend(latestPuell, puellSeries.at(-2)?.value ?? latestPuell),
+            status: inferStatus("puell-multiple", latestPuell, puellSeries.at(-2)?.value ?? latestPuell),
+            series: toSeries(puellSeries),
+            isLive: true,
+            asOf: puellSeries.at(-1)?.timestamp,
             dataMode: "approx",
           },
         }

@@ -192,6 +192,18 @@ function toSeries(points: NumericPoint[]) {
   return points.slice(-12).map((point) => point.value);
 }
 
+function rollingAverage(points: NumericPoint[], window: number) {
+  return points.map((point, index) => {
+    const slice = points.slice(Math.max(0, index - window + 1), index + 1);
+    const average = slice.reduce((sum, entry) => sum + entry.value, 0) / slice.length;
+
+    return {
+      timestamp: point.timestamp,
+      value: average,
+    };
+  });
+}
+
 function lastPoint(points: NumericPoint[]) {
   return points[points.length - 1];
 }
@@ -302,6 +314,14 @@ async function fetchText(url: string) {
   return response.text();
 }
 
+async function safePoints(fetcher: () => Promise<NumericPoint[]>) {
+  try {
+    return await fetcher();
+  } catch {
+    return [];
+  }
+}
+
 async function fetchBlockchainChart(path: string, timespan: string) {
   const url = `${BLOCKCHAIN_API_BASE}/${path}?timespan=${timespan}&format=json`;
   const payload = await fetchJson<BlockchainChartResponse>(url);
@@ -404,7 +424,17 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
     "usdd",
   ];
 
-  const [priceSeries, activeAddresses, transferVolume, hashrate, difficulty, coingecko, markets] =
+  const [
+    priceSeries,
+    activeAddresses,
+    transferVolume,
+    hashrate,
+    difficulty,
+    coingecko,
+    markets,
+    mvrvSeries,
+    minerRevenueSeries,
+  ] =
     await Promise.all([
       fetchBlockchainChart("market-price", `${LIVE_WINDOW_DAYS}days`),
       fetchBlockchainChart("n-unique-addresses", `${LIVE_WINDOW_DAYS}days`),
@@ -413,6 +443,17 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       fetchBlockchainChart("difficulty", "90days"),
       fetchCoinGeckoPrice(),
       fetchCoinGeckoMarkets(stablecoinIds),
+      safePoints(() =>
+        fetchJson<BlockchainChartResponse>(
+        `${BLOCKCHAIN_API_BASE}/mvrv?timespan=1year&sampled=true&metadata=false&daysAverageString=1d&cors=true&format=json`,
+      ).then((payload) =>
+          payload.values.map((point) => ({
+            timestamp: point.x * 1000,
+            value: point.y,
+          })),
+        ),
+      ),
+      safePoints(() => fetchBlockchainChart("miners-revenue", "1year")),
     ]);
 
   const latestPrice = coingecko.bitcoin?.usd ?? lastPoint(priceSeries)?.value ?? 0;
@@ -457,6 +498,65 @@ async function fetchPublicMetrics(metrics: Record<string, DashboardMetricState>)
       dataMode: "approx",
     },
   };
+
+  if (mvrvSeries.length > 0) {
+    const latestMvrv = lastPoint(mvrvSeries)?.value ?? 0;
+    const realizedPrice = latestMvrv > 0 ? latestPrice / latestMvrv : 0;
+
+    publicUpdates.mvrv = {
+      ...metrics.mvrv,
+      currentValue: formatRatio(latestMvrv, 2),
+      deltaLabel: "Market value to realized value",
+      trend: inferTrend(latestMvrv, previousPoint(mvrvSeries)?.value ?? latestMvrv),
+      status: inferStatus("mvrv", latestMvrv, previousPoint(mvrvSeries)?.value ?? latestMvrv),
+      series: toSeries(mvrvSeries),
+      sourceLabel: "Blockchain.com market signals",
+      isLive: true,
+      asOf: lastPoint(mvrvSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+
+    publicUpdates["price-vs-realized-price"] = {
+      ...publicUpdates["price-vs-realized-price"],
+      currentValue: `${formatRatio(latestMvrv, 2)}x`,
+      deltaLabel: `Spot ${formatUsd(latestPrice, 0)} vs realized ${formatUsd(realizedPrice, 0)}`,
+      trend: inferTrend(latestMvrv, previousPoint(mvrvSeries)?.value ?? latestMvrv),
+      status: latestMvrv >= 1 ? "bullish" : "bearish",
+      series: toSeries(mvrvSeries),
+      sourceLabel: "Blockchain.com market signals",
+      isLive: true,
+      asOf: lastPoint(mvrvSeries)?.timestamp,
+      dataMode: "scraped",
+    };
+  }
+
+  if (minerRevenueSeries.length > 0) {
+    const movingAverage = rollingAverage(minerRevenueSeries, 365);
+    const puellSeries = minerRevenueSeries.map((point, index) => ({
+      timestamp: point.timestamp,
+      value: movingAverage[index].value > 0 ? point.value / movingAverage[index].value : 0,
+    }));
+
+    publicUpdates["puell-multiple"] = {
+      ...metrics["puell-multiple"],
+      currentValue: formatRatio(lastPoint(puellSeries)?.value ?? 0, 2),
+      deltaLabel: "Miner revenue vs 365D average",
+      trend: inferTrend(
+        lastPoint(puellSeries)?.value ?? 0,
+        previousPoint(puellSeries)?.value ?? lastPoint(puellSeries)?.value ?? 0,
+      ),
+      status: inferStatus(
+        "puell-multiple",
+        lastPoint(puellSeries)?.value ?? 0,
+        previousPoint(puellSeries)?.value ?? lastPoint(puellSeries)?.value ?? 0,
+      ),
+      series: toSeries(puellSeries),
+      sourceLabel: "Blockchain.com derived",
+      isLive: true,
+      asOf: lastPoint(puellSeries)?.timestamp,
+      dataMode: "approx",
+    };
+  }
 
   const bitcoinMarketCap = markets.find((asset) => asset.id === "bitcoin")?.market_cap ?? 0;
   const stablecoinMarketCap = markets
