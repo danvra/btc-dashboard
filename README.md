@@ -33,8 +33,8 @@ The dashboard now uses a mixed live-data model:
 
 Copy `.env.example` to `.env` and add keys if you want the full set:
 
-- `VITE_GLASSNODE_API_KEY`
-- `VITE_FRED_API_KEY`
+- `GLASSNODE_API_KEY`
+- `FRED_API_KEY`
 
 ## Prototype cache mode
 

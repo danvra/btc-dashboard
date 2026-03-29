@@ -1,7 +1,6 @@
 import { startTransition, useEffect, useState } from "react";
 import {
   buildFallbackSnapshot,
-  fetchDashboardData,
   mergeCachePayload,
   type DashboardCachePayload,
   type DashboardDataSnapshot,
@@ -104,7 +103,7 @@ export function useDashboardData() {
       }
 
       let nextSnapshot: DashboardDataSnapshot;
-      let refreshSource: "api" | "static" | "live" = "api";
+      let refreshSource: "api" | "static" = "api";
 
       try {
         nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
@@ -112,9 +111,9 @@ export function useDashboardData() {
         try {
           nextSnapshot = await loadStaticCache();
           refreshSource = "static";
-        } catch {
-          nextSnapshot = await fetchDashboardData();
-          refreshSource = "live";
+        }
+        catch {
+          throw new Error("Dashboard cache is unavailable.");
         }
       }
 
@@ -128,9 +127,7 @@ export function useDashboardData() {
         const message =
           refreshSource === "api"
             ? "Refresh complete."
-            : refreshSource === "static"
-              ? "Live refresh unavailable. Showing cached data."
-              : "Live refresh complete.";
+            : "Live refresh unavailable. Showing cached data.";
 
         setRefreshNotice({
           completedAt,
