@@ -1,5 +1,6 @@
 import { ensureDashboardCache } from "../lib/server/dashboard-cache-groups.mjs";
 import { CACHE_GROUPS } from "../lib/server/dashboard-cache-shared.mjs";
+import { recordPageLoad } from "../lib/server/dashboard-storage.mjs";
 
 function parseTtlHours(value) {
   const parsed = Number(value);
@@ -26,7 +27,14 @@ export default async function handler(req, res) {
 
   try {
     const result = await ensureDashboardCache();
-    const payload = result.compositePayload;
+    const pageLoadCount = await recordPageLoad();
+    const payload = {
+      ...result.compositePayload,
+      meta: {
+        ...(result.compositePayload.meta ?? {}),
+        pageLoadCount,
+      },
+    };
     const cacheHeader = `public, max-age=0, s-maxage=${ttlSeconds}, stale-while-revalidate=${staleWhileRevalidateSeconds}`;
 
     res.setHeader("Content-Type", "application/json; charset=utf-8");

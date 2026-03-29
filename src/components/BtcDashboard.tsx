@@ -1165,6 +1165,7 @@ function DebugPanel({
   warnings,
   dataMode,
   liveMetricCount,
+  pageLoadCount,
   isRefreshing,
   refreshNotice,
   onRefresh,
@@ -1177,6 +1178,7 @@ function DebugPanel({
   warnings: string[];
   dataMode: string;
   liveMetricCount: number;
+  pageLoadCount: number;
   isRefreshing: boolean;
   refreshNotice?: { kind: "success" | "fallback" | "error"; message: string; completedAt: number } | null;
   onRefresh: () => void;
@@ -1214,6 +1216,9 @@ function DebugPanel({
         </div>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
           Live metrics: <span className="font-semibold text-stone-950">{liveMetricCount}</span>
+        </div>
+        <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
+          Page loads: <span className="font-semibold text-stone-950">{pageLoadCount}</span>
         </div>
         {refreshNotice && !isRefreshing && (
           <div
@@ -1353,6 +1358,7 @@ export function BtcDashboard() {
   const allMetricStates = snapshot?.metrics ?? {};
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
   const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
+  const pageLoadCount = snapshot?.meta?.pageLoadCount ?? 0;
   const scheduler = snapshot?.meta?.scheduler;
   const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
@@ -1670,17 +1676,18 @@ export function BtcDashboard() {
             <div className="border-t border-stone-200 px-1 pb-1">
               <DebugPanel
                 metrics={allMetricStates}
-                generatedAt={cacheGeneratedAt}
-                nextSuggestedRunAt={nextSuggestedRunAt}
-                scheduler={scheduler}
-                groups={groups}
-                warnings={warnings}
-                dataMode={dataMode}
-                liveMetricCount={liveMetricCount}
-                isRefreshing={isRefreshing}
-                refreshNotice={refreshNotice}
-                onRefresh={refresh}
-              />
+              generatedAt={cacheGeneratedAt}
+              nextSuggestedRunAt={nextSuggestedRunAt}
+              scheduler={scheduler}
+              groups={groups}
+              warnings={warnings}
+              dataMode={dataMode}
+              liveMetricCount={liveMetricCount}
+              pageLoadCount={pageLoadCount}
+              isRefreshing={isRefreshing}
+              refreshNotice={refreshNotice}
+              onRefresh={refresh}
+            />
             </div>
           )}
         </section>
