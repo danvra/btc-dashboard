@@ -1165,7 +1165,6 @@ function DebugPanel({
   warnings,
   dataMode,
   liveMetricCount,
-  pageLoadCount,
   isRefreshing,
   refreshNotice,
   onRefresh,
@@ -1178,7 +1177,6 @@ function DebugPanel({
   warnings: string[];
   dataMode: string;
   liveMetricCount: number;
-  pageLoadCount: number;
   isRefreshing: boolean;
   refreshNotice?: { kind: "success" | "fallback" | "error"; message: string; completedAt: number } | null;
   onRefresh: () => void;
@@ -1216,9 +1214,6 @@ function DebugPanel({
         </div>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
           Live metrics: <span className="font-semibold text-stone-950">{liveMetricCount}</span>
-        </div>
-        <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-          Page loads: <span className="font-semibold text-stone-950">{pageLoadCount}</span>
         </div>
         {refreshNotice && !isRefreshing && (
           <div
@@ -1319,7 +1314,6 @@ export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
-  const [pageLoadCount, setPageLoadCount] = useState(0);
   const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
   const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -1366,62 +1360,11 @@ export function BtcDashboard() {
   const hasConstructiveSignals = metricEntries.length > 0;
   const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
 
-  async function fetchPageLoadCount() {
-    const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, {
-      cache: "no-store",
-    });
-
-    if (!response.ok) {
-      throw new Error(`Page load count request failed: ${response.status}`);
-    }
-
-    const payload = (await response.json()) as { pageLoadCount?: number };
-    setPageLoadCount(payload.pageLoadCount ?? 0);
-  }
-
   useEffect(() => {
     if (!cycleAnalog) {
       setShowCycleAnalogModal(false);
     }
   }, [cycleAnalog]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    let ignore = false;
-
-    void (async () => {
-      try {
-        const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, { cache: "no-store" });
-
-        if (!response.ok) {
-          return;
-        }
-
-        const payload = (await response.json()) as { pageLoadCount?: number };
-
-        if (!ignore) {
-          setPageLoadCount(payload.pageLoadCount ?? 0);
-        }
-      } catch {
-        // Leave the default count in place if the endpoint is unavailable.
-      }
-    })();
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!showDebug || typeof window === "undefined") {
-      return;
-    }
-
-    void fetchPageLoadCount().catch(() => {});
-  }, [showDebug]);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
@@ -1734,7 +1677,6 @@ export function BtcDashboard() {
               warnings={warnings}
               dataMode={dataMode}
               liveMetricCount={liveMetricCount}
-              pageLoadCount={pageLoadCount}
               isRefreshing={isRefreshing}
               refreshNotice={refreshNotice}
               onRefresh={refresh}

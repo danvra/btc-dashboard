@@ -104,7 +104,6 @@ export interface DashboardDataSnapshot {
   meta?: {
     generatedAt?: number;
     nextSuggestedRunAt?: number;
-    pageLoadCount?: number;
     scheduler?: string;
     groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
   };
@@ -114,7 +113,6 @@ export interface DashboardCachePayload {
   meta?: {
     generatedAt?: number;
     nextSuggestedRunAt?: number;
-    pageLoadCount?: number;
     scheduler?: string;
     groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
   };
@@ -229,7 +227,6 @@ export function buildFallbackSnapshot(): DashboardDataSnapshot {
       warnings: ["Using bundled sample data."],
     },
     meta: {
-      pageLoadCount: 0,
       scheduler: "bundled samples",
     },
   };
@@ -285,7 +282,6 @@ export function mergeCachePayload(payload: DashboardCachePayload): DashboardData
     meta: {
       ...(fallback.meta ?? {}),
       ...(payload.meta ?? {}),
-      pageLoadCount: payload.meta?.pageLoadCount ?? fallback.meta?.pageLoadCount ?? 0,
     },
   };
 }

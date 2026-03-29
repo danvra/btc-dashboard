@@ -38,7 +38,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import dashboardCacheHandler from "./api/dashboard-cache.js";
-import pageLoadCountHandler from "./api/page-load-count.js";
 export default defineConfig({
     plugins: [
         react(),
@@ -91,9 +90,6 @@ export default defineConfig({
                 }
                 server.middlewares.use("/api/dashboard-cache", function (req, res, next) {
                     return handleApiRequest(req, res, next, dashboardCacheHandler);
-                });
-                server.middlewares.use("/api/page-load-count", function (req, res, next) {
-                    return handleApiRequest(req, res, next, pageLoadCountHandler);
                 });
             },
         },

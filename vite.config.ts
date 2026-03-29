@@ -2,7 +2,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import dashboardCacheHandler from "./api/dashboard-cache.js";
-import pageLoadCountHandler from "./api/page-load-count.js";
 
 export default defineConfig({
   plugins: [
@@ -47,9 +46,6 @@ export default defineConfig({
 
         server.middlewares.use("/api/dashboard-cache", (req, res, next) =>
           handleApiRequest(req, res, next, dashboardCacheHandler),
-        );
-        server.middlewares.use("/api/page-load-count", (req, res, next) =>
-          handleApiRequest(req, res, next, pageLoadCountHandler),
         );
       },
     },
