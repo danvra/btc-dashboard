@@ -1319,6 +1319,7 @@ export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
+  const [pageLoadCount, setPageLoadCount] = useState(0);
   const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
   const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -1358,7 +1359,6 @@ export function BtcDashboard() {
   const allMetricStates = snapshot?.metrics ?? {};
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
   const nextSuggestedRunAt = snapshot?.meta?.nextSuggestedRunAt;
-  const pageLoadCount = snapshot?.meta?.pageLoadCount ?? 0;
   const scheduler = snapshot?.meta?.scheduler;
   const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
@@ -1371,6 +1371,40 @@ export function BtcDashboard() {
       setShowCycleAnalogModal(false);
     }
   }, [cycleAnalog]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    let ignore = false;
+
+    void (async () => {
+      try {
+        const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, {
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json()) as { pageLoadCount?: number };
+
+        if (!ignore) {
+          setPageLoadCount(payload.pageLoadCount ?? 0);
+        }
+      } catch {
+        if (!ignore) {
+          setPageLoadCount(snapshot?.meta?.pageLoadCount ?? 0);
+        }
+      }
+    })();
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
