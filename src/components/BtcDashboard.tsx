@@ -822,12 +822,16 @@ function CycleAnalogModal({
 
 function ConstructiveSignalsModal({
   bullishMetrics,
+  neutralMetrics,
+  bearishMetrics,
   neutralCount,
   bearishCount,
   closeButtonRef,
   onClose,
 }: {
   bullishMetrics: Array<{ metric: DashboardMetric; state: DashboardMetricState }>;
+  neutralMetrics: Array<{ metric: DashboardMetric; state: DashboardMetricState }>;
+  bearishMetrics: Array<{ metric: DashboardMetric; state: DashboardMetricState }>;
   neutralCount: number;
   bearishCount: number;
   closeButtonRef: RefObject<HTMLButtonElement>;
@@ -838,6 +842,14 @@ function ConstructiveSignalsModal({
   const groupedBullishMetrics = DASHBOARD_PANELS.map((panel) => ({
     panel,
     metrics: bullishMetrics.filter((entry) => entry.metric.panelId === panel.id),
+  })).filter((group) => group.metrics.length > 0);
+  const groupedBearishMetrics = DASHBOARD_PANELS.map((panel) => ({
+    panel,
+    metrics: bearishMetrics.filter((entry) => entry.metric.panelId === panel.id),
+  })).filter((group) => group.metrics.length > 0);
+  const groupedNeutralMetrics = DASHBOARD_PANELS.map((panel) => ({
+    panel,
+    metrics: neutralMetrics.filter((entry) => entry.metric.panelId === panel.id),
   })).filter((group) => group.metrics.length > 0);
   const topBullishMetrics = [...bullishMetrics]
     .sort((left, right) => {
@@ -851,7 +863,19 @@ function ConstructiveSignalsModal({
       return left.metric.name.localeCompare(right.metric.name);
     })
     .slice(0, 6);
-  const dataModeCounts = bullishMetrics.reduce<Record<string, number>>((acc, entry) => {
+  const topBearishMetrics = [...bearishMetrics]
+    .sort((left, right) => {
+      const leftPriority = left.metric.mobilePriority ?? 99;
+      const rightPriority = right.metric.mobilePriority ?? 99;
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return left.metric.name.localeCompare(right.metric.name);
+    })
+    .slice(0, 6);
+  const dataModeCounts = [...bullishMetrics, ...neutralMetrics, ...bearishMetrics].reduce<Record<string, number>>((acc, entry) => {
     const key = entry.state.dataMode ?? "seeded";
     acc[key] = (acc[key] ?? 0) + 1;
     return acc;
@@ -948,6 +972,35 @@ function ConstructiveSignalsModal({
             </section>
           )}
 
+          {topBearishMetrics.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Main bearish pressure
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {topBearishMetrics.map(({ metric, state }) => (
+                  <article
+                    key={metric.id}
+                    className="rounded-[1.25rem] border border-rose-200 bg-rose-50/60 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
+                          {metric.shortName ?? metric.name}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-stone-950">{state.currentValue}</p>
+                      </div>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-rose-700 ring-1 ring-rose-200">
+                        {formatRelativeTime(state.asOf)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bearishInterpretation}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
           {groupedBullishMetrics.length > 0 ? (
             <section className="grid gap-4 lg:grid-cols-2">
               {groupedBullishMetrics.map(({ panel, metrics }) => (
@@ -999,9 +1052,92 @@ function ConstructiveSignalsModal({
             </section>
           )}
 
+          {groupedBearishMetrics.length > 0 && (
+            <section className="grid gap-4 lg:grid-cols-2">
+              {groupedBearishMetrics.map(({ panel, metrics }) => (
+                <article
+                  key={panel.id}
+                  className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    {panel.title} bearish signals
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{panel.description}</p>
+                  <div className="mt-4 grid gap-3">
+                    {metrics.map(({ metric, state }) => (
+                      <div
+                        key={metric.id}
+                        className="rounded-[1.25rem] bg-stone-50 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-stone-950">{metric.name}</p>
+                            <p className="mt-1 text-sm text-stone-600">{state.currentValue}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
+                              Bearish
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
+                            >
+                              {state.dataMode ?? "seeded"}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-stone-700">
+                          {metric.bearishInterpretation}
+                        </p>
+                        <p className="mt-2 text-xs text-stone-500">
+                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </section>
+          )}
+
+          {groupedNeutralMetrics.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Neutral / watchlist signals
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {groupedNeutralMetrics.flatMap(({ panel, metrics }) =>
+                  metrics.map(({ metric, state }) => (
+                    <div
+                      key={metric.id}
+                      className="rounded-[1.25rem] bg-stone-50 p-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-stone-950">{metric.name}</p>
+                          <p className="mt-1 text-sm text-stone-600">{state.currentValue}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
+                            Neutral
+                          </span>
+                          <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 ring-1 ring-stone-200">
+                            {panel.title}
+                          </span>
+                        </div>
+                      </div>
+                      <p className="mt-2 text-xs text-stone-500">
+                        Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                      </p>
+                    </div>
+                  )),
+                )}
+              </div>
+            </section>
+          )}
+
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Constructive support by data mode
+              Signal support by data mode
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {(["live", "scraped", "approx", "seeded"] as const).map((dataMode) => (
@@ -1552,6 +1688,8 @@ export function BtcDashboard() {
         {showConstructiveModal && (
           <ConstructiveSignalsModal
             bullishMetrics={bullishMetrics}
+            neutralMetrics={neutralMetrics}
+            bearishMetrics={bearishMetrics}
             neutralCount={neutralCount}
             bearishCount={bearishCount}
             closeButtonRef={constructiveCloseRef}
