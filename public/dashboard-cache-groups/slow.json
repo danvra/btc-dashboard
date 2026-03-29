@@ -1,11 +1,11 @@
 {
   "groupId": "slow",
-  "generatedAt": 1774734049252,
-  "expiresAt": 1774993249252,
+  "generatedAt": 1774743171608,
+  "expiresAt": 1775002371608,
   "ttlMs": 259200000,
   "staleAfterMs": 604800000,
-  "refreshedDuringRequest": true,
-  "refreshSource": "refreshed",
+  "refreshedDuringRequest": false,
+  "refreshSource": "cache",
   "metricIds": [
     "dxy",
     "10y-real-yield",
@@ -38,10 +38,7 @@
       ],
       "isLive": true,
       "asOf": 1773964800000,
-      "dataMode": "scraped",
-      "groupId": "slow",
-      "refreshedAt": 1774734049252,
-      "staleAfterMs": 604800000
+      "dataMode": "scraped"
     },
     "10y-real-yield": {
       "metricId": "10y-real-yield",
@@ -66,10 +63,7 @@
       ],
       "isLive": true,
       "asOf": 1774483200000,
-      "dataMode": "scraped",
-      "groupId": "slow",
-      "refreshedAt": 1774734049252,
-      "staleAfterMs": 604800000
+      "dataMode": "scraped"
     },
     "fed-balance-sheet": {
       "metricId": "fed-balance-sheet",
@@ -94,10 +88,7 @@
       ],
       "isLive": true,
       "asOf": 1774396800000,
-      "dataMode": "scraped",
-      "groupId": "slow",
-      "refreshedAt": 1774734049252,
-      "staleAfterMs": 604800000
+      "dataMode": "scraped"
     },
     "on-rrp": {
       "metricId": "on-rrp",
@@ -122,11 +113,11 @@
       ],
       "isLive": true,
       "asOf": 1774569600000,
-      "dataMode": "scraped",
-      "groupId": "slow",
-      "refreshedAt": 1774734049252,
-      "staleAfterMs": 604800000
+      "dataMode": "scraped"
     }
   },
-  "summary": {}
+  "summary": {},
+  "context": {
+    "syntheticInputs": {}
+  }
 }

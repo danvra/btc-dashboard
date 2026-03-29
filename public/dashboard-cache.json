@@ -1,19 +1,19 @@
 {
   "meta": {
-    "generatedAt": 1774734049252,
-    "nextSuggestedRunAt": 1774734049252,
-    "scheduler": "TTL-managed grouped cache with request-driven refresh",
+    "generatedAt": 1774743171608,
+    "nextSuggestedRunAt": 1774744971608,
+    "scheduler": "Redis-backed grouped cache with request-driven refresh",
     "groups": {
       "fast": {
         "groupId": "fast",
         "label": "Fast",
-        "generatedAt": 1774734049252,
-        "expiresAt": 1774735849252,
+        "generatedAt": 1774743171608,
+        "expiresAt": 1774744971608,
         "ttlMs": 1800000,
         "staleAfterMs": 10800000,
-        "refreshedDuringRequest": true,
-        "refreshSource": "refreshed",
-        "lastSourceUpdateAt": 1774734031000,
+        "refreshedDuringRequest": false,
+        "refreshSource": "cache",
+        "lastSourceUpdateAt": 1774743139000,
         "warningCount": 0,
         "metricIds": [
           "price-vs-realized-price",
@@ -26,13 +26,13 @@
       "daily": {
         "groupId": "daily",
         "label": "Daily",
-        "generatedAt": 1774734049252,
-        "expiresAt": 1774820449252,
+        "generatedAt": 1774743171608,
+        "expiresAt": 1774829571608,
         "ttlMs": 86400000,
         "staleAfterMs": 129600000,
-        "refreshedDuringRequest": true,
-        "refreshSource": "refreshed",
-        "lastSourceUpdateAt": 1774734049252,
+        "refreshedDuringRequest": false,
+        "refreshSource": "cache",
+        "lastSourceUpdateAt": 1774743171608,
         "warningCount": 3,
         "metricIds": [
           "asopr",
@@ -75,12 +75,12 @@
       "slow": {
         "groupId": "slow",
         "label": "Slow",
-        "generatedAt": 1774734049252,
-        "expiresAt": 1774993249252,
+        "generatedAt": 1774743171608,
+        "expiresAt": 1775002371608,
         "ttlMs": 259200000,
         "staleAfterMs": 604800000,
-        "refreshedDuringRequest": true,
-        "refreshSource": "refreshed",
+        "refreshedDuringRequest": false,
+        "refreshSource": "cache",
         "lastSourceUpdateAt": 1774569600000,
         "warningCount": 0,
         "metricIds": [
@@ -94,22 +94,22 @@
       "synthetic": {
         "groupId": "synthetic",
         "label": "Synthetic",
-        "generatedAt": 1774734049252,
-        "expiresAt": 1774734049252,
+        "generatedAt": 1774743171608,
+        "expiresAt": 0,
         "ttlMs": 0,
         "staleAfterMs": 86400000,
-        "refreshedDuringRequest": true,
-        "refreshSource": "refreshed",
-        "lastSourceUpdateAt": 1774734049252,
+        "refreshedDuringRequest": false,
+        "refreshSource": "cache",
+        "lastSourceUpdateAt": 1774743171608,
         "warningCount": 0,
         "metricIds": [],
-        "status": "expired"
+        "status": "fresh"
       }
     }
   },
   "summary": {
-    "btcPrice": "$67K",
-    "btcPriceChange": "+1.14% 24h",
+    "btcPrice": "$66K",
+    "btcPriceChange": "+0.16% 24h",
     "liveMetricCount": 42,
     "mode": "live",
     "warnings": [
@@ -117,22 +117,22 @@
       "Some snapshot-style metrics build their sparkline history locally from repeated cache refreshes.",
       "LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series."
     ],
-    "lastUpdatedAt": 1774734049252,
+    "lastUpdatedAt": 1774743171608,
     "cycleEstimate": {
-      "asOfDate": "2026-03-28",
+      "asOfDate": "2026-03-29",
       "phaseId": "early-recovery-under-disbelief",
       "label": "Early Recovery Under Disbelief",
-      "confidence": 82,
+      "confidence": 79,
       "score": 25,
       "heatScore": 25,
-      "damageScore": 38,
-      "distributionScore": 1,
+      "damageScore": 48,
+      "distributionScore": 19,
       "summary": "Cycle signals are improving from lower-risk territory, but the mix still looks more skeptical and rebuilding than broadly euphoric.",
-      "rationale": "Trend conditions are improving without obvious late-cycle excess, and the market still feels more skeptical than euphoric. Supporting evidence leans most on Percent Supply In Profit, Price Vs Realized Price, Mvrv.",
+      "rationale": "Trend conditions are improving without obvious late-cycle excess, and the market still feels more skeptical than euphoric. Supporting evidence leans most on Percent Supply In Profit, Mvrv, Funding Rate.",
       "supportingMetricIds": [
         "percent-supply-in-profit",
-        "price-vs-realized-price",
-        "mvrv"
+        "mvrv",
+        "funding-rate"
       ],
       "conflictingMetricIds": [
         "reserve-risk",
@@ -143,29 +143,13 @@
       "change": "unchanged"
     },
     "cycleAnalog": {
-      "asOfDate": "2026-03-28",
-      "label": "Capitulation",
+      "asOfDate": "2026-03-29",
       "phaseId": "deep-capitulation",
-      "agreement": 90,
-      "confidence": 91,
-      "closestDates": [
-        "2026-02-10",
-        "2026-02-07",
-        "2022-05-18"
-      ],
-      "closestDateLabels": [
-        "Feb 2026",
-        "Feb 2026",
-        "May 2022"
-      ],
-      "closestPhaseIds": [
-        "deep-capitulation",
-        "deep-capitulation",
-        "deep-capitulation"
-      ],
+      "label": "Capitulation",
+      "agreement": 67,
+      "confidence": 87,
       "summary": "Current conditions most closely resemble prior washout periods with high damage and limited expansion.",
-      "methodology": "historical-nearest-neighbor",
-      "matchCount": 20,
+      "methodology": "phase-window-nearest-neighbor",
       "indicatorIds": [
         "mvrv",
         "percent-supply-in-profit",
@@ -175,36 +159,80 @@
         "nupl",
         "liveliness",
         "lth-net-position-change"
+      ],
+      "phaseDistribution": [
+        {
+          "phaseId": "deep-capitulation",
+          "label": "Capitulation",
+          "cyclesMatched": 2,
+          "averageDistance": 0.1255
+        },
+        {
+          "phaseId": "post-top-unwind",
+          "label": "Unwind",
+          "cyclesMatched": 1,
+          "averageDistance": 0.3397
+        }
+      ],
+      "perCycleMatches": [
+        {
+          "cycleId": "2020-2024",
+          "cycleLabel": "2020-2024 cycle",
+          "phaseId": "deep-capitulation",
+          "phaseLabel": "Capitulation",
+          "windowStartDate": "2022-05-05",
+          "windowEndDate": "2022-06-04",
+          "bestMatchDate": "2022-05-20",
+          "bestMatchDateLabel": "May 2022",
+          "distance": 0.0901,
+          "coverage": 0.875
+        },
+        {
+          "cycleId": "2016-2020",
+          "cycleLabel": "2016-2020 cycle",
+          "phaseId": "deep-capitulation",
+          "phaseLabel": "Capitulation",
+          "windowStartDate": "2020-03-08",
+          "windowEndDate": "2020-05-09",
+          "bestMatchDate": "2020-04-13",
+          "bestMatchDateLabel": "Apr 2020",
+          "distance": 0.1608,
+          "coverage": 0.875
+        },
+        {
+          "cycleId": "2012-2016",
+          "cycleLabel": "2012-2016 cycle",
+          "phaseId": "post-top-unwind",
+          "phaseLabel": "Unwind",
+          "windowStartDate": "2016-03-31",
+          "windowEndDate": "2016-06-13",
+          "bestMatchDate": "2016-04-09",
+          "bestMatchDateLabel": "Apr 2016",
+          "distance": 0.3397,
+          "coverage": 0.875
+        }
+      ],
+      "topMatchDates": [
+        "2022-05-20",
+        "2020-04-13",
+        "2016-04-09"
       ]
     }
   },
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "1.29x",
-      "deltaLabel": "Spot $67K vs realized $52K",
-      "sourceLabel": "Blockchain.com market signals",
+      "currentValue": "$66K",
+      "deltaLabel": "Proxy only: BTC spot +0.16% over 24h",
+      "sourceLabel": "CoinGecko proxy",
       "trend": "up",
       "status": "bullish",
-      "series": [
-        1.2379906427239098,
-        1.2373039661063605,
-        1.181574566692304,
-        1.2199996954108905,
-        1.2329627827285639,
-        1.2967161970197476,
-        1.257748418898726,
-        1.300816247253384,
-        1.3490337444414926,
-        1.2941521476381213,
-        1.2749102907352963,
-        1.2872647546114155
-      ],
+      "series": [],
       "isLive": true,
-      "asOf": 1774607677000,
-      "dataMode": "scraped",
+      "asOf": 1774743139000,
+      "dataMode": "approx",
       "groupId": "fast",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 10800000
     },
     "adjusted-transfer-volume": {
@@ -232,7 +260,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "active-addresses": {
@@ -260,7 +288,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "hashrate": {
@@ -288,13 +316,13 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "difficulty": {
       "metricId": "difficulty",
       "currentValue": "133.8T",
-      "deltaLabel": "Next adjustment +6.81%",
+      "deltaLabel": "Next adjustment +6.70%",
       "sourceLabel": "Blockchain.com + mempool.space",
       "trend": "down",
       "status": "bearish",
@@ -316,7 +344,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "dxy": {
@@ -344,7 +372,7 @@
       "asOf": 1773964800000,
       "dataMode": "scraped",
       "groupId": "slow",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 604800000
     },
     "10y-real-yield": {
@@ -372,7 +400,7 @@
       "asOf": 1774483200000,
       "dataMode": "scraped",
       "groupId": "slow",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 604800000
     },
     "fed-balance-sheet": {
@@ -400,7 +428,7 @@
       "asOf": 1774396800000,
       "dataMode": "scraped",
       "groupId": "slow",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 604800000
     },
     "on-rrp": {
@@ -428,26 +456,27 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "slow",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 604800000
     },
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.63",
+      "currentValue": "4.60",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
-      "trend": "flat",
+      "trend": "down",
       "status": "bullish",
       "series": [
         4.625864784321585,
         4.6399425979447715,
-        4.628807315264494
+        4.628807315264494,
+        4.601971451355105
       ],
       "isLive": true,
-      "asOf": 1774734031000,
+      "asOf": 1774743139000,
       "dataMode": "approx",
       "groupId": "fast",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 10800000
     },
     "mvrv": {
@@ -458,24 +487,24 @@
       "trend": "up",
       "status": "bullish",
       "series": [
-        1.2379906427239098,
-        1.2373039661063605,
-        1.181574566692304,
-        1.2199996954108905,
-        1.2329627827285639,
-        1.2967161970197476,
-        1.257748418898726,
-        1.300816247253384,
-        1.3490337444414926,
-        1.2941521476381213,
-        1.2749102907352963,
-        1.2872647546114155
+        1.2368186350497945,
+        1.2377103718842322,
+        1.1656032971785268,
+        1.2267339730979456,
+        1.242988005538267,
+        1.3007063274034467,
+        1.2487769655192928,
+        1.3040243199523553,
+        1.3577948060437375,
+        1.2951078977060555,
+        1.2562191614881644,
+        1.2909496401103668
       ],
       "isLive": true,
-      "asOf": 1774607677000,
+      "asOf": 1774532850000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "puell-multiple": {
@@ -486,24 +515,24 @@
       "trend": "down",
       "status": "bearish",
       "series": [
-        0.6750771216094827,
-        0.6638949024905101,
-        0.6992099139778709,
-        0.6526448680813272,
-        0.691925219617056,
-        0.6752461129460035,
-        0.7687752229439067,
-        0.770154297810348,
-        0.6407468272238691,
-        0.7524817082454288,
-        0.787864525787814,
-        0.7107528405041043
+        0.6749078865025508,
+        0.6637305628705755,
+        0.6990388417784004,
+        0.6524872697064271,
+        0.6917601318703853,
+        0.6750870191020478,
+        0.768595859551998,
+        0.7699763625341323,
+        0.6406008186780219,
+        0.7523120157300756,
+        0.7876885077162762,
+        0.710595911341703
       ],
       "isLive": true,
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "active-supply": {
@@ -514,62 +543,64 @@
       "trend": "up",
       "status": "bullish",
       "series": [
-        0.6921681908432888,
-        0.5311694342043243,
-        0.4409399185641323,
-        0.4079504767636963,
-        0.3629322452591761,
-        0.08628291314729983,
-        0.258960317915027,
-        0.4550761500589939,
-        0.4965029913235609,
-        0.586845834473755,
-        0.4486198663540448,
-        0.6489254740277504
+        0.6921500291101248,
+        0.5311554969017199,
+        0.44092834878492504,
+        0.4079397725912117,
+        0.3629227223156456,
+        0.0862806491784178,
+        0.2589535230806843,
+        0.4550642093605971,
+        0.4964899636303457,
+        0.5868304362835534,
+        0.44860809506144195,
+        0.6489084469359849
       ],
       "isLive": true,
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "cdd": {
       "metricId": "cdd",
-      "currentValue": "4.5M BTC-days",
-      "deltaLabel": "0.2227 days destroyed per BTC",
+      "currentValue": "4.2M BTC-days",
+      "deltaLabel": "0.2075 days destroyed per BTC",
       "sourceLabel": "BitInfoCharts derived",
       "trend": "down",
       "status": "bullish",
       "series": [
         6498577.085,
         6760681.025312499,
-        4455766.9853125
+        4455766.9853125,
+        4151755.3203125
       ],
       "isLive": true,
-      "asOf": 1774734049252,
+      "asOf": 1774743171608,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "dormancy": {
       "metricId": "dormancy",
-      "currentValue": "16.9d",
+      "currentValue": "29.2d",
       "deltaLabel": "Derived from days destroyed / BTC sent",
       "sourceLabel": "BitInfoCharts derived",
-      "trend": "down",
-      "status": "bullish",
+      "trend": "up",
+      "status": "bearish",
       "series": [
         24.568732221575313,
         25.663466744531874,
-        16.8833411716367
+        16.8833411716367,
+        29.194127923891795
       ],
       "isLive": true,
-      "asOf": 1774734049252,
+      "asOf": 1774743171608,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "percent-supply-in-profit": {
@@ -597,7 +628,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "reserve-risk": {
@@ -625,7 +656,7 @@
       "asOf": 1766880000000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "liveliness": {
@@ -653,7 +684,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "asopr": {
@@ -681,7 +712,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "lth-supply": {
@@ -709,7 +740,7 @@
       "asOf": 1766880000000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "sth-supply": {
@@ -737,7 +768,7 @@
       "asOf": 1766880000000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "lth-net-position-change": {
@@ -765,7 +796,7 @@
       "asOf": 1766880000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "spot-btc-etf-flows": {
@@ -793,7 +824,7 @@
       "asOf": 1774483200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "spot-btc-etf-holdings": {
@@ -821,7 +852,7 @@
       "asOf": 1774483200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "exchange-netflow": {
@@ -849,7 +880,7 @@
       "asOf": 1766880000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "exchange-balance": {
@@ -877,7 +908,7 @@
       "asOf": 1766880000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "fed-rate-expectations": {
@@ -901,7 +932,7 @@
       "asOf": 1774656000000,
       "dataMode": "scraped",
       "groupId": "fast",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 10800000
     },
     "pi-cycle-top": {
@@ -929,7 +960,7 @@
       "asOf": 1774656000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "mayer-multiple": {
@@ -957,7 +988,7 @@
       "asOf": 1774656000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "hash-ribbon": {
@@ -985,7 +1016,7 @@
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "funding-rate": {
@@ -1013,7 +1044,7 @@
       "asOf": 1774717200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "nupl": {
@@ -1041,7 +1072,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "lth-nupl": {
@@ -1069,7 +1100,7 @@
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "sth-nupl": {
@@ -1097,7 +1128,7 @@
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "rhodl-ratio": {
@@ -1125,7 +1156,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "hodl-waves": {
@@ -1153,7 +1184,7 @@
       "asOf": 1774569600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "nvt-signal": {
@@ -1181,7 +1212,7 @@
       "asOf": 1774569600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "open-interest": {
@@ -1209,7 +1240,7 @@
       "asOf": 1774483200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "power-law": {
@@ -1237,7 +1268,7 @@
       "asOf": 1774656000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "2-year-ma-multiplier": {
@@ -1245,17 +1276,16 @@
       "currentValue": "84.7%",
       "deltaLabel": "Buffer to 5x band | spot / 2Y MA 0.77x",
       "sourceLabel": "Blockchain.com derived",
-      "trend": "up",
+      "trend": "flat",
       "status": "bullish",
       "series": [
-        84.12841402354998,
         84.69291753381998
       ],
       "isLive": true,
       "asOf": 1774656000000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "stock-to-flow": {
@@ -1263,38 +1293,37 @@
       "currentValue": "198.2",
       "deltaLabel": "Circulating supply divided by trailing 1Y issuance",
       "sourceLabel": "Blockchain.com derived",
-      "trend": "down",
+      "trend": "up",
       "status": "bullish",
       "series": [
-        198.0556277458078,
-        198.05172787179407,
-        198.1340142370783,
-        198.11837341008263,
-        198.16356094843064,
-        198.17195480575762,
-        198.26041311820632,
-        198.36142525174284,
-        198.27860881414722,
-        198.34875147159056,
-        198.3083785039492,
-        198.2434976467674
+        198.13859915193908,
+        198.14113714444892,
+        198.08874311529178,
+        198.225662620758,
+        198.18527690926538,
+        198.30451616900012,
+        198.24620672570757,
+        198.27959986373068,
+        198.36802478698684,
+        198.29082011892964,
+        198.07947900875538,
+        198.19870604259535
       ],
       "isLive": true,
-      "asOf": 1774615588000,
+      "asOf": 1774689055000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 129600000
     },
     "fear-and-greed": {
       "metricId": "fear-and-greed",
-      "currentValue": "12",
+      "currentValue": "9",
       "deltaLabel": "Extreme Fear",
       "sourceLabel": "Alternative.me",
       "trend": "down",
       "status": "bullish",
       "series": [
-        28,
         26,
         23,
         11,
@@ -1305,13 +1334,14 @@
         14,
         10,
         13,
-        12
+        12,
+        9
       ],
       "isLive": true,
-      "asOf": 1774656000000,
+      "asOf": 1774742400000,
       "dataMode": "scraped",
       "groupId": "fast",
-      "refreshedAt": 1774734049252,
+      "refreshedAt": 1774743171608,
       "staleAfterMs": 10800000
     }
   }
