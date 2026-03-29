@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from "react";
 import {
   DASHBOARD_METRICS,
   DASHBOARD_METRICS_BY_PANEL,
+  DASHBOARD_PANELS,
   type DashboardMetric,
   type DashboardPanelId,
 } from "../lib/dashboard-definitions";
@@ -202,6 +203,55 @@ function formatWindowLabel(startDate?: string, endDate?: string) {
   }
 
   return `${start ?? "Unknown"} to ${end ?? "Unknown"}`;
+}
+
+function constructiveSummaryLabel(bullishCount: number, totalCount: number) {
+  if (totalCount <= 0) {
+    return "Signal summary appears once metric coverage is available";
+  }
+
+  return `${bullishCount} of ${totalCount} signals currently lean bullish`;
+}
+
+function constructiveToneLabel(bullishShare: number) {
+  if (bullishShare >= 0.6) {
+    return "Broadly constructive";
+  }
+
+  if (bullishShare >= 0.4) {
+    return "Mixed but constructive";
+  }
+
+  if (bullishShare >= 0.25) {
+    return "Selective strength";
+  }
+
+  return "Limited constructive breadth";
+}
+
+function constructiveSummaryText({
+  bullishCount,
+  neutralCount,
+  bearishCount,
+  totalCount,
+}: {
+  bullishCount: number;
+  neutralCount: number;
+  bearishCount: number;
+  totalCount: number;
+}) {
+  if (totalCount <= 0) {
+    return "Constructive breadth appears once the dashboard has live or fallback metric states.";
+  }
+
+  const bullishShare = bullishCount / totalCount;
+  const tone = constructiveToneLabel(bullishShare);
+
+  if (bullishCount === 0) {
+    return `${tone}. None of the tracked dashboard signals currently lean bullish.`;
+  }
+
+  return `${tone}. ${bullishCount} signals lean bullish, ${neutralCount} sit in a neutral range, and ${bearishCount} still lean bearish.`;
 }
 
 function Sparkline({
@@ -770,6 +820,206 @@ function CycleAnalogModal({
   );
 }
 
+function ConstructiveSignalsModal({
+  bullishMetrics,
+  neutralCount,
+  bearishCount,
+  closeButtonRef,
+  onClose,
+}: {
+  bullishMetrics: Array<{ metric: DashboardMetric; state: DashboardMetricState }>;
+  neutralCount: number;
+  bearishCount: number;
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}) {
+  const totalCount = bullishMetrics.length + neutralCount + bearishCount;
+  const bullishShare = totalCount > 0 ? bullishMetrics.length / totalCount : 0;
+  const groupedBullishMetrics = DASHBOARD_PANELS.map((panel) => ({
+    panel,
+    metrics: bullishMetrics.filter((entry) => entry.metric.panelId === panel.id),
+  })).filter((group) => group.metrics.length > 0);
+  const topBullishMetrics = [...bullishMetrics]
+    .sort((left, right) => {
+      const leftPriority = left.metric.mobilePriority ?? 99;
+      const rightPriority = right.metric.mobilePriority ?? 99;
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
+      }
+
+      return left.metric.name.localeCompare(right.metric.name);
+    })
+    .slice(0, 6);
+  const dataModeCounts = bullishMetrics.reduce<Record<string, number>>((acc, entry) => {
+    const key = entry.state.dataMode ?? "seeded";
+    acc[key] = (acc[key] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="constructive-signals-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
+              Constructive Signals
+            </p>
+            <h2
+              id="constructive-signals-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {constructiveToneLabel(bullishShare)}
+            </h2>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            Close
+          </button>
+        </div>
+
+        <div className="space-y-8 px-6 py-6 lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl">
+                <p className="text-sm leading-7 text-stone-600">
+                  {constructiveSummaryText({
+                    bullishCount: bullishMetrics.length,
+                    neutralCount,
+                    bearishCount,
+                    totalCount,
+                  })}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
+                  {bullishMetrics.length} bullish
+                </span>
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                  {neutralCount} neutral
+                </span>
+                <span className="rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700">
+                  {bearishCount} bearish
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {topBullishMetrics.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Leading constructive reads
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {topBullishMetrics.map(({ metric, state }) => (
+                  <article
+                    key={metric.id}
+                    className="rounded-[1.25rem] border border-emerald-200 bg-emerald-50/60 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                          {metric.shortName ?? metric.name}
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-stone-950">{state.currentValue}</p>
+                      </div>
+                      <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200">
+                        {formatRelativeTime(state.asOf)}
+                      </span>
+                    </div>
+                    <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bullishInterpretation}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {groupedBullishMetrics.length > 0 ? (
+            <section className="grid gap-4 lg:grid-cols-2">
+              {groupedBullishMetrics.map(({ panel, metrics }) => (
+                <article
+                  key={panel.id}
+                  className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    {panel.title}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">{panel.description}</p>
+                  <div className="mt-4 grid gap-3">
+                    {metrics.map(({ metric, state }) => (
+                      <div
+                        key={metric.id}
+                        className="rounded-[1.25rem] bg-stone-50 p-4"
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-semibold text-stone-950">{metric.name}</p>
+                            <p className="mt-1 text-sm text-stone-600">{state.currentValue}</p>
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                              Bullish
+                            </span>
+                            <span
+                              className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
+                            >
+                              {state.dataMode ?? "seeded"}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-6 text-stone-700">
+                          {metric.bullishInterpretation}
+                        </p>
+                        <p className="mt-2 text-xs text-stone-500">
+                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              ))}
+            </section>
+          ) : (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
+              No tracked signals currently lean bullish.
+            </section>
+          )}
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Constructive support by data mode
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(["live", "scraped", "approx", "seeded"] as const).map((dataMode) => (
+                <span
+                  key={dataMode}
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[dataMode]}`}
+                >
+                  {dataMode}: {dataModeCounts[dataMode] ?? 0}
+                </span>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DebugPanel({
   metrics,
   generatedAt,
@@ -928,7 +1178,10 @@ export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
+  const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
+  const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const constructiveCloseRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogTriggerRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogCloseRef = useRef<HTMLButtonElement | null>(null);
   const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
@@ -940,9 +1193,16 @@ export function BtcDashboard() {
   const selectedMetric =
     DASHBOARD_METRICS.find((metric) => metric.id === selectedMetricId) ?? activePanel.metrics[0];
 
-  const bullishCount = DASHBOARD_METRICS.filter(
-    (metric) => (snapshot?.metrics[metric.id] ?? getMetricSample(metric.id))?.status === "bullish",
-  ).length;
+  const metricEntries = DASHBOARD_METRICS.map((metric) => ({
+    metric,
+    state: snapshot?.metrics[metric.id] ?? getMetricSample(metric.id),
+  })).filter((entry): entry is { metric: DashboardMetric; state: DashboardMetricState } => Boolean(entry.state));
+  const bullishMetrics = metricEntries.filter((entry) => entry.state.status === "bullish");
+  const neutralMetrics = metricEntries.filter((entry) => entry.state.status === "neutral");
+  const bearishMetrics = metricEntries.filter((entry) => entry.state.status === "bearish");
+  const bullishCount = bullishMetrics.length;
+  const neutralCount = neutralMetrics.length;
+  const bearishCount = bearishMetrics.length;
 
   const selectedMetricState = snapshot?.metrics[selectedMetric.id] ?? {
     ...getMetricSample(selectedMetric.id)!,
@@ -961,6 +1221,7 @@ export function BtcDashboard() {
   const groups = snapshot?.meta?.groups;
   const cycleEstimate = snapshot?.summary.cycleEstimate;
   const cycleAnalog = snapshot?.summary.cycleAnalog;
+  const hasConstructiveSignals = metricEntries.length > 0;
   const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
 
   useEffect(() => {
@@ -968,6 +1229,37 @@ export function BtcDashboard() {
       setShowCycleAnalogModal(false);
     }
   }, [cycleAnalog]);
+
+  useEffect(() => {
+    if (!showConstructiveModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => constructiveCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowConstructiveModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => constructiveTriggerRef.current?.focus());
+      }
+    };
+  }, [showConstructiveModal]);
 
   useEffect(() => {
     if (!showCycleAnalogModal || typeof document === "undefined") {
@@ -1071,11 +1363,34 @@ export function BtcDashboard() {
                 <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>
                 <p className="mt-1 text-sm text-stone-300">{btcPriceChange}</p>
               </div>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+              <button
+                ref={constructiveTriggerRef}
+                type="button"
+                onClick={() => hasConstructiveSignals && setShowConstructiveModal(true)}
+                disabled={!hasConstructiveSignals}
+                aria-haspopup="dialog"
+                aria-expanded={showConstructiveModal}
+                className={[
+                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  hasConstructiveSignals
+                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                    : "cursor-default opacity-80",
+                ].join(" ")}
+              >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Constructive</p>
                 <p className="mt-2 text-3xl font-semibold">{bullishCount}</p>
-                <p className="mt-1 text-sm text-stone-300">Sample signals currently leaning bullish</p>
-              </div>
+                <p className="mt-1 text-sm text-stone-300">
+                  {constructiveSummaryLabel(bullishCount, metricEntries.length)}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {constructiveSummaryText({
+                    bullishCount,
+                    neutralCount,
+                    bearishCount,
+                    totalCount: metricEntries.length,
+                  })}
+                </p>
+              </button>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Coverage</p>
                 <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
@@ -1233,6 +1548,16 @@ export function BtcDashboard() {
             </div>
           )}
         </section>
+
+        {showConstructiveModal && (
+          <ConstructiveSignalsModal
+            bullishMetrics={bullishMetrics}
+            neutralCount={neutralCount}
+            bearishCount={bearishCount}
+            closeButtonRef={constructiveCloseRef}
+            onClose={() => setShowConstructiveModal(false)}
+          />
+        )}
 
         {showCycleAnalogModal && cycleAnalog && (
           <CycleAnalogModal
