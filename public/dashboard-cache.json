@@ -21,7 +21,7 @@
           "ssr",
           "fed-rate-expectations"
         ],
-        "status": "fresh"
+        "status": "expired"
       },
       "daily": {
         "groupId": "daily",
