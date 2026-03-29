@@ -57,8 +57,10 @@ export function useDashboardData() {
   function shouldPromoteSnapshot(nextSnapshot: DashboardDataSnapshot, currentSnapshot: DashboardDataSnapshot | null) {
     const nextUpdatedAt = snapshotUpdatedAt(nextSnapshot);
     const currentUpdatedAt = snapshotUpdatedAt(currentSnapshot);
+    const nextPageLoadCount = nextSnapshot.meta?.pageLoadCount ?? 0;
+    const currentPageLoadCount = currentSnapshot?.meta?.pageLoadCount ?? 0;
 
-    return nextUpdatedAt > currentUpdatedAt;
+    return nextUpdatedAt > currentUpdatedAt || nextPageLoadCount > currentPageLoadCount;
   }
 
   function snapshotUpdatedAt(currentSnapshot: DashboardDataSnapshot | null) {
