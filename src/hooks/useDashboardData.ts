@@ -54,6 +54,44 @@ export function useDashboardData() {
     return mergeCachePayload(payload);
   }
 
+  async function loadPageLoadCount(timeoutMs = 12_000) {
+    const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+    const timeoutId =
+      controller && timeoutMs
+        ? setTimeout(() => controller.abort(), timeoutMs)
+        : null;
+
+    try {
+      const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, {
+        signal: controller?.signal,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Page load count request failed: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as { pageLoadCount?: number };
+      return payload.pageLoadCount ?? 0;
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  function applyPageLoadCount(
+    currentSnapshot: DashboardDataSnapshot,
+    pageLoadCount: number,
+  ): DashboardDataSnapshot {
+    return {
+      ...currentSnapshot,
+      meta: {
+        ...(currentSnapshot.meta ?? {}),
+        pageLoadCount,
+      },
+    };
+  }
+
   function shouldPromoteSnapshot(nextSnapshot: DashboardDataSnapshot, currentSnapshot: DashboardDataSnapshot | null) {
     const nextUpdatedAt = snapshotUpdatedAt(nextSnapshot);
     const currentUpdatedAt = snapshotUpdatedAt(currentSnapshot);
@@ -88,10 +126,12 @@ export function useDashboardData() {
           void (async () => {
             try {
               const apiSnapshot = await loadApiCache();
+              const pageLoadCount = await loadPageLoadCount().catch(() => apiSnapshot.meta?.pageLoadCount ?? 0);
+              const nextSnapshot = applyPageLoadCount(apiSnapshot, pageLoadCount);
 
-              if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
+              if (shouldPromoteSnapshot(nextSnapshot, staticSnapshot)) {
                 startTransition(() => {
-                  setSnapshot(apiSnapshot);
+                  setSnapshot(nextSnapshot);
                 });
               }
             } catch {
@@ -110,6 +150,12 @@ export function useDashboardData() {
 
       try {
         nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
+        nextSnapshot = applyPageLoadCount(
+          nextSnapshot,
+          await loadPageLoadCount(mode === "refresh" ? 10_000 : 20_000).catch(
+            () => nextSnapshot.meta?.pageLoadCount ?? 0,
+          ),
+        );
       } catch {
         try {
           nextSnapshot = await loadStaticCache();

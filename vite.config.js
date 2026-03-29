@@ -38,55 +38,63 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import dashboardCacheHandler from "./api/dashboard-cache.js";
+import pageLoadCountHandler from "./api/page-load-count.js";
 export default defineConfig({
     plugins: [
         react(),
         {
             name: "dashboard-api-dev-middleware",
             configureServer: function (server) {
-                var _this = this;
-                server.middlewares.use("/api/dashboard-cache", function (req, res, next) { return __awaiter(_this, void 0, void 0, function () {
-                    var response_1, error_1;
-                    return __generator(this, function (_a) {
-                        switch (_a.label) {
-                            case 0:
-                                if (req.method !== "GET") {
-                                    next();
-                                    return [2 /*return*/];
-                                }
-                                _a.label = 1;
-                            case 1:
-                                _a.trys.push([1, 3, , 4]);
-                                response_1 = res;
-                                response_1.status = function (code) {
-                                    res.statusCode = code;
-                                    return response_1;
-                                };
-                                response_1.json = function (payload) {
+                function handleApiRequest(req, res, next, handler) {
+                    return __awaiter(this, void 0, void 0, function () {
+                        var response_1, error_1;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0:
+                                    if (req.method !== "GET") {
+                                        next();
+                                        return [2 /*return*/];
+                                    }
+                                    _a.label = 1;
+                                case 1:
+                                    _a.trys.push([1, 3, , 4]);
+                                    response_1 = res;
+                                    response_1.status = function (code) {
+                                        res.statusCode = code;
+                                        return response_1;
+                                    };
+                                    response_1.json = function (payload) {
+                                        res.setHeader("Content-Type", "application/json; charset=utf-8");
+                                        res.end(JSON.stringify(payload));
+                                        return response_1;
+                                    };
+                                    response_1.send = function (payload) {
+                                        res.end(payload);
+                                        return response_1;
+                                    };
+                                    return [4 /*yield*/, handler(req, response_1)];
+                                case 2:
+                                    _a.sent();
+                                    return [3 /*break*/, 4];
+                                case 3:
+                                    error_1 = _a.sent();
+                                    res.statusCode = 500;
                                     res.setHeader("Content-Type", "application/json; charset=utf-8");
-                                    res.end(JSON.stringify(payload));
-                                    return response_1;
-                                };
-                                response_1.send = function (payload) {
-                                    res.end(payload);
-                                    return response_1;
-                                };
-                                return [4 /*yield*/, dashboardCacheHandler(req, response_1)];
-                            case 2:
-                                _a.sent();
-                                return [3 /*break*/, 4];
-                            case 3:
-                                error_1 = _a.sent();
-                                res.statusCode = 500;
-                                res.setHeader("Content-Type", "application/json; charset=utf-8");
-                                res.end(JSON.stringify({
-                                    error: error_1 instanceof Error ? error_1.message : "Unable to serve dashboard cache.",
-                                }));
-                                return [3 /*break*/, 4];
-                            case 4: return [2 /*return*/];
-                        }
+                                    res.end(JSON.stringify({
+                                        error: error_1 instanceof Error ? error_1.message : "Unable to serve dashboard cache.",
+                                    }));
+                                    return [3 /*break*/, 4];
+                                case 4: return [2 /*return*/];
+                            }
+                        });
                     });
-                }); });
+                }
+                server.middlewares.use("/api/dashboard-cache", function (req, res, next) {
+                    return handleApiRequest(req, res, next, dashboardCacheHandler);
+                });
+                server.middlewares.use("/api/page-load-count", function (req, res, next) {
+                    return handleApiRequest(req, res, next, pageLoadCountHandler);
+                });
             },
         },
     ],

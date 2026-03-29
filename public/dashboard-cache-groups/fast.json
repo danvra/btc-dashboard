@@ -1,7 +1,7 @@
 {
   "groupId": "fast",
-  "generatedAt": 1774743171608,
-  "expiresAt": 1774744971608,
+  "generatedAt": 1774745612511,
+  "expiresAt": 1774747412511,
   "ttlMs": 1800000,
   "staleAfterMs": 10800000,
   "refreshedDuringRequest": false,
@@ -13,19 +13,21 @@
     "fed-rate-expectations"
   ],
   "warnings": [],
-  "lastSourceUpdateAt": 1774743139000,
+  "lastSourceUpdateAt": 1774745605000,
   "metrics": {
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
-      "currentValue": "$66K",
-      "deltaLabel": "Proxy only: BTC spot +0.16% over 24h",
-      "sourceLabel": "CoinGecko proxy",
-      "trend": "up",
+      "currentValue": "1.29x",
+      "deltaLabel": "Spot $66K vs realized $51K",
+      "sourceLabel": "CoinGecko spot + stored realized price",
+      "trend": "flat",
       "status": "bullish",
-      "series": [],
+      "series": [
+        1.2930930527819937
+      ],
       "isLive": true,
-      "asOf": 1774743139000,
-      "dataMode": "approx"
+      "asOf": 1774745605000,
+      "dataMode": "scraped"
     },
     "fear-and-greed": {
       "metricId": "fear-and-greed",
@@ -57,16 +59,17 @@
       "currentValue": "4.60",
       "deltaLabel": "Approx from major stablecoin market caps",
       "sourceLabel": "CoinGecko proxy",
-      "trend": "down",
+      "trend": "up",
       "status": "bullish",
       "series": [
         4.625864784321585,
         4.6399425979447715,
         4.628807315264494,
-        4.601971451355105
+        4.601971451355105,
+        4.602164935089482
       ],
       "isLive": true,
-      "asOf": 1774743139000,
+      "asOf": 1774745605000,
       "dataMode": "approx"
     },
     "fed-rate-expectations": {
@@ -93,11 +96,11 @@
   },
   "summary": {
     "btcPrice": "$66K",
-    "btcPriceChange": "+0.16% 24h"
+    "btcPriceChange": "+0.09% 24h"
   },
   "context": {
-    "btcPriceUsd": 66368,
-    "btcPriceAsOf": 1774743139000,
+    "btcPriceUsd": 66440,
+    "btcPriceAsOf": 1774745605000,
     "syntheticInputs": {}
   }
 }
