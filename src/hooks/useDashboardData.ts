@@ -50,7 +50,7 @@ export function useDashboardData() {
   }
 
   async function loadApiCache(timeoutMs = 12_000) {
-    const payload = await fetchCachePayload("/api/dashboard-cache", timeoutMs);
+    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}`, timeoutMs);
     return mergeCachePayload(payload);
   }
 
