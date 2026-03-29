@@ -1,0 +1,39 @@
+rules:
+  - id: btc-dashboard.no-dangerously-set-inner-html
+    message: Avoid rendering untrusted HTML directly in React components.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+      - jsx
+      - tsx
+    patterns:
+      - pattern: <... dangerouslySetInnerHTML={...} ...>
+
+  - id: btc-dashboard.no-sensitive-console-logging
+    message: Avoid logging secrets, auth headers, or environment variables.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    patterns:
+      - pattern-either:
+          - pattern: console.log(..., process.env.$SECRET, ...)
+          - pattern: console.error(..., process.env.$SECRET, ...)
+          - pattern: console.log(..., $REQ.headers.authorization, ...)
+          - pattern: console.error(..., $REQ.headers.authorization, ...)
+
+  - id: btc-dashboard.server-error-message-leak
+    message: Returning raw exception messages can leak internal details to clients.
+    severity: WARNING
+    languages:
+      - javascript
+      - typescript
+    paths:
+      include:
+        - api/**
+        - lib/server/**
+    patterns:
+      - pattern-either:
+          - pattern: $RES.status(500).json({..., error: $ERR.message, ...})
+          - pattern: $RES.status(500).json({..., error: $ERR instanceof Error ? $ERR.message : ..., ...})

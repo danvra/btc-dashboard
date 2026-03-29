@@ -1,0 +1,68 @@
+rules:
+  - id: btc-dashboard.no-dynamic-code-execution
+    message: Avoid dynamic code execution in server-side code.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    paths:
+      include:
+        - api/**
+        - lib/server/**
+    patterns:
+      - pattern-either:
+          - pattern: eval(...)
+          - pattern: new Function(...)
+
+  - id: btc-dashboard.no-child-process-execution
+    message: Avoid invoking shell commands from server-side request paths.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    paths:
+      include:
+        - api/**
+        - lib/server/**
+    patterns:
+      - pattern-either:
+          - pattern: exec(...)
+          - pattern: execSync(...)
+          - pattern: spawn(...)
+          - pattern: spawnSync(...)
+          - pattern: $PROC.exec(...)
+          - pattern: $PROC.execSync(...)
+          - pattern: $PROC.spawn(...)
+          - pattern: $PROC.spawnSync(...)
+
+  - id: btc-dashboard.no-plaintext-http-server-calls
+    message: Do not call external services over plain HTTP from server-side code.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    paths:
+      include:
+        - api/**
+        - lib/server/**
+    patterns:
+      - pattern-either:
+          - pattern: fetch("http://"...)
+          - pattern: fetch(`http://${...}`)
+
+  - id: btc-dashboard.no-tls-verification-bypass
+    message: Do not disable TLS certificate verification in server-side code.
+    severity: ERROR
+    languages:
+      - javascript
+      - typescript
+    paths:
+      include:
+        - api/**
+        - lib/server/**
+    patterns:
+      - pattern-either:
+          - pattern: rejectUnauthorized: false
+          - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0"
+          - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'
+          - pattern: process.env.NODE_TLS_REJECT_UNAUTHORIZED = 0

@@ -88,3 +88,16 @@ Optional environment variables:
 - `OPENAI_API_KEY=...`
 - `CYCLE_ESTIMATE_MODEL=gpt-4o-mini`
 - `CYCLE_ESTIMATE_USE_LLM=true`
+
+## DevSecOps CI/CD
+
+GitHub Actions now protects merges into `main` with:
+
+- `build` for `npm ci` and `npm run build`
+- `sast` for Semgrep CE server-focused security checks
+- `sca` for Trivy dependency scanning with a blocking threshold of `CRITICAL`
+- `secrets` for full-history Gitleaks scanning
+
+The repo also includes a `Security Baseline` workflow for pushes to `main`, weekly scans, and manual runs.
+
+See `docs/devsecops-ci.md` for the branch protection checklist and GitHub CLI notes.
