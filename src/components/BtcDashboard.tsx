@@ -1366,6 +1366,19 @@ export function BtcDashboard() {
   const hasConstructiveSignals = metricEntries.length > 0;
   const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
 
+  async function fetchPageLoadCount() {
+    const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Page load count request failed: ${response.status}`);
+    }
+
+    const payload = (await response.json()) as { pageLoadCount?: number };
+    setPageLoadCount(payload.pageLoadCount ?? 0);
+  }
+
   useEffect(() => {
     if (!cycleAnalog) {
       setShowCycleAnalogModal(false);
@@ -1381,9 +1394,7 @@ export function BtcDashboard() {
 
     void (async () => {
       try {
-        const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, {
-          cache: "no-store",
-        });
+        const response = await fetch(`/api/page-load-count?ts=${Date.now()}`, { cache: "no-store" });
 
         if (!response.ok) {
           return;
@@ -1395,9 +1406,7 @@ export function BtcDashboard() {
           setPageLoadCount(payload.pageLoadCount ?? 0);
         }
       } catch {
-        if (!ignore) {
-          setPageLoadCount(snapshot?.meta?.pageLoadCount ?? 0);
-        }
+        // Leave the default count in place if the endpoint is unavailable.
       }
     })();
 
@@ -1405,6 +1414,14 @@ export function BtcDashboard() {
       ignore = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!showDebug || typeof window === "undefined") {
+      return;
+    }
+
+    void fetchPageLoadCount().catch(() => {});
+  }, [showDebug]);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
