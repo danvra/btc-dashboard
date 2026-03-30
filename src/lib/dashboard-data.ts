@@ -595,17 +595,76 @@ async function fetchBGeometricsSeries(path: string) {
     }));
 }
 
+function extractJsonArraySegment(source: string, startIndex: number) {
+  const openIndex = source.indexOf("[", startIndex);
+
+  if (openIndex === -1) {
+    throw new Error("Unable to locate JSON array segment");
+  }
+
+  let depth = 0;
+  let inString = false;
+  let escaped = false;
+
+  for (let index = openIndex; index < source.length; index += 1) {
+    const char = source[index];
+
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+
+    if (char === "\\" && inString) {
+      escaped = true;
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) {
+      continue;
+    }
+
+    if (char === "[") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "]") {
+      depth -= 1;
+
+      if (depth === 0) {
+        return source.slice(openIndex, index + 1);
+      }
+    }
+  }
+
+  throw new Error("Unable to parse JSON array segment");
+}
+
 async function fetchBGeometricsPlotlySeries(path: string, traceName: string) {
   const html = await fetchText(`${BGEOMETRICS_BASE}${path}`);
-  const escapedName = traceName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const match = html.match(new RegExp(`"name":"${escapedName}","x":(\\[[^\\]]+\\]),"y":(\\[[^\\]]+\\])`));
+  const traceMarker = `"name":${JSON.stringify(traceName)},"x":`;
+  const traceIndex = html.indexOf(traceMarker);
 
-  if (!match) {
+  if (traceIndex === -1) {
     throw new Error(`Unable to locate Plotly series ${traceName}`);
   }
 
-  const dates = JSON.parse(match[1]) as string[];
-  const values = JSON.parse(match[2]) as number[];
+  const datesSegment = extractJsonArraySegment(html, traceIndex + traceMarker.length);
+  const valuesMarker = ",\"y\":";
+  const valuesIndex = html.indexOf(valuesMarker, traceIndex + traceMarker.length + datesSegment.length);
+
+  if (valuesIndex === -1) {
+    throw new Error(`Unable to locate Plotly values ${traceName}`);
+  }
+
+  const valuesSegment = extractJsonArraySegment(html, valuesIndex + valuesMarker.length);
+  const dates = JSON.parse(datesSegment) as string[];
+  const values = JSON.parse(valuesSegment) as number[];
 
   return dates
     .map((date, index) => ({

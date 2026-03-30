@@ -179,6 +179,11 @@ Branch protection should continue to require:
 - `sca / osv-scan`
 - `secrets`
 
+Operational note:
+
+- if `enforce_admins` remains disabled, GitHub can still allow direct pushes to `main` that bypass the required checks
+- the protection policy should be treated as incomplete until direct-push bypass is disabled or PR-only flow is fully enforced
+
 ### Mainline Baseline
 
 The `main` branch workflow should contain:
