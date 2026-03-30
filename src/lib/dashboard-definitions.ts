@@ -457,6 +457,25 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     valueFormat: "number",
   },
   {
+    id: "recent-reddit-sentiment",
+    name: "Recent Reddit Sentiment",
+    shortName: "Reddit Sentiment",
+    panelId: "cycle-regime",
+    tooltip: {
+      what: "Summarizes Bitcoin-relevant mood across recent crypto subreddit posts and comments.",
+      why: "Helps show whether retail discussion is turning more constructive, cautious, or stressed.",
+    },
+    chartType: "gauge",
+    updateFrequency: "daily",
+    bullishInterpretation: "A constructive upward shift can support improving retail engagement and risk appetite.",
+    bearishInterpretation: "A sharp deterioration can signal rising crowd stress, frustration, or fading conviction.",
+    learnMore:
+      "This indicator reads recent Bitcoin-relevant Reddit discussion across selected crypto communities and distills it into a saved sentiment score plus a short narrative. It is useful as a retail mood overlay rather than a standalone trading signal.",
+    defaultVisible: true,
+    mobilePriority: 2,
+    valueFormat: "number",
+  },
+  {
     id: "hodl-waves",
     name: "HODL Waves",
     shortName: "HODL 1Y+",
