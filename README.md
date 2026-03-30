@@ -45,6 +45,8 @@ The app can run in a grouped cache mode with a local filesystem fallback:
 - `public/dashboard-history.json` stores snapshot-style sparkline history in local/dev mode
 - In production, the same grouped snapshots can persist to Redis-style storage through `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
 
+These cache snapshot files are generated locally and are intentionally ignored by Git. Regenerate them with `npm run cache:update` when you need local bootstrap data.
+
 The cache now uses grouped freshness domains:
 
 - `fast`: intraday metrics like price, sentiment, and rate expectations

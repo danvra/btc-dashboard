@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/btcdashboard.tsx","./src/components/btcdashboarddefinitionspreview.tsx","./src/hooks/usedashboarddata.ts","./src/lib/dashboard-data.ts","./src/lib/dashboard-definitions.ts","./src/lib/dashboard-samples.ts"],"version":"5.9.3"}
