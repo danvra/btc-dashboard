@@ -15,14 +15,11 @@ Thumbs.db
 *.tsbuildinfo
 *.log
 *.sarif
+public/dashboard-cache-groups/*.json
 
 .vercel/
 .idea/
 .vscode/
-
-public/dashboard-cache.json
-public/dashboard-history.json
-public/dashboard-cache-groups/*.json
 
 tmp-*.js
 .vercel

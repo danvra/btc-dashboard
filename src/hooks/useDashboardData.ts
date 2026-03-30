@@ -95,6 +95,8 @@ export function useDashboardData() {
   }
 
   async function load(mode: "initial" | "refresh") {
+    const currentSnapshot = snapshot;
+
     if (mode === "initial") {
       setIsLoading(true);
     } else {
@@ -145,8 +147,7 @@ export function useDashboardData() {
         try {
           nextSnapshot = await loadStaticCache();
           refreshSource = "static";
-        }
-        catch {
+        } catch {
           throw new Error("Dashboard cache is unavailable.");
         }
       }
@@ -170,18 +171,28 @@ export function useDashboardData() {
         });
       }
     } catch (loadError) {
-      startTransition(() => {
-        setSnapshot(buildFallbackSnapshot());
-      });
       const message = loadError instanceof Error ? loadError.message : "Unable to load dashboard data.";
-      setError(message);
 
-      if (mode === "refresh") {
+      if (mode === "refresh" && currentSnapshot) {
+        setError(null);
         setRefreshNotice({
           completedAt: Date.now(),
-          kind: "error",
-          message: "Refresh failed.",
+          kind: "fallback",
+          message: "Live refresh unavailable. Keeping current cached data.",
         });
+      } else {
+        startTransition(() => {
+          setSnapshot(buildFallbackSnapshot());
+        });
+        setError(message);
+
+        if (mode === "refresh") {
+          setRefreshNotice({
+            completedAt: Date.now(),
+            kind: "error",
+            message: "Refresh failed.",
+          });
+        }
       }
     } finally {
       setIsLoading(false);
