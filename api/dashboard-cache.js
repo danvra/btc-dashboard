@@ -50,6 +50,11 @@ export default async function handler(req, res) {
     res.setHeader("X-Dashboard-Cache-Ttl-Hours", String(ttlHours));
     res.setHeader("X-Dashboard-Fast-Ttl-Seconds", String(fastTtlSeconds));
     res.setHeader("X-Dashboard-Storage-Mode", result.storageMode);
+    res.setHeader("X-Dashboard-Storage-Writable", String(result.storageWritable));
+    res.setHeader("X-Dashboard-Bootstrap-Used", String(result.bootstrapUsed));
+    if (result.fallbackReason) {
+      res.setHeader("X-Dashboard-Fallback-Reason", result.fallbackReason);
+    }
     res.status(200).send(JSON.stringify(payload));
   } catch (error) {
     res.status(500).json({

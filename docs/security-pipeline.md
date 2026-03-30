@@ -20,7 +20,7 @@ The current SAST job now uses a simplified and more reliable configuration:
 
 - Semgrep CE is reinstalled fresh in CI
 - Semgrep runs with the maintained default ruleset via `--config auto`
-- findings are uploaded as a JSON artifact for later triage
+- findings are emitted as SARIF, uploaded into GitHub Code Scanning, and retained as workflow artifacts
 
 The active implementation now reflects the OSV migration described below.
 
@@ -147,7 +147,7 @@ Instead, both workflows:
 
 - reinstall the latest Semgrep CE package
 - run `semgrep scan --config auto`
-- upload the resulting JSON report as a workflow artifact
+- emit SARIF for GitHub Code Scanning and retain the SARIF report as a workflow artifact
 
 The local `.semgrep/critical.yml` and `.semgrep/audit.yml` files are retained only as future tuning candidates and are not part of the active merge gate.
 
@@ -164,7 +164,8 @@ The PR workflow should contain:
 - `sast`
   - Semgrep CE reinstalled in CI
   - Semgrep default ruleset via `--config auto`
-  - JSON artifact upload for later triage
+  - SARIF upload to GitHub Code Scanning
+  - SARIF artifact retained for offline review
 - `sca`
   - OSV reusable PR scan workflow
   - compare feature branch results against the base branch
@@ -205,11 +206,11 @@ The pipeline should expose findings in three layers:
 
 1. GitHub check status for pass/fail
 2. GitHub step summary for quick triage
-3. GitHub Code Scanning SARIF for durable SCA visibility
+3. GitHub Code Scanning SARIF for durable cross-tool visibility
 
 Artifacts should still be kept for:
 
-- Semgrep JSON
+- Semgrep SARIF
 - Gitleaks SARIF
 - any optional OSV workflow artifacts produced by the reusable workflows
 

@@ -38,12 +38,25 @@ Copy `.env.example` to `.env` and add keys if you want the full set:
 
 ## Prototype cache mode
 
-The app can run in a grouped cache mode with a local filesystem fallback:
+The app now uses a provider-based grouped cache:
 
-- `public/dashboard-cache.json` is the bundled bootstrap snapshot for first paint
-- Group snapshots live under `public/dashboard-cache-groups/`
-- `public/dashboard-history.json` stores snapshot-style sparkline history in local/dev mode
-- In production, the same grouped snapshots can persist to Redis-style storage through `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+- `redis`
+  Durable Upstash Redis storage for Preview and Production when Redis credentials are configured
+- `file`
+  Local filesystem storage for local/dev by default
+- `bootstrap-readonly`
+  Bundled read-only fallback for hosted environments that do not have Redis configured
+
+Bundled bootstrap assets still exist:
+
+- `public/dashboard-cache.json`
+- `public/dashboard-history.json`
+
+Those files are now seed and emergency fallback artifacts, not the source of truth in Redis-backed environments.
+
+Local file mode also keeps:
+
+- `public/dashboard-cache-groups/`
 
 These cache snapshot files are generated locally and are intentionally ignored by Git. Regenerate them with `npm run cache:update` when you need local bootstrap data.
 
@@ -82,14 +95,37 @@ The header now supports a daily BTC cycle estimate that is derived from the dash
 Production should use the API cache route instead of treating the static `public/dashboard-cache.json` file as the source of truth:
 
 - The app first tries `/api/dashboard-cache`
-- That route manages grouped TTLs server-side, refreshes only stale groups on request, and persists successful updates immediately
+- That route manages grouped TTLs server-side, refreshes only stale groups on request, and persists successful updates immediately when storage is writable
 - `/api/dashboard-cache-warm` is the authenticated daily cron warm route for `daily`, `slow`, and `synthetic`
 - `DASHBOARD_CACHE_TTL_HOURS` controls the cache freshness window and defaults to `24`
 - `vercel.json` warms the cache once per day with a cron request at `00:00 UTC`
 
+Recommended storage setup on Vercel:
+
+1. Install Upstash Redis through Vercel Marketplace.
+2. Make sure `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are available in Preview and Production.
+3. Keep Redis in a region close to your Vercel project.
+4. Keep `public/dashboard-cache.json` in the repo as the bootstrap fallback, but do not rely on runtime writes to `public/` in hosted environments.
+
+This project intentionally targets Redis via Vercel Marketplace rather than the old Vercel KV path.
+
+Storage mode resolution:
+
+1. `DASHBOARD_STORAGE_MODE=redis|file|bootstrap` wins when explicitly set
+2. otherwise Redis is used when `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` exist
+3. otherwise local/dev defaults to `file`
+4. otherwise hosted environments fall back to `bootstrap-readonly`
+
+Hosted fallback behavior without Redis:
+
+- `/api/dashboard-cache` serves the bundled bootstrap snapshot
+- `/api/dashboard-cache-warm` returns a safe no-op style response with fallback metadata
+- the API exposes storage diagnostics in both headers and `payload.meta`
+
 Optional environment variables:
 
 - `DASHBOARD_CACHE_TTL_HOURS=24`
+- `DASHBOARD_STORAGE_MODE=auto`
 - `UPSTASH_REDIS_REST_URL=...`
 - `UPSTASH_REDIS_REST_TOKEN=...`
 - `CRON_SECRET=...`
@@ -103,8 +139,14 @@ GitHub Actions now protects merges into `main` with:
 
 - `build` for `npm ci` and `npm run build`
 - `sast` for Semgrep CE server-focused security checks
-- `sca` for Trivy dependency scanning with a blocking threshold of `CRITICAL`
+- `sca` for OSV-Scanner dependency scanning against `package-lock.json`
 - `secrets` for full-history Gitleaks scanning
+
+GitHub Code Scanning is the shared source of truth for findings:
+
+- OSV uploads dependency results as SARIF
+- Semgrep uploads SAST results as SARIF
+- Gitleaks uploads secret-scan results as SARIF
 
 The repo also includes a `Security Baseline` workflow for pushes to `main`, weekly scans, and manual runs.
 

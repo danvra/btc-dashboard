@@ -30,6 +30,9 @@ export default async function handler(req, res) {
     res.status(200).json({
       ok: true,
       storageMode: result.storageMode,
+      storageWritable: result.storageWritable,
+      bootstrapUsed: result.bootstrapUsed,
+      fallbackReason: result.fallbackReason ?? null,
       refreshedGroupIds: result.refreshedGroupIds,
       generatedAt: result.compositePayload.meta?.generatedAt ?? null,
     });
