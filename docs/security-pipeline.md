@@ -16,10 +16,11 @@ The original SCA job was not healthy:
 - it references `aquasecurity/trivy-action@0.33.1`, which GitHub cannot currently resolve in our workflow runs
 - that tag is also part of the March 2026 `trivy-action` compromise set described by Aqua
 
-The current SAST job also needs follow-up:
+The current SAST job now uses a simplified and more reliable configuration:
 
-- Semgrep is uploading artifacts successfully
-- the rule files currently contain YAML syntax errors, so the scan is not yet producing real findings
+- Semgrep CE is reinstalled fresh in CI
+- Semgrep runs with the maintained default ruleset via `--config auto`
+- findings are uploaded as a JSON artifact for later triage
 
 The active implementation now reflects the OSV migration described below.
 
@@ -138,14 +139,17 @@ Purpose:
 
 This is treated as a supplemental supply-chain integrity control, not the primary SCA engine.
 
-### 7. Fix the Semgrep rule files in the same migration branch
+### 7. Keep Semgrep healthy with the default ruleset
 
-The Semgrep rule files must also be valid YAML so the SAST gate produces real findings:
+The active CI path no longer depends on the repo-local experimental Semgrep rule files.
 
-- `.semgrep/critical.yml`
-- `.semgrep/audit.yml`
+Instead, both workflows:
 
-This is not part of the OSV migration itself, but it belongs in the same stabilization pass so the overall pipeline stays trustworthy.
+- reinstall the latest Semgrep CE package
+- run `semgrep scan --config auto`
+- upload the resulting JSON report as a workflow artifact
+
+The local `.semgrep/critical.yml` and `.semgrep/audit.yml` files are retained only as future tuning candidates and are not part of the active merge gate.
 
 ## Target Pipeline Design
 
@@ -158,9 +162,9 @@ The PR workflow should contain:
   - `npm audit signatures`
   - `npm run build`
 - `sast`
-  - Semgrep with:
-    - one blocking ruleset for server-side critical patterns
-    - one non-blocking audit ruleset for broader visibility
+  - Semgrep CE reinstalled in CI
+  - Semgrep default ruleset via `--config auto`
+  - JSON artifact upload for later triage
 - `sca`
   - OSV reusable PR scan workflow
   - compare feature branch results against the base branch
@@ -172,7 +176,7 @@ Branch protection should continue to require:
 
 - `build`
 - `sast`
-- `sca`
+- `sca / osv-scan`
 - `secrets`
 
 ### Mainline Baseline
@@ -339,16 +343,12 @@ Good future ASPM candidates may include:
 - a lightweight self-hosted or open-source posture aggregator
 - a custom repo-security scorecard workflow if we want to keep things simple
 
-## Recommended Next Implementation Step
+## Recommended Next Step
 
-The stabilization pass should keep these items together:
+The stabilization pass is now implemented. The next operating tasks are:
 
-1. replace Trivy SCA with OSV-Scanner
-2. pin the OSV reusable workflow reference to an immutable commit SHA
-3. add `npm audit signatures`
-4. repair the Semgrep YAML rule files
-5. keep Gitleaks unchanged
-6. update `docs/devsecops-ci.md` to reflect the new SCA implementation
-7. verify the exact emitted SCA check name after the first successful GitHub run and align branch protection if needed
-
-That single pass converts the pipeline from "partially wired" to "operational and trustworthy."
+1. keep branch protection aligned with the emitted check names, especially `sca / osv-scan`
+2. triage and remediate the live OSV findings reported against `package-lock.json`
+3. tune Semgrep over time if the default ruleset produces too much noise
+4. harden the remaining third-party GitHub Actions by pinning them to full commit SHAs
+5. add a lightweight ASPM layer so posture and coverage can be tracked across branches and workflows
