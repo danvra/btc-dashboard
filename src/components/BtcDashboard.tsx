@@ -31,8 +31,8 @@ const sentimentClasses = {
 
 const dataModeClasses = {
   live: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  scraped: "bg-sky-50 text-sky-700 ring-sky-200",
-  approx: "bg-amber-50 text-amber-800 ring-amber-200",
+  derived: "bg-sky-50 text-sky-700 ring-sky-200",
+  model: "bg-amber-50 text-amber-800 ring-amber-200",
   seeded: "bg-stone-100 text-stone-700 ring-stone-200",
 };
 
@@ -59,11 +59,15 @@ function clamp(value: number, min = 0, max = 1) {
 }
 
 function proxyNote(metricState: DashboardMetricState) {
-  if (metricState.dataMode !== "approx") {
-    return null;
+  if (metricState.dataMode === "derived") {
+    return `Derived note: this card is computed locally from ${metricState.sourceLabel}.`;
   }
 
-  return `Proxy note: this card uses a best-effort approximation from ${metricState.sourceLabel}.`;
+  if (metricState.dataMode === "model") {
+    return `Model note: this card is a local model overlay built from ${metricState.sourceLabel}.`;
+  }
+
+  return null;
 }
 
 function formatRelativeTime(timestamp?: number) {
@@ -141,7 +145,7 @@ function formatMonthYear(dateKey?: string) {
   }).format(date);
 }
 
-function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog | null) {
   if (cycleAnalog?.perCycleMatches?.length && cycleAnalog.topMatchDates?.length) {
     return cycleAnalog.topMatchDates
       .slice(0, 2)
@@ -152,7 +156,7 @@ function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
   return [];
 }
 
-function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
     return "Historical phase-window analog appears after the next synthetic refresh";
   }
@@ -166,7 +170,7 @@ function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
   return `Analogous to prior-cycle ${dateLabels.join(", ")}`;
 }
 
-function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
     return "Phase-window analog pending refresh";
   }
@@ -1140,7 +1144,7 @@ function ConstructiveSignalsModal({
               Signal support by data mode
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(["live", "scraped", "approx", "seeded"] as const).map((dataMode) => (
+              {(["live", "derived", "model", "seeded"] as const).map((dataMode) => (
                 <span
                   key={dataMode}
                   className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[dataMode]}`}
@@ -1194,7 +1198,7 @@ function DebugPanel({
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
             Debug / Cache
           </p>
-          <h3 className="mt-1 text-xl font-semibold text-stone-950">Prototype source health</h3>
+          <h3 className="mt-1 text-xl font-semibold text-stone-950">Connector cache health</h3>
         </div>
         <div className="text-sm text-stone-500">
           {generatedAt ? `Cache updated ${formatRelativeTime(generatedAt)}` : "Cache timestamp unavailable"}
@@ -1230,12 +1234,12 @@ function DebugPanel({
           <p className="mt-2 text-2xl font-semibold text-stone-950">{counts.seeded ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-sky-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">Scraped</p>
-          <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.scraped ?? 0}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">Derived</p>
+          <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.derived ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-amber-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">Approx</p>
-          <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.approx ?? 0}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">Model</p>
+          <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.model ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Live</p>
@@ -1451,8 +1455,8 @@ export function BtcDashboard() {
                 Track price action, cycle regime, network health, and macro structure in one place.
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
-                This dashboard now mixes live market and network data with graceful fallbacks for metrics
-                that still need a dedicated on-chain or macro provider key.
+                This dashboard now runs on a strict free, API-first connector layer with compact cache
+                cohorts, local derivations, and graceful fallback snapshots.
               </p>
               <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1658,7 +1662,7 @@ export function BtcDashboard() {
                 Debug / Cache
               </p>
               <p className="mt-1 text-sm text-stone-600">
-                Inspect cache freshness, provenance counts, and prototype source health.
+                Inspect cache freshness, provenance counts, and connector health.
               </p>
             </div>
             <div className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm font-semibold text-stone-700">

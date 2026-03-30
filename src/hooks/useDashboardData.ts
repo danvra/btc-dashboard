@@ -48,9 +48,36 @@ export function useDashboardData() {
     return mergeCachePayload(payload);
   }
 
-  async function loadApiCache(timeoutMs = 12_000) {
-    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}`, timeoutMs);
+  async function loadApiCache(timeoutMs = 12_000, options?: { force?: boolean }) {
+    const refreshMode = options?.force ? "&refresh=force" : "";
+    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}${refreshMode}`, timeoutMs);
     return mergeCachePayload(payload);
+  }
+
+  function shouldRequestApiRefresh(currentSnapshot: DashboardDataSnapshot) {
+    const groups = currentSnapshot.meta?.groups;
+
+    if (!groups) {
+      return true;
+    }
+
+    const now = Date.now();
+
+    return Object.values(groups).some((group) => {
+      if (!group) {
+        return true;
+      }
+
+      if (group.expiresAt) {
+        return now >= group.expiresAt;
+      }
+
+      if (!group.generatedAt) {
+        return true;
+      }
+
+      return group.ttlMs ? now - group.generatedAt >= group.ttlMs : false;
+    });
   }
 
   function shouldPromoteSnapshot(nextSnapshot: DashboardDataSnapshot, currentSnapshot: DashboardDataSnapshot | null) {
@@ -84,6 +111,10 @@ export function useDashboardData() {
 
           void (async () => {
             try {
+              if (!shouldRequestApiRefresh(staticSnapshot)) {
+                return;
+              }
+
               const apiSnapshot = await loadApiCache();
 
               if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
@@ -106,7 +137,9 @@ export function useDashboardData() {
       let refreshSource: "api" | "static" = "api";
 
       try {
-        nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
+        nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000, {
+          force: mode === "refresh",
+        });
       } catch {
         try {
           nextSnapshot = await loadStaticCache();
