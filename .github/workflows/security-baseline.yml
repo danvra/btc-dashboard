@@ -33,6 +33,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify npm package signatures
+        run: npm audit signatures
+
       - name: Build application
         run: npm run build
 
@@ -42,6 +45,7 @@ jobs:
             echo "### Build"
             echo
             echo "- npm ci: passed"
+            echo "- npm audit signatures: passed"
             echo "- npm run build: passed"
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -108,74 +112,12 @@ jobs:
 
   sca:
     name: sca
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Create reports directory
-        run: mkdir -p reports
-
-      - name: Run blocking Trivy dependency scan
-        id: trivy_blocking
-        continue-on-error: true
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          vuln-type: library
-          severity: CRITICAL
-          ignore-unfixed: true
-          format: table
-          exit-code: "1"
-          hide-progress: true
-          skip-dirs: dist,node_modules
-
-      - name: Export Trivy dependency report
-        if: always()
-        uses: aquasecurity/trivy-action@0.33.1
-        with:
-          scan-type: fs
-          scan-ref: .
-          vuln-type: library
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: json
-          output: reports/trivy-report.json
-          exit-code: "0"
-          hide-progress: true
-          skip-dirs: dist,node_modules
-          skip-setup-trivy: true
-
-      - name: Summarize Trivy results
-        if: always()
-        env:
-          TRIVY_OUTCOME: ${{ steps.trivy_blocking.outcome }}
-        run: |
-          trivy_count="$(jq '[.Results[]?.Vulnerabilities[]?] | length' reports/trivy-report.json 2>/dev/null || echo 0)"
-
-          {
-            echo "### SCA"
-            echo
-            echo "- High/Critical vulnerabilities reported: ${trivy_count}"
-            echo "- Blocking scan status: ${TRIVY_OUTCOME}"
-            echo "- Blocking threshold: CRITICAL only"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Upload Trivy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-security-baseline
-          path: reports/trivy-report.json
-          if-no-files-found: error
-
-      - name: Enforce blocking Trivy findings
-        if: steps.trivy_blocking.outcome == 'failure'
-        run: |
-          echo "Critical dependency vulnerabilities were detected."
-          exit 1
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@c51854704019a247608d928f370c98740469d4b5
+    with:
+      scan-args: |-
+        --lockfile=./package-lock.json
+      fail-on-vuln: true
+      upload-sarif: true
 
   secrets:
     name: secrets

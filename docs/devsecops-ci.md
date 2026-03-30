@@ -7,12 +7,16 @@ This repository now includes two GitHub Actions workflows:
 
 ## What the pipeline enforces
 
-- `build`: `npm ci` and `npm run build`
+- `build`: `npm ci`, `npm audit signatures`, and `npm run build`
 - `sast`: Semgrep CE with a curated blocking ruleset for `api/` and `lib/server/`
-- `sca`: Trivy filesystem dependency scanning with a blocking threshold of `CRITICAL`
+- `sca`: OSV-Scanner lockfile-based dependency scanning against `package-lock.json`
 - `secrets`: Gitleaks across the full git history
 
-Every job writes a short step summary and uploads its scan output as a workflow artifact.
+The SCA check now uses the official OSV reusable workflows and uploads SARIF into GitHub Code Scanning so dependency findings appear in the repository security UI.
+
+Every job writes a short step summary, and SAST and secret-scanning continue to upload their scan outputs as workflow artifacts.
+
+For the next iteration of the pipeline, including the planned migration from Trivy SCA to OSV-Scanner, see `docs/security-pipeline.md`.
 
 ## One-time GitHub setup
 
@@ -28,6 +32,8 @@ The repository is now public, so branch protection can be used to enforce the pu
    - `sca`
    - `secrets`
 6. Block direct pushes to `main`.
+
+After the first green run with the new reusable OSV workflow, confirm the exact emitted SCA check name in GitHub. Reusable workflow jobs sometimes render as a compound name such as `sca / osv-scan`, and branch protection should match the actual emitted check.
 
 ## GitHub CLI notes
 

@@ -35,5 +35,7 @@ rules:
         - lib/server/**
     patterns:
       - pattern-either:
-          - pattern: $RES.status(500).json({..., error: $ERR.message, ...})
-          - pattern: $RES.status(500).json({..., error: $ERR instanceof Error ? $ERR.message : ..., ...})
+          - pattern: |
+              $RES.status(500).json({..., error: $ERR.message, ...})
+          - pattern: |
+              $RES.status(500).json({..., error: $ERR instanceof Error ? $ERR.message : ..., ...})
