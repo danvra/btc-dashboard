@@ -14,6 +14,8 @@ This repository now includes two GitHub Actions workflows:
 
 The SCA check now uses the official OSV reusable workflows and uploads SARIF into GitHub Code Scanning so dependency findings appear in the repository security UI.
 
+Because the OSV reusable workflows upload SARIF, the caller workflows must grant `actions: read`, `contents: read`, and `security-events: write` at the workflow level.
+
 Every job writes a short step summary, and SAST and secret-scanning continue to upload their scan outputs as workflow artifacts.
 
 For the next iteration of the pipeline, including the planned migration from Trivy SCA to OSV-Scanner, see `docs/security-pipeline.md`.

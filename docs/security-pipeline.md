@@ -50,6 +50,14 @@ Key source references:
 - OSV supported manifests and lockfiles: [google.github.io/osv-scanner/supported-languages-and-lockfiles](https://google.github.io/osv-scanner/supported-languages-and-lockfiles/)
 - npm audit signatures: [docs.npmjs.com/cli/v10/commands/npm-audit](https://docs.npmjs.com/cli/v10/commands/npm-audit/)
 
+Required caller workflow permissions for the implemented OSV setup:
+
+- `actions: read`
+- `contents: read`
+- `security-events: write`
+
+These are required because the reusable workflows upload SARIF into GitHub Code Scanning.
+
 ## Concrete Migration Plan
 
 ### 1. Replace the current `sca` job with OSV-Scanner
