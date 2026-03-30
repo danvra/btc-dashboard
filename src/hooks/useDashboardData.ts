@@ -48,8 +48,16 @@ export function useDashboardData() {
     return mergeCachePayload(payload);
   }
 
-  async function loadApiCache(timeoutMs = 12_000) {
-    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}`, timeoutMs);
+  async function loadApiCache(options: { timeoutMs?: number; force?: boolean } = {}) {
+    const searchParams = new URLSearchParams({
+      ts: String(Date.now()),
+    });
+
+    if (options.force) {
+      searchParams.set("refresh", "force");
+    }
+
+    const payload = await fetchCachePayload(`/api/dashboard-cache?${searchParams.toString()}`, options.timeoutMs);
     return mergeCachePayload(payload);
   }
 
@@ -65,6 +73,8 @@ export function useDashboardData() {
   }
 
   async function load(mode: "initial" | "refresh") {
+    const currentSnapshot = snapshot;
+
     if (mode === "initial") {
       setIsLoading(true);
     } else {
@@ -106,7 +116,10 @@ export function useDashboardData() {
       let refreshSource: "api" | "static" = "api";
 
       try {
-        nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
+        nextSnapshot = await loadApiCache({
+          timeoutMs: mode === "refresh" ? 10_000 : 20_000,
+          force: mode === "refresh",
+        });
       } catch {
         try {
           nextSnapshot = await loadStaticCache();
@@ -136,18 +149,28 @@ export function useDashboardData() {
         });
       }
     } catch (loadError) {
-      startTransition(() => {
-        setSnapshot(buildFallbackSnapshot());
-      });
       const message = loadError instanceof Error ? loadError.message : "Unable to load dashboard data.";
-      setError(message);
 
-      if (mode === "refresh") {
+      if (mode === "refresh" && currentSnapshot) {
+        setError(null);
         setRefreshNotice({
           completedAt: Date.now(),
-          kind: "error",
-          message: "Refresh failed.",
+          kind: "fallback",
+          message: "Live refresh unavailable. Keeping current cached data.",
         });
+      } else {
+        startTransition(() => {
+          setSnapshot(buildFallbackSnapshot());
+        });
+        setError(message);
+
+        if (mode === "refresh") {
+          setRefreshNotice({
+            completedAt: Date.now(),
+            kind: "error",
+            message: "Refresh failed.",
+          });
+        }
       }
     } finally {
       setIsLoading(false);
