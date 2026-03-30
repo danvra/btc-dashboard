@@ -54,6 +54,9 @@ const refreshNoticeClasses = {
   error: "border-rose-200 bg-rose-50 text-rose-800",
 };
 
+const COINGECKO_ATTRIBUTION_URL =
+  "https://www.coingecko.com/en/api?utm_source=btc-dashboard&utm_medium=referral";
+
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
@@ -1314,6 +1317,25 @@ function DebugPanel({
   );
 }
 
+function CoinGeckoAttribution() {
+  return (
+    <section className="mt-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
+      <p className="leading-6">
+        Price and market-cap data provided by{" "}
+        <a
+          href={COINGECKO_ATTRIBUTION_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold underline decoration-emerald-400 underline-offset-2"
+        >
+          CoinGecko API
+        </a>
+        .
+      </p>
+    </section>
+  );
+}
+
 export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
@@ -1562,6 +1584,8 @@ export function BtcDashboard() {
             </div>
           </div>
         </header>
+
+        <CoinGeckoAttribution />
 
         {(error || isLoading) && (
           <section className="mt-6 grid gap-3">

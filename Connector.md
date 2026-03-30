@@ -64,6 +64,12 @@ The following cards are intentionally out of v1 and should stay out until we ado
 
 ## Source adapters
 
+## Attribution
+
+- CoinGecko-backed UI surfaces must keep a visible text attribution near the related dashboard data.
+- Current implementation uses the linked copy `Price and market-cap data provided by CoinGecko API.` near the top-level price and market section.
+- If the CoinGecko-powered scope expands, keep that attribution visible or add an equally prominent replacement close to the affected data.
+
 ### Fast cohort
 
 - CoinGecko:

@@ -25,6 +25,7 @@ React + Vite dashboard for a compact Bitcoin monitoring stack built on free docu
 - The frontend then asks `/api/dashboard-cache` for fresher grouped data.
 - The backend refreshes only stale cohorts and persists successful results immediately when storage is writable.
 - Vercel cron warms stale daily and slow cohorts once per day.
+- CoinGecko-backed price and market-cap data are attributed in the UI with a visible linked note near the top-level market summary.
 
 ## Cohorts
 
