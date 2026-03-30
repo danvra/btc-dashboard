@@ -39,18 +39,24 @@ Each group owns:
 Current grouped defaults:
 
 - `fast`
-  TTL: `30 minutes`
-  Stale-after: `3 hours`
+  TTL: `1 hour`
+  Stale-after: `2 hours`
 - `daily`
   TTL: `24 hours`
   Stale-after: `36 hours`
 - `slow`
-  TTL: `72 hours`
-  Stale-after: `7 days`
+  TTL: `24 hours`
+  Stale-after: `36 hours`
 - `synthetic`
   TTL: `0`
   It is dependency-driven, not time-driven.
   Stale-after: `24 hours`
+
+Frontend-triggered refresh policy:
+
+- after rendering the bundled or static cache, the client requests `/api/dashboard-cache` when `fast` is older than `1 hour`
+- it also requests `/api/dashboard-cache` when `daily`, `slow`, or `synthetic` is older than `24 hours`
+- manual refreshes call `/api/dashboard-cache?refresh=force`
 
 Interpretation:
 
