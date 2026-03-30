@@ -25,3 +25,5 @@ public/dashboard-history.json
 public/dashboard-cache-groups/*.json
 
 tmp-*.js
+.vercel
+.env*.local
