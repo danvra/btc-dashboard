@@ -1819,7 +1819,7 @@ export function BtcDashboard() {
                     }
                   }
                   selected={selectedMetric.id === metric.id}
-                  onSelect={(nextMetric) => setSelectedMetricId(nextMetric.id)}
+                  onSelect={(nextMetric) => openMetric(nextMetric)}
                 />
               ))}
             </div>

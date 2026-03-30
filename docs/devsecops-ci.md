@@ -12,11 +12,15 @@ This repository now includes two GitHub Actions workflows:
 - `sca`: OSV-Scanner lockfile-based dependency scanning against `package-lock.json`
 - `secrets`: Gitleaks across the full git history
 
-The SCA check now uses the official OSV reusable workflows and uploads SARIF into GitHub Code Scanning so dependency findings appear in the repository security UI.
+The security checks now use GitHub Code Scanning as the shared findings backend:
+
+- OSV uploads SCA SARIF through the official reusable workflows
+- Semgrep emits SARIF and uploads it into GitHub Code Scanning
+- Gitleaks emits SARIF and uploads it into GitHub Code Scanning
 
 Because the OSV reusable workflows upload SARIF, the caller workflows must grant `actions: read`, `contents: read`, and `security-events: write` at the workflow level.
 
-Every job writes a short step summary, and SAST and secret-scanning continue to upload their scan outputs as workflow artifacts.
+Every job writes a short step summary, and SAST and secret-scanning continue to upload their SARIF outputs as workflow artifacts.
 
 The active SAST path now avoids the repo-local experimental Semgrep rules and instead uses Semgrep's maintained default ruleset. The local `.semgrep/*.yml` files are retained for later tuning work, but they are not part of the active CI gate.
 

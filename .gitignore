@@ -22,3 +22,5 @@ public/dashboard-cache-groups/*.json
 .vscode/
 
 tmp-*.js
+.vercel
+.env*.local
