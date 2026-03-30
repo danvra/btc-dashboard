@@ -2,8 +2,8 @@
 
 This repository now includes two GitHub Actions workflows:
 
-- `Security Gate` runs on pull requests targeting `main`.
-- `Security Baseline` runs on pushes to `main`, on manual dispatch, and every Monday at `03:23 UTC`.
+- `Security Gate` runs on pull requests targeting `main` and acts as the fast build gate.
+- `Security Baseline` runs on pull requests, on pushes to `main`, on manual dispatch, and every Monday at `03:23 UTC`.
 
 ## What the pipeline enforces
 
@@ -12,11 +12,13 @@ This repository now includes two GitHub Actions workflows:
 - `sca`: OSV-Scanner lockfile-based dependency scanning against `package-lock.json`
 - `secrets`: Gitleaks across the full git history
 
-The security checks now use GitHub Code Scanning as the shared findings backend:
+`Security Baseline` is now the only workflow that uploads SARIF into GitHub Code Scanning:
 
 - OSV uploads SCA SARIF through the official reusable workflows
 - Semgrep emits SARIF and uploads it into GitHub Code Scanning
 - Gitleaks emits SARIF and uploads it into GitHub Code Scanning
+
+`Security Gate` stays intentionally non-SARIF so GitHub can map alerts against one stable workflow configuration on both PRs and `main`.
 
 Because the OSV reusable workflows upload SARIF, the caller workflows must grant `actions: read`, `contents: read`, and `security-events: write` at the workflow level.
 

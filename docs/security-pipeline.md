@@ -4,7 +4,7 @@ This document captures the current security pipeline design for the repository, 
 
 ## Current State
 
-The current pipeline has four jobs:
+The current pipeline has four security jobs:
 
 - `build`
 - `sast`
@@ -23,6 +23,13 @@ The current SAST job now uses a simplified and more reliable configuration:
 - findings are emitted as SARIF, uploaded into GitHub Code Scanning, and retained as workflow artifacts
 
 The active implementation now reflects the OSV migration described below.
+
+GitHub Code Scanning now has a single workflow source of truth:
+
+- `Security Baseline` uploads SARIF on pull requests and on `main`
+- `Security Gate` is intentionally kept non-SARIF and acts as the fast PR build gate
+
+This avoids GitHub Code Scanning configuration drift between PR-only and mainline-only workflow files.
 
 ## Decision Summary
 
@@ -73,10 +80,10 @@ Replace it with OSV reusable workflows pinned to the immutable workflow commit `
 Implemented workflow structure:
 
 - PR workflow:
-  - use OSV's reusable PR scan workflow
+  - `Security Baseline` uses OSV's reusable PR scan workflow
   - fail only when the PR introduces new vulnerabilities relative to `main`
 - Mainline workflow:
-  - use OSV's reusable scheduled/full scan workflow
+  - `Security Baseline` uses OSV's reusable scheduled/full scan workflow
   - run on `push` to `main`, `workflow_dispatch`, and weekly schedule
   - fail when any known vulnerability exists in the default branch dependency tree
 
@@ -143,7 +150,7 @@ This is treated as a supplemental supply-chain integrity control, not the primar
 
 The active CI path no longer depends on the repo-local experimental Semgrep rule files.
 
-Instead, both workflows:
+Instead, the baseline workflow:
 
 - reinstall the latest Semgrep CE package
 - run `semgrep scan --config auto`
@@ -155,23 +162,18 @@ The local `.semgrep/critical.yml` and `.semgrep/audit.yml` files are retained on
 
 ### Pull Request Gate
 
-The PR workflow should contain:
+PRs now use two workflow roles:
 
-- `build`
+- `Security Gate`
+  - `build`
   - `npm ci`
   - `npm audit signatures`
   - `npm run build`
-- `sast`
-  - Semgrep CE reinstalled in CI
-  - Semgrep default ruleset via `--config auto`
-  - SARIF upload to GitHub Code Scanning
-  - SARIF artifact retained for offline review
-- `sca`
-  - OSV reusable PR scan workflow
-  - compare feature branch results against the base branch
-  - fail only on newly introduced vulnerabilities
-- `secrets`
-  - Gitleaks with full git history
+- `Security Baseline`
+  - `sast`
+  - `sca`
+  - `secrets`
+  - all SARIF uploads to GitHub Code Scanning
 
 Branch protection should continue to require:
 
@@ -206,7 +208,7 @@ The pipeline should expose findings in three layers:
 
 1. GitHub check status for pass/fail
 2. GitHub step summary for quick triage
-3. GitHub Code Scanning SARIF for durable cross-tool visibility
+3. GitHub Code Scanning SARIF for durable cross-tool visibility from the baseline workflow
 
 Artifacts should still be kept for:
 

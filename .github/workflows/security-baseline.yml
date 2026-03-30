@@ -1,6 +1,9 @@
 name: Security Baseline
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -20,6 +23,7 @@ concurrency:
 jobs:
   build:
     name: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
