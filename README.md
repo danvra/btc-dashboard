@@ -54,6 +54,12 @@ The cache now uses grouped freshness domains:
 - `slow`: macro series with slower source cadence
 - `synthetic`: cycle estimate and analog outputs derived from the current grouped snapshot
 
+Frontend refresh policy:
+
+- after loading the bundled/static snapshot, the app calls `/api/dashboard-cache` when `fast` data is older than `1 hour`
+- it also calls `/api/dashboard-cache` when `daily`, `slow`, or `synthetic` data is older than `24 hours`
+- manual refreshes call `/api/dashboard-cache?refresh=force` so the server bypasses group TTL checks
+
 Commands:
 
 1. `npm run cache:update`
