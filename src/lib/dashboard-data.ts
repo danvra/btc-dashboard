@@ -199,6 +199,7 @@ const LIVE_WINDOW_DAYS = 30;
 const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGroupId>> = {
   "price-vs-realized-price": "fast",
   "fear-and-greed": "fast",
+  "recent-reddit-sentiment": "fast",
   ssr: "fast",
   "fed-rate-expectations": "fast",
   dxy: "slow",

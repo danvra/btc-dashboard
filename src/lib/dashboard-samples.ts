@@ -1,5 +1,36 @@
 import type { DashboardMetric } from "./dashboard-definitions";
 
+export interface MetricDetailStat {
+  label: string;
+  value: string;
+}
+
+export interface MetricDetailPost {
+  title: string;
+  subreddit: string;
+  score?: number;
+  url?: string;
+}
+
+export interface MetricDetailComment {
+  body: string;
+  subreddit: string;
+  score?: number;
+  url?: string;
+}
+
+export interface MetricNarrativeDetails {
+  summary?: string;
+  methodology?: string;
+  drivers?: string[];
+  risks?: string[];
+  opportunities?: string[];
+  subreddits?: string[];
+  stats?: MetricDetailStat[];
+  samplePosts?: MetricDetailPost[];
+  sampleComments?: MetricDetailComment[];
+}
+
 export interface MetricSample {
   metricId: DashboardMetric["id"];
   currentValue: string;
@@ -8,6 +39,7 @@ export interface MetricSample {
   status: "bullish" | "bearish" | "neutral";
   series: number[];
   sourceLabel: string;
+  details?: MetricNarrativeDetails;
 }
 
 export const METRIC_SAMPLES: MetricSample[] = [
@@ -199,6 +231,60 @@ export const METRIC_SAMPLES: MetricSample[] = [
     status: "bullish",
     series: [41, 38, 36, 34, 32, 30, 28, 26, 25, 24, 23, 23],
     sourceLabel: "Sentiment index",
+  },
+  {
+    metricId: "recent-reddit-sentiment",
+    currentValue: "58/100",
+    deltaLabel: "Cautious bullish tilt across 48h discussion",
+    trend: "up",
+    status: "neutral",
+    series: [45, 47, 49, 48, 50, 52, 54, 53, 55, 56, 57, 58],
+    sourceLabel: "Reddit sentiment synthesis",
+    details: {
+      summary:
+        "Recent Bitcoin-relevant Reddit chatter leans constructive overall, but the conversation still mixes upside speculation with recurring exchange, scam, and execution worries.",
+      methodology:
+        "This sample stands in for the scheduled Reddit summarizer and shows the kind of saved narrative the live cache will carry.",
+      drivers: [
+        "Price-target and breakout discussion is picking up in Bitcoin-focused communities.",
+        "Comments still reward patient accumulation and long-term holding language.",
+      ],
+      risks: [
+        "Broad crypto threads can turn quickly if price stalls or macro news worsens.",
+        "Support and scam-help posts can skew mood lower without reflecting true market conviction.",
+      ],
+      opportunities: [
+        "A sustained rise in bullish BTC threads can confirm improving retail participation.",
+      ],
+      subreddits: ["r/Bitcoin", "r/btc", "r/BitcoinMarkets", "r/CryptoCurrency"],
+      stats: [
+        { label: "Window", value: "48 hours" },
+        { label: "Posts sampled", value: "18" },
+        { label: "Comments sampled", value: "36" },
+      ],
+      samplePosts: [
+        {
+          subreddit: "r/Bitcoin",
+          title: "Breakout or fakeout?",
+          score: 142,
+          url: "https://www.reddit.com/r/Bitcoin/",
+        },
+        {
+          subreddit: "r/BitcoinMarkets",
+          title: "ETF flows still supporting the move",
+          score: 87,
+          url: "https://www.reddit.com/r/BitcoinMarkets/",
+        },
+      ],
+      sampleComments: [
+        {
+          subreddit: "r/CryptoCurrency",
+          body: "Retail still looks interested, but people are watching macro and ETF flow headlines closely.",
+          score: 24,
+          url: "https://www.reddit.com/r/CryptoCurrency/",
+        },
+      ],
+    },
   },
   {
     metricId: "hodl-waves",
