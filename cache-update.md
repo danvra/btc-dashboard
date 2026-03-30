@@ -170,7 +170,7 @@ It should then recompute:
 
 Production persistence should be durable key-value storage.
 
-The intended production backend is an Upstash-compatible Redis REST store wired through the Vercel project environment, rather than relying on request-local memory or the ephemeral Vercel filesystem.
+The intended production backend is Upstash Redis wired through the Vercel Marketplace environment, rather than relying on request-local memory or the ephemeral Vercel filesystem.
 
 The storage interface is:
 
@@ -186,13 +186,21 @@ The storage interface is:
 
 - `dashboard:group:<groupId>`
 - `dashboard:composite`
-- `dashboard:history:<metricId>`
+- `dashboard:history`
 
 ### Production env vars
 
+- `DASHBOARD_STORAGE_MODE`
 - `UPSTASH_REDIS_REST_URL`
 - `UPSTASH_REDIS_REST_TOKEN`
 - `CRON_SECRET`
+
+### Storage resolution
+
+1. Use `DASHBOARD_STORAGE_MODE` when it is explicitly set to `redis`, `file`, or `bootstrap`.
+2. Otherwise use Redis when the Upstash Redis env vars exist.
+3. Otherwise use local filesystem storage for local/dev.
+4. Otherwise use bundled bootstrap snapshots in read-only mode for hosted environments.
 
 ### Local fallback
 
@@ -201,6 +209,19 @@ When durable KV is not configured, the local/dev fallback remains filesystem-bac
 - `public/dashboard-cache.json`
 - `public/dashboard-cache-groups/<group>.json`
 - `public/dashboard-history.json`
+
+### Hosted fallback
+
+When a hosted environment is missing Redis credentials, the server falls back to bundled bootstrap data in a read-only mode:
+
+- `public/dashboard-cache.json`
+- `public/dashboard-history.json`
+
+In that mode:
+
+- `/api/dashboard-cache` serves the bundled snapshot
+- `/api/dashboard-cache-warm` returns a safe no-op style response
+- the response metadata carries `storageMode`, `storageWritable`, `bootstrapUsed`, and `fallbackReason`
 
 `public/dashboard-cache.json` is still useful as the bundled bootstrap artifact for first paint, but it should not be treated as the long-term production source of truth.
 
