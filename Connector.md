@@ -102,6 +102,7 @@ The following cards are intentionally out of v1 and should stay out until we ado
   - `DFII10`
   - `WALCL`
   - `RRPTSYD`
+  - public CSV connector fallback via `fredgraph.csv`
 
 ## Cohorts and cadence
 
@@ -119,7 +120,7 @@ The following cards are intentionally out of v1 and should stay out until we ado
   - refresh floor: 48 hours
   - stale threshold: 72 hours
   - trigger: daily cron may check it, but the backend skips real fetches until it expires
-  - owns the FRED macro block
+  - owns the FRED macro block, using keyed JSON when available and CSV fallback otherwise
 - `synthetic`
   - no independent schedule
   - recomputed whenever an upstream cohort changes

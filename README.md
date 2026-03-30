@@ -7,7 +7,7 @@ React + Vite dashboard for a compact Bitcoin monitoring stack built on free docu
 1. Install dependencies with `npm install`.
 2. Copy `.env.example` to `.env.local`.
 3. Add `COINGECKO_DEMO_API_KEY` or the Vercel-native `x_cg_demo_api_key` if you want authenticated CoinGecko calls locally.
-4. Add `FRED_API_KEY` if you want the macro cohort enabled.
+4. Add `FRED_API_KEY` if you want keyed FRED JSON access locally. Without it, the macro cohort falls back to the public FRED CSV connector.
 5. Run `npm run dev`.
 
 ## Connector model

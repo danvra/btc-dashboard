@@ -23,6 +23,7 @@ This file summarizes the runtime cache behavior. For source ownership and deferr
   - TTL: 48 hours
   - stale-after: 72 hours
   - owns FRED macro series
+  - uses the public FRED CSV connector when `FRED_API_KEY` is not configured
 - `synthetic`
   - dependency-driven
   - recomputed after an upstream cohort refreshes
