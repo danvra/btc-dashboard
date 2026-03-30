@@ -49,23 +49,23 @@ export interface DashboardPanel {
 export const DASHBOARD_PANELS: DashboardPanel[] = [
   {
     id: "price-action",
-    title: "Price / Positioning",
-    description: "Spot pricing, liquidity context, derivatives positioning, and sentiment.",
+    title: "Daily / Price Action",
+    description: "Short-term market behavior, exchange activity, and transaction flow.",
   },
   {
     id: "cycle-regime",
     title: "Cycle / Regime",
-    description: "Free-source valuation, miner stress, and locally derived cycle model overlays.",
+    description: "Market cycle positioning, holder behavior, and conviction signals.",
   },
   {
     id: "context-confirmation",
     title: "Context / Confirmation",
-    description: "Network activity, mining health, and valuation confirmation from public on-chain data.",
+    description: "Network participation and supporting confirmation indicators.",
   },
   {
     id: "macro-market-structure",
     title: "Macro / Market Structure",
-    description: "Dollar liquidity, rates, and the broader macro backdrop from FRED.",
+    description: "Liquidity, rates, macro backdrop, and institutional demand.",
   },
 ];
 
@@ -74,7 +74,7 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     id: "ssr",
     name: "Stablecoin Supply Ratio",
     shortName: "SSR",
-    panelId: "price-action",
+    panelId: "context-confirmation",
     tooltip: {
       what: "Compares Bitcoin's size to stablecoin liquidity.",
       why: "Helps gauge how much dollar-like buying power exists relative to BTC.",
@@ -92,7 +92,7 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
   {
     id: "fear-and-greed",
     name: "Fear & Greed",
-    panelId: "price-action",
+    panelId: "cycle-regime",
     tooltip: {
       what: "Tracks broad crypto market sentiment on a 0 to 100 scale.",
       why: "Helps show whether the market mood is fearful, balanced, or overheated.",
@@ -111,7 +111,7 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     id: "funding-rate",
     name: "Funding Rate Basket",
     shortName: "Funding",
-    panelId: "price-action",
+    panelId: "macro-market-structure",
     tooltip: {
       what: "Tracks the periodic cost of holding perpetual futures positions.",
       why: "Helps show when leverage is leaning too aggressively long or short.",
@@ -130,7 +130,7 @@ export const DASHBOARD_METRICS: DashboardMetric[] = [
     id: "open-interest",
     name: "Open Interest",
     shortName: "OI",
-    panelId: "price-action",
+    panelId: "macro-market-structure",
     tooltip: {
       what: "Measures the total size of open BTC futures positions across venues.",
       why: "Helps show how much leverage is building or clearing from the market.",
