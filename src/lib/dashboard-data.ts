@@ -106,6 +106,10 @@ export interface DashboardDataSnapshot {
     nextSuggestedRunAt?: number;
     scheduler?: string;
     groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
+    storageMode?: "file" | "redis" | "bootstrap-readonly";
+    storageWritable?: boolean;
+    bootstrapUsed?: boolean;
+    fallbackReason?: string | null;
   };
 }
 
@@ -115,6 +119,10 @@ export interface DashboardCachePayload {
     nextSuggestedRunAt?: number;
     scheduler?: string;
     groups?: Partial<Record<DashboardCacheGroupId, DashboardCacheGroupMeta>>;
+    storageMode?: "file" | "redis" | "bootstrap-readonly";
+    storageWritable?: boolean;
+    bootstrapUsed?: boolean;
+    fallbackReason?: string | null;
   };
   metrics?: Record<string, Partial<DashboardMetricState>>;
   summary?: Partial<DashboardDataSummary>;
@@ -191,6 +199,7 @@ const LIVE_WINDOW_DAYS = 30;
 const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGroupId>> = {
   "price-vs-realized-price": "fast",
   "fear-and-greed": "fast",
+  "recent-reddit-sentiment": "fast",
   ssr: "fast",
   "fed-rate-expectations": "fast",
   dxy: "slow",
@@ -225,6 +234,10 @@ export function buildFallbackSnapshot(): DashboardDataSnapshot {
     },
     meta: {
       scheduler: "bundled samples",
+      storageMode: "file",
+      storageWritable: false,
+      bootstrapUsed: true,
+      fallbackReason: "Using bundled sample data.",
     },
   };
 }
