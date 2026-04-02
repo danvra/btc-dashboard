@@ -150,6 +150,24 @@ export interface DashboardMessages {
     commentsLabel: string;
     sourceUpdated: string;
   };
+  donate: {
+    cta: string;
+    eyebrow: string;
+    title: string;
+    body: string;
+    amountLabel: string;
+    amountAny: string;
+    amountTemplate: string;
+    addressLabel: string;
+    copyAddress: string;
+    copyLink: string;
+    openWallet: string;
+    qrNote: string;
+    verifyNote: string;
+    copiedAddress: string;
+    copiedLink: string;
+    qrAlt: string;
+  };
   debug: {
     sectionTitle: string;
     sectionDescription: string;
@@ -354,6 +372,24 @@ export const DASHBOARD_MESSAGES: DashboardMessages = {
     postsLabel: getString(sections.reddit_sentiment, "posts_label"),
     commentsLabel: getString(sections.reddit_sentiment, "comments_label"),
     sourceUpdated: getString(sections.reddit_sentiment, "source_updated"),
+  },
+  donate: {
+    cta: getString(sections.donate, "cta"),
+    eyebrow: getString(sections.donate, "eyebrow"),
+    title: getString(sections.donate, "title"),
+    body: getString(sections.donate, "body"),
+    amountLabel: getString(sections.donate, "amount_label"),
+    amountAny: getString(sections.donate, "amount_any"),
+    amountTemplate: getString(sections.donate, "amount_template"),
+    addressLabel: getString(sections.donate, "address_label"),
+    copyAddress: getString(sections.donate, "copy_address"),
+    copyLink: getString(sections.donate, "copy_link"),
+    openWallet: getString(sections.donate, "open_wallet"),
+    qrNote: getString(sections.donate, "qr_note"),
+    verifyNote: getString(sections.donate, "verify_note"),
+    copiedAddress: getString(sections.donate, "copied_address"),
+    copiedLink: getString(sections.donate, "copied_link"),
+    qrAlt: getString(sections.donate, "qr_alt"),
   },
   debug: {
     sectionTitle: getString(sections.debug, "section_title"),

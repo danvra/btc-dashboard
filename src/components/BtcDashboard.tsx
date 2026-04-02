@@ -59,9 +59,32 @@ const refreshNoticeClasses = {
 
 const COINGECKO_ATTRIBUTION_URL =
   "https://www.coingecko.com/en/api?utm_source=btc-dashboard&utm_medium=referral";
+const DONATION_ADDRESS = "bc1qeag6r9zq9swczj5g2xzjl75zph8xzkrh6vhykc";
+const DONATION_LABEL = "BTC Dashboard";
+const DONATION_PRESETS = [0, 10_000, 50_000, 100_000] as const;
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
+}
+
+function satsToBtc(sats: number) {
+  return (sats / 100_000_000).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function buildBitcoinDonationUri(address: string, sats: number) {
+  const params = new URLSearchParams({
+    label: DONATION_LABEL,
+  });
+
+  if (sats > 0) {
+    params.set("amount", satsToBtc(sats));
+  }
+
+  return `bitcoin:${address}?${params.toString()}`;
+}
+
+function buildDonationQrUrl(uri: string) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(uri)}`;
 }
 
 function formatRelativeTime(timestamp?: number) {
@@ -1524,6 +1547,167 @@ function RedditSentimentModal({
   );
 }
 
+function DonateModal({
+  closeButtonRef,
+  onClose,
+  donationSats,
+  setDonationSats,
+  donationUri,
+  donationQrUrl,
+  donationNotice,
+  onCopyAddress,
+  onCopyLink,
+}: {
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+  donationSats: number;
+  setDonationSats: (value: number) => void;
+  donationUri: string;
+  donationQrUrl: string;
+  donationNotice: string | null;
+  onCopyAddress: () => void;
+  onCopyLink: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="donate-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
+              {DASHBOARD_MESSAGES.donate.eyebrow}
+            </p>
+            <h2
+              id="donate-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {DASHBOARD_MESSAGES.donate.title}
+            </h2>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            {DASHBOARD_MESSAGES.common.close}
+          </button>
+        </div>
+
+        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-sm leading-7 text-stone-600">{DASHBOARD_MESSAGES.donate.body}</p>
+
+            <div className="mt-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.donate.amountLabel}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {DONATION_PRESETS.map((preset) => {
+                  const isSelected = preset === donationSats;
+                  const label =
+                    preset === 0
+                      ? DASHBOARD_MESSAGES.donate.amountAny
+                      : fillMessage(DASHBOARD_MESSAGES.donate.amountTemplate, {
+                          value: preset.toLocaleString("en-US"),
+                        });
+
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDonationSats(preset)}
+                      className={[
+                        "rounded-full border px-3 py-1.5 text-sm font-semibold transition",
+                        isSelected
+                          ? "border-orange-300 bg-orange-50 text-orange-700"
+                          : "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300 hover:bg-stone-100",
+                      ].join(" ")}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 rounded-[1.25rem] bg-stone-50 p-4">
+                <p className="text-sm font-semibold text-stone-950">
+                  {donationSats > 0
+                    ? fillMessage(DASHBOARD_MESSAGES.donate.amountTemplate, {
+                        value: donationSats.toLocaleString("en-US"),
+                      })
+                    : DASHBOARD_MESSAGES.donate.amountAny}
+                </p>
+                <p className="mt-1 text-sm text-stone-600">
+                  {donationSats > 0 ? `${satsToBtc(donationSats)} BTC` : DONATION_ADDRESS}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.donate.addressLabel}
+              </p>
+              <div className="mt-3 rounded-[1.25rem] border border-stone-200 bg-stone-50 p-4">
+                <p className="break-all font-mono text-sm leading-7 text-stone-800">
+                  {DONATION_ADDRESS}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onCopyAddress}
+                className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+              >
+                {DASHBOARD_MESSAGES.donate.copyAddress}
+              </button>
+              <button
+                type="button"
+                onClick={onCopyLink}
+                className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+              >
+                {DASHBOARD_MESSAGES.donate.copyLink}
+              </button>
+              <a
+                href={donationUri}
+                className="rounded-full border border-orange-300 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                {DASHBOARD_MESSAGES.donate.openWallet}
+              </a>
+            </div>
+
+            <p className="mt-4 text-sm text-stone-500">{DASHBOARD_MESSAGES.donate.verifyNote}</p>
+            {donationNotice && (
+              <p className="mt-2 text-sm font-medium text-emerald-700">{donationNotice}</p>
+            )}
+          </section>
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white p-4">
+              <img
+                src={donationQrUrl}
+                alt={DASHBOARD_MESSAGES.donate.qrAlt}
+                className="mx-auto aspect-square w-full max-w-[320px] rounded-[1.25rem] bg-white object-contain"
+              />
+            </div>
+            <p className="mt-4 text-sm leading-7 text-stone-600">{DASHBOARD_MESSAGES.donate.qrNote}</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DebugPanel({
   metrics,
   generatedAt,
@@ -1722,12 +1906,17 @@ export function BtcDashboard() {
   const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
   const [showRedditSentimentModal, setShowRedditSentimentModal] = useState(false);
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [donationSats, setDonationSats] = useState<number>(10_000);
+  const [donationNotice, setDonationNotice] = useState<string | null>(null);
   const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
   const constructiveCloseRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogTriggerRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogCloseRef = useRef<HTMLButtonElement | null>(null);
   const redditSentimentTriggerRef = useRef<HTMLButtonElement | null>(null);
   const redditSentimentCloseRef = useRef<HTMLButtonElement | null>(null);
+  const donateTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const donateCloseRef = useRef<HTMLButtonElement | null>(null);
   const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
 
   const activePanel =
@@ -1778,6 +1967,8 @@ export function BtcDashboard() {
       })) ||
     null;
   const hasRedditSentimentDetails = Boolean(redditSentimentMetric && redditSentimentState?.details);
+  const donationUri = buildBitcoinDonationUri(DONATION_ADDRESS, donationSats);
+  const donationQrUrl = buildDonationQrUrl(donationUri);
 
   useEffect(() => {
     if (!cycleAnalog) {
@@ -1790,6 +1981,15 @@ export function BtcDashboard() {
       setShowRedditSentimentModal(false);
     }
   }, [hasRedditSentimentDetails]);
+
+  useEffect(() => {
+    if (!donationNotice || typeof window === "undefined") {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setDonationNotice(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [donationNotice]);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
@@ -1884,6 +2084,46 @@ export function BtcDashboard() {
     };
   }, [showRedditSentimentModal]);
 
+  useEffect(() => {
+    if (!showDonateModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => donateCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowDonateModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => donateTriggerRef.current?.focus());
+      }
+    };
+  }, [showDonateModal]);
+
+  async function copyDonationValue(value: string, notice: string) {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(value);
+    setDonationNotice(notice);
+  }
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -1909,6 +2149,23 @@ export function BtcDashboard() {
               <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
                 {DASHBOARD_MESSAGES.app.heroBody}
               </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  ref={donateTriggerRef}
+                  type="button"
+                  onClick={() => setShowDonateModal(true)}
+                  aria-haspopup="dialog"
+                  aria-expanded={showDonateModal}
+                  className="rounded-full border border-orange-300/40 bg-orange-500/15 px-4 py-2 text-sm font-semibold text-orange-100 transition hover:bg-orange-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                >
+                  {DASHBOARD_MESSAGES.donate.cta}
+                </button>
+                {donationNotice && (
+                  <div className="rounded-full border border-white/10 bg-black/10 px-4 py-2 text-sm text-stone-200">
+                    {donationNotice}
+                  </div>
+                )}
+              </div>
               <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -2194,6 +2451,20 @@ export function BtcDashboard() {
             metricState={redditSentimentState}
             closeButtonRef={redditSentimentCloseRef}
             onClose={() => setShowRedditSentimentModal(false)}
+          />
+        )}
+
+        {showDonateModal && (
+          <DonateModal
+            closeButtonRef={donateCloseRef}
+            onClose={() => setShowDonateModal(false)}
+            donationSats={donationSats}
+            setDonationSats={setDonationSats}
+            donationUri={donationUri}
+            donationQrUrl={donationQrUrl}
+            donationNotice={donationNotice}
+            onCopyAddress={() => copyDonationValue(DONATION_ADDRESS, DASHBOARD_MESSAGES.donate.copiedAddress)}
+            onCopyLink={() => copyDonationValue(donationUri, DASHBOARD_MESSAGES.donate.copiedLink)}
           />
         )}
       </div>
