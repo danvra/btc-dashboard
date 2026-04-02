@@ -6,6 +6,7 @@ import {
   type DashboardMetric,
   type DashboardPanelId,
 } from "../lib/dashboard-definitions";
+import { DASHBOARD_MESSAGES, fillMessage } from "../lib/dashboard-messages";
 import { getMetricSample } from "../lib/dashboard-samples";
 import { useDashboardData } from "../hooks/useDashboardData";
 import type {
@@ -31,8 +32,10 @@ const sentimentClasses = {
 
 const dataModeClasses = {
   live: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  scraped: "bg-sky-50 text-sky-700 ring-sky-200",
-  approx: "bg-amber-50 text-amber-800 ring-amber-200",
+  derived: "bg-sky-50 text-sky-700 ring-sky-200",
+  model: "bg-amber-50 text-amber-800 ring-amber-200",
+  approx: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200",
+  scraped: "bg-orange-50 text-orange-700 ring-orange-200",
   seeded: "bg-stone-100 text-stone-700 ring-stone-200",
 };
 
@@ -44,8 +47,8 @@ const freshnessClasses = {
 };
 
 const cycleSourceLabels = {
-  "rule-based": "Rule engine",
-  "llm-assisted": "LLM assisted",
+  "rule-based": DASHBOARD_MESSAGES.cycleEstimate.sourceRuleBased,
+  "llm-assisted": DASHBOARD_MESSAGES.cycleEstimate.sourceLlmAssisted,
 };
 
 const refreshNoticeClasses = {
@@ -54,21 +57,35 @@ const refreshNoticeClasses = {
   error: "border-rose-200 bg-rose-50 text-rose-800",
 };
 
+const COINGECKO_ATTRIBUTION_URL =
+  "https://www.coingecko.com/en/api?utm_source=btc-dashboard&utm_medium=referral";
+const DONATION_LABEL = "BTC Dashboard";
+const DONATION_PRESETS = [0, 10_000, 50_000, 100_000] as const;
+const DONATION_QR_IMAGE_URL = new URL("../btc-wallet.jpg", import.meta.url).href;
+
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
 }
 
-function proxyNote(metricState: DashboardMetricState) {
-  if (metricState.dataMode !== "approx") {
-    return null;
+function satsToBtc(sats: number) {
+  return (sats / 100_000_000).toFixed(8).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function buildBitcoinDonationUri(address: string, sats: number) {
+  const params = new URLSearchParams({
+    label: DONATION_LABEL,
+  });
+
+  if (sats > 0) {
+    params.set("amount", satsToBtc(sats));
   }
 
-  return `Proxy note: this card uses a best-effort approximation from ${metricState.sourceLabel}.`;
+  return `bitcoin:${address}?${params.toString()}`;
 }
 
 function formatRelativeTime(timestamp?: number) {
   if (!timestamp) {
-    return "No timestamp";
+    return DASHBOARD_MESSAGES.common.noTimestamp;
   }
 
   const diffMs = Date.now() - timestamp;
@@ -76,21 +93,30 @@ function formatRelativeTime(timestamp?: number) {
   const diffMinutes = Math.max(Math.round(Math.abs(diffMs) / 60000), 0);
 
   if (diffMinutes < 1) {
-    return isFuture ? "in under a minute" : "just now";
+    return isFuture ? DASHBOARD_MESSAGES.common.inUnderAMinute : DASHBOARD_MESSAGES.common.justNow;
   }
 
   if (diffMinutes < 60) {
-    return isFuture ? `in ${diffMinutes}m` : `${diffMinutes}m ago`;
+    return fillMessage(
+      isFuture ? DASHBOARD_MESSAGES.relativeTime.minutesFuture : DASHBOARD_MESSAGES.relativeTime.minutesPast,
+      { value: diffMinutes },
+    );
   }
 
   const diffHours = Math.round(diffMinutes / 60);
 
   if (diffHours < 48) {
-    return isFuture ? `in ${diffHours}h` : `${diffHours}h ago`;
+    return fillMessage(
+      isFuture ? DASHBOARD_MESSAGES.relativeTime.hoursFuture : DASHBOARD_MESSAGES.relativeTime.hoursPast,
+      { value: diffHours },
+    );
   }
 
   const diffDays = Math.round(diffHours / 24);
-  return isFuture ? `in ${diffDays}d` : `${diffDays}d ago`;
+  return fillMessage(
+    isFuture ? DASHBOARD_MESSAGES.relativeTime.daysFuture : DASHBOARD_MESSAGES.relativeTime.daysPast,
+    { value: diffDays },
+  );
 }
 
 function freshnessTone(timestamp?: number) {
@@ -113,14 +139,26 @@ function freshnessTone(timestamp?: number) {
 
 function cycleChangeLabel(change?: DashboardCycleEstimate["change"]) {
   if (change === "later") {
-    return "Shifted later";
+    return DASHBOARD_MESSAGES.cycleEstimate.changeLater;
   }
 
   if (change === "earlier") {
-    return "Shifted earlier";
+    return DASHBOARD_MESSAGES.cycleEstimate.changeEarlier;
   }
 
-  return "Unchanged";
+  return DASHBOARD_MESSAGES.cycleEstimate.changeUnchanged;
+}
+
+function groupStatusLabel(status?: DashboardCacheGroupMeta["status"]) {
+  if (status === "fresh") {
+    return DASHBOARD_MESSAGES.status.fresh;
+  }
+
+  if (status === "stale" || status === "expired") {
+    return DASHBOARD_MESSAGES.status.stale;
+  }
+
+  return DASHBOARD_MESSAGES.status.unknown;
 }
 
 function formatMonthYear(dateKey?: string) {
@@ -141,7 +179,7 @@ function formatMonthYear(dateKey?: string) {
   }).format(date);
 }
 
-function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog | null) {
   if (cycleAnalog?.perCycleMatches?.length && cycleAnalog.topMatchDates?.length) {
     return cycleAnalog.topMatchDates
       .slice(0, 2)
@@ -152,31 +190,35 @@ function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog) {
   return [];
 }
 
-function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
-    return "Historical phase-window analog appears after the next synthetic refresh";
+    return DASHBOARD_MESSAGES.cycleAnalog.datesPending;
   }
 
   const dateLabels = cycleAnalogTopDateLabels(cycleAnalog);
 
   if (dateLabels.length === 0) {
-    return "Historical comparison appears once enough analog data is available";
+    return DASHBOARD_MESSAGES.cycleAnalog.datesWaiting;
   }
 
-  return `Analogous to prior-cycle ${dateLabels.join(", ")}`;
+  return fillMessage(DASHBOARD_MESSAGES.cycleAnalog.datesTemplate, {
+    value: dateLabels.join(", "),
+  });
 }
 
-function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog) {
+function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
-    return "Phase-window analog pending refresh";
+    return DASHBOARD_MESSAGES.cycleAnalog.agreementPending;
   }
 
-  return `${cycleAnalog.agreement}% of prior cycles match this phase`;
+  return fillMessage(DASHBOARD_MESSAGES.cycleAnalog.agreementTemplate, {
+    value: cycleAnalog.agreement,
+  });
 }
 
 function formatDistance(value?: number) {
   if (!Number.isFinite(value)) {
-    return "n/a";
+    return DASHBOARD_MESSAGES.common.notAvailable;
   }
 
   return value!.toFixed(3);
@@ -184,7 +226,7 @@ function formatDistance(value?: number) {
 
 function formatCoverage(value?: number) {
   if (!Number.isFinite(value)) {
-    return "n/a";
+    return DASHBOARD_MESSAGES.common.notAvailable;
   }
 
   return `${Math.round(value! * 100)}%`;
@@ -195,38 +237,41 @@ function formatWindowLabel(startDate?: string, endDate?: string) {
   const end = formatMonthYear(endDate);
 
   if (!start && !end) {
-    return "Window unavailable";
+    return DASHBOARD_MESSAGES.common.windowUnavailable;
   }
 
   if (start === end) {
-    return start ?? "Window unavailable";
+    return start ?? DASHBOARD_MESSAGES.common.windowUnavailable;
   }
 
-  return `${start ?? "Unknown"} to ${end ?? "Unknown"}`;
+  return `${start ?? DASHBOARD_MESSAGES.common.unknown} to ${end ?? DASHBOARD_MESSAGES.common.unknown}`;
 }
 
 function constructiveSummaryLabel(bullishCount: number, totalCount: number) {
   if (totalCount <= 0) {
-    return "Signal summary appears once metric coverage is available";
+    return DASHBOARD_MESSAGES.constructive.summaryPending;
   }
 
-  return `${bullishCount} of ${totalCount} signals currently lean bullish`;
+  return fillMessage(DASHBOARD_MESSAGES.constructive.summaryLabel, {
+    bullish: bullishCount,
+    total: totalCount,
+  });
 }
 
 function constructiveToneLabel(bullishShare: number) {
   if (bullishShare >= 0.6) {
-    return "Broadly constructive";
+    return DASHBOARD_MESSAGES.constructive.toneBroadlyConstructive;
   }
 
   if (bullishShare >= 0.4) {
-    return "Mixed but constructive";
+    return DASHBOARD_MESSAGES.constructive.toneMixedButConstructive;
   }
 
   if (bullishShare >= 0.25) {
-    return "Selective strength";
+    return DASHBOARD_MESSAGES.constructive.toneSelectiveStrength;
   }
 
-  return "Limited constructive breadth";
+  return DASHBOARD_MESSAGES.constructive.toneLimitedBreadth;
 }
 
 function constructiveSummaryText({
@@ -241,17 +286,24 @@ function constructiveSummaryText({
   totalCount: number;
 }) {
   if (totalCount <= 0) {
-    return "Constructive breadth appears once the dashboard has live or fallback metric states.";
+    return DASHBOARD_MESSAGES.constructive.summaryNoMetrics;
   }
 
   const bullishShare = bullishCount / totalCount;
   const tone = constructiveToneLabel(bullishShare);
 
   if (bullishCount === 0) {
-    return `${tone}. None of the tracked dashboard signals currently lean bullish.`;
+    return fillMessage(DASHBOARD_MESSAGES.constructive.summaryNoneBullish, {
+      tone,
+    });
   }
 
-  return `${tone}. ${bullishCount} signals lean bullish, ${neutralCount} sit in a neutral range, and ${bearishCount} still lean bearish.`;
+  return fillMessage(DASHBOARD_MESSAGES.constructive.summaryWithCounts, {
+    tone,
+    bullish: bullishCount,
+    neutral: neutralCount,
+    bearish: bearishCount,
+  });
 }
 
 function Sparkline({
@@ -326,7 +378,8 @@ function MetricCard({
   selected: boolean;
   onSelect: (metric: DashboardMetric) => void;
 }) {
-  const note = proxyNote(metricState);
+  const dataModeLabel = DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"];
+  const sentimentLabel = DASHBOARD_MESSAGES.status[metricState.status];
 
   return (
     <button
@@ -352,7 +405,7 @@ function MetricCard({
             sentimentClasses[metricState.status]
           }`}
         >
-          {metricState.status}
+          {sentimentLabel}
         </span>
       </div>
 
@@ -363,12 +416,16 @@ function MetricCard({
               dataModeClasses[metricState.dataMode ?? "seeded"]
             }`}
           >
-            {metricState.dataMode ?? "seeded"}
+            {dataModeLabel}
           </span>
           <span
             className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}
           >
-            {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+            {metricState.asOf
+              ? fillMessage(DASHBOARD_MESSAGES.card.updatedPrefix, {
+                  value: formatRelativeTime(metricState.asOf),
+                })
+              : DASHBOARD_MESSAGES.common.noLiveTimestamp}
           </span>
         </div>
       </div>
@@ -388,16 +445,11 @@ function MetricCard({
 
       <div className="mt-4 grid gap-2 text-sm text-stone-600">
         <p>
-          <span className="font-medium text-stone-900">Measures:</span> {metric.tooltip.what}
+          <span className="font-medium text-stone-900">{DASHBOARD_MESSAGES.card.measuresLabel}</span> {metric.tooltip.what}
         </p>
         <p>
-          <span className="font-medium text-stone-900">Matters because:</span> {metric.tooltip.why}
+          <span className="font-medium text-stone-900">{DASHBOARD_MESSAGES.card.mattersLabel}</span> {metric.tooltip.why}
         </p>
-        {note && (
-          <p className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-amber-800">
-            {note}
-          </p>
-        )}
       </div>
     </button>
   );
@@ -410,13 +462,12 @@ function LearnPanel({
   metric: DashboardMetric;
   metricState: DashboardMetricState;
 }) {
-  const note = proxyNote(metricState);
-  const details = metricState.details;
+  const dataModeLabel = DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"];
 
   return (
     <aside className="rounded-[1.75rem] border border-stone-200 bg-white/95 p-6 shadow-panel lg:sticky lg:top-6">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-        Selected metric
+        {DASHBOARD_MESSAGES.learnPanel.selectedMetricLabel}
       </p>
       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">
         {metric.name}
@@ -426,7 +477,7 @@ function LearnPanel({
       <dl className="mt-6 grid gap-4">
         <div className="rounded-2xl bg-stone-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-            Current snapshot
+            {DASHBOARD_MESSAGES.learnPanel.currentSnapshotLabel}
           </dt>
           <dd className="mt-2 text-2xl font-semibold text-stone-950">
             {metricState.currentValue}
@@ -434,187 +485,26 @@ function LearnPanel({
           <p className="mt-1 text-sm text-stone-600">{metricState.deltaLabel}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
-              {metricState.dataMode ?? "seeded"}
+              {dataModeLabel}
             </div>
             <div className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}>
-              {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+              {metricState.asOf
+                ? fillMessage(DASHBOARD_MESSAGES.card.updatedPrefix, {
+                    value: formatRelativeTime(metricState.asOf),
+                  })
+                : DASHBOARD_MESSAGES.common.noLiveTimestamp}
             </div>
           </div>
         </div>
         <div className="rounded-2xl bg-stone-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-            Source
+            {DASHBOARD_MESSAGES.learnPanel.sourceLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-stone-700">{metricState.sourceLabel}</dd>
         </div>
-        {details?.summary && (
-          <div className="rounded-2xl bg-stone-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Saved summary
-            </dt>
-            <dd className="mt-2 text-sm leading-6 text-stone-700">{details.summary}</dd>
-            {details.methodology && (
-              <p className="mt-3 text-xs leading-5 text-stone-500">{details.methodology}</p>
-            )}
-          </div>
-        )}
-        {details?.stats && details.stats.length > 0 && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            {details.stats.map((stat) => (
-              <div
-                key={`${stat.label}-${stat.value}`}
-                className="rounded-2xl bg-stone-50 p-4"
-              >
-                <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  {stat.label}
-                </dt>
-                <dd className="mt-2 text-sm font-semibold text-stone-950">{stat.value}</dd>
-              </div>
-            ))}
-          </div>
-        )}
-        {details?.subreddits && details.subreddits.length > 0 && (
-          <div className="rounded-2xl bg-stone-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Sampled communities
-            </dt>
-            <dd className="mt-3 flex flex-wrap gap-2">
-              {details.subreddits.map((subreddit) => (
-                <span
-                  key={subreddit}
-                  className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-700"
-                >
-                  {subreddit}
-                </span>
-              ))}
-            </dd>
-          </div>
-        )}
-        {details?.drivers && details.drivers.length > 0 && (
-          <div className="rounded-2xl bg-emerald-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-              What is driving the mood
-            </dt>
-            <dd className="mt-2 grid gap-2 text-sm leading-6 text-emerald-950">
-              {details.drivers.map((driver) => (
-                <p key={driver}>{driver}</p>
-              ))}
-            </dd>
-          </div>
-        )}
-        {details?.risks && details.risks.length > 0 && (
-          <div className="rounded-2xl bg-amber-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
-              Watchouts
-            </dt>
-            <dd className="mt-2 grid gap-2 text-sm leading-6 text-amber-950">
-              {details.risks.map((risk) => (
-                <p key={risk}>{risk}</p>
-              ))}
-            </dd>
-          </div>
-        )}
-        {details?.opportunities && details.opportunities.length > 0 && (
-          <div className="rounded-2xl bg-sky-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
-              Constructive read
-            </dt>
-            <dd className="mt-2 grid gap-2 text-sm leading-6 text-sky-950">
-              {details.opportunities.map((opportunity) => (
-                <p key={opportunity}>{opportunity}</p>
-              ))}
-            </dd>
-          </div>
-        )}
-        {details?.samplePosts && details.samplePosts.length > 0 && (
-          <div className="rounded-2xl bg-stone-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Recent posts behind the read
-            </dt>
-            <dd className="mt-3 grid gap-3">
-              {details.samplePosts.map((post) => {
-                const content = (
-                  <>
-                    <p className="text-sm font-medium leading-6 text-stone-900">{post.title}</p>
-                    <p className="mt-1 text-xs text-stone-500">
-                      {post.subreddit}
-                      {typeof post.score === "number" ? ` • score ${post.score}` : ""}
-                    </p>
-                  </>
-                );
-
-                return post.url ? (
-                  <a
-                    key={`${post.subreddit}-${post.title}`}
-                    href={post.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3 transition hover:border-stone-300 hover:bg-stone-100"
-                  >
-                    {content}
-                  </a>
-                ) : (
-                  <div
-                    key={`${post.subreddit}-${post.title}`}
-                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3"
-                  >
-                    {content}
-                  </div>
-                );
-              })}
-            </dd>
-          </div>
-        )}
-        {details?.sampleComments && details.sampleComments.length > 0 && (
-          <div className="rounded-2xl bg-stone-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Representative comments
-            </dt>
-            <dd className="mt-3 grid gap-3">
-              {details.sampleComments.map((comment) => {
-                const content = (
-                  <>
-                    <p className="text-sm leading-6 text-stone-700">{comment.body}</p>
-                    <p className="mt-1 text-xs text-stone-500">
-                      {comment.subreddit}
-                      {typeof comment.score === "number" ? ` • score ${comment.score}` : ""}
-                    </p>
-                  </>
-                );
-
-                return comment.url ? (
-                  <a
-                    key={`${comment.subreddit}-${comment.body}`}
-                    href={comment.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3 transition hover:border-stone-300 hover:bg-stone-100"
-                  >
-                    {content}
-                  </a>
-                ) : (
-                  <div
-                    key={`${comment.subreddit}-${comment.body}`}
-                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3"
-                  >
-                    {content}
-                  </div>
-                );
-              })}
-            </dd>
-          </div>
-        )}
-        {note && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
-              Proxy note
-            </dt>
-            <dd className="mt-2 text-sm leading-6 text-amber-900">{note}</dd>
-          </div>
-        )}
         <div className="rounded-2xl bg-emerald-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-            Bullish read
+            {DASHBOARD_MESSAGES.learnPanel.bullishReadLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-emerald-950">
             {metric.bullishInterpretation}
@@ -622,7 +512,7 @@ function LearnPanel({
         </div>
         <div className="rounded-2xl bg-rose-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">
-            Bearish read
+            {DASHBOARD_MESSAGES.learnPanel.bearishReadLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-rose-950">
             {metric.bearishInterpretation}
@@ -637,14 +527,14 @@ const phaseTimelineOrder: Array<{
   id: DashboardCycleAnalogWindow["phaseId"];
   label: string;
 }> = [
-  { id: "deep-capitulation", label: "Capitulation" },
-  { id: "bottoming-and-reaccumulation", label: "Reaccumulation" },
-  { id: "early-recovery-under-disbelief", label: "Early Bull" },
-  { id: "healthy-bull-expansion", label: "Bull Expansion" },
-  { id: "late-cycle-acceleration", label: "Late Bull" },
-  { id: "euphoric-overheating", label: "Overheating" },
-  { id: "distribution-and-top-formation", label: "Distribution" },
-  { id: "post-top-unwind", label: "Unwind" },
+  { id: "deep-capitulation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseCapitulation },
+  { id: "bottoming-and-reaccumulation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseReaccumulation },
+  { id: "early-recovery-under-disbelief", label: DASHBOARD_MESSAGES.cycleAnalog.phaseEarlyBull },
+  { id: "healthy-bull-expansion", label: DASHBOARD_MESSAGES.cycleAnalog.phaseBullExpansion },
+  { id: "late-cycle-acceleration", label: DASHBOARD_MESSAGES.cycleAnalog.phaseLateBull },
+  { id: "euphoric-overheating", label: DASHBOARD_MESSAGES.cycleAnalog.phaseOverheating },
+  { id: "distribution-and-top-formation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseDistribution },
+  { id: "post-top-unwind", label: DASHBOARD_MESSAGES.cycleAnalog.phaseUnwind },
 ];
 
 function CycleAnalogPhaseTimeline({
@@ -665,7 +555,7 @@ function CycleAnalogPhaseTimeline({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="h-auto w-full"
-      aria-label="Prior-cycle analog phases"
+      aria-label={DASHBOARD_MESSAGES.cycleAnalog.timelineAria}
       role="img"
     >
       <line
@@ -764,7 +654,7 @@ function CycleAnalogDistanceChart({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="h-auto w-full"
-      aria-label="Analog distance comparison by prior cycle"
+      aria-label={DASHBOARD_MESSAGES.cycleAnalog.distanceChartAria}
       role="img"
     >
       {matches.map((match, index) => {
@@ -843,7 +733,7 @@ function CycleAnalogModal({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
-              Cycle Analog
+              {DASHBOARD_MESSAGES.cycleAnalog.eyebrow}
             </p>
             <h2
               id="cycle-analog-title"
@@ -858,7 +748,7 @@ function CycleAnalogModal({
             onClick={onClose}
             className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
           >
-            Close
+            {DASHBOARD_MESSAGES.common.close}
           </button>
         </div>
 
@@ -870,10 +760,14 @@ function CycleAnalogModal({
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-700">
-                  {cycleAnalog.agreement}% agreement
+                  {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.agreementBadge, {
+                    value: cycleAnalog.agreement,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
-                  {cycleAnalog.confidence}% confidence
+                  {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.confidenceBadge, {
+                    value: cycleAnalog.confidence,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
                   {cycleAnalog.methodology}
@@ -888,7 +782,7 @@ function CycleAnalogModal({
                     key={phase.phaseId}
                     className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600"
                   >
-                    {phase.label}: {phase.cyclesMatched} cycles
+                    {phase.label}: {phase.cyclesMatched} {DASHBOARD_MESSAGES.app.coverageSuffix}
                   </span>
                 ))}
               </div>
@@ -906,20 +800,30 @@ function CycleAnalogModal({
                     {match.cycleLabel}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold text-stone-950">{match.phaseLabel}</h3>
-                  <p className="mt-1 text-sm text-stone-600">Best match {match.bestMatchDateLabel}</p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.bestMatchPrefix, {
+                      value: match.bestMatchDateLabel,
+                    })}
+                  </p>
                   <div className="mt-4 grid gap-3 text-sm text-stone-600">
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Phase window</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.phaseWindowLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">
                         {formatWindowLabel(match.windowStartDate, match.windowEndDate)}
                       </p>
                     </div>
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Distance</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.distanceLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">{formatDistance(match.distance)}</p>
                     </div>
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Coverage</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.coverageLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">{formatCoverage(match.coverage)}</p>
                     </div>
                   </div>
@@ -928,7 +832,7 @@ function CycleAnalogModal({
             </section>
           ) : (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
-              Detailed prior-cycle matches will appear after the next synthetic refresh computes the new phase-window analog payload.
+              {DASHBOARD_MESSAGES.cycleAnalog.noMatches}
             </section>
           )}
 
@@ -936,7 +840,7 @@ function CycleAnalogModal({
             <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Phase Ladder
+                  {DASHBOARD_MESSAGES.cycleAnalog.phaseLadderLabel}
                 </p>
                 <div className="mt-4">
                   <CycleAnalogPhaseTimeline
@@ -948,7 +852,7 @@ function CycleAnalogModal({
 
               <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Distance By Cycle
+                  {DASHBOARD_MESSAGES.cycleAnalog.distanceByCycleLabel}
                 </p>
                 <div className="mt-4">
                   <CycleAnalogDistanceChart matches={matches} />
@@ -959,7 +863,7 @@ function CycleAnalogModal({
 
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Indicator Support
+              {DASHBOARD_MESSAGES.cycleAnalog.indicatorSupportLabel}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {cycleAnalog.indicatorIds.map((indicatorId) => (
@@ -1055,7 +959,7 @@ function ConstructiveSignalsModal({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
-              Constructive Signals
+              {DASHBOARD_MESSAGES.constructive.eyebrow}
             </p>
             <h2
               id="constructive-signals-title"
@@ -1070,7 +974,7 @@ function ConstructiveSignalsModal({
             onClick={onClose}
             className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
           >
-            Close
+            {DASHBOARD_MESSAGES.common.close}
           </button>
         </div>
 
@@ -1089,13 +993,19 @@ function ConstructiveSignalsModal({
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                  {bullishMetrics.length} bullish
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.bullishBadge, {
+                    value: bullishMetrics.length,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
-                  {neutralCount} neutral
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.neutralBadge, {
+                    value: neutralCount,
+                  })}
                 </span>
                 <span className="rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700">
-                  {bearishCount} bearish
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.bearishBadge, {
+                    value: bearishCount,
+                  })}
                 </span>
               </div>
             </div>
@@ -1104,7 +1014,7 @@ function ConstructiveSignalsModal({
           {topBullishMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Leading constructive reads
+                {DASHBOARD_MESSAGES.constructive.leadingConstructiveReads}
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {topBullishMetrics.map(({ metric, state }) => (
@@ -1133,7 +1043,7 @@ function ConstructiveSignalsModal({
           {topBearishMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Main bearish pressure
+                {DASHBOARD_MESSAGES.constructive.mainBearishPressure}
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {topBearishMetrics.map(({ metric, state }) => (
@@ -1183,12 +1093,12 @@ function ConstructiveSignalsModal({
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                              Bullish
+                              {DASHBOARD_MESSAGES.status.bullish}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
                             >
-                              {state.dataMode ?? "seeded"}
+                              {DASHBOARD_MESSAGES.status[state.dataMode ?? "seeded"]}
                             </span>
                           </div>
                         </div>
@@ -1196,7 +1106,10 @@ function ConstructiveSignalsModal({
                           {metric.bullishInterpretation}
                         </p>
                         <p className="mt-2 text-xs text-stone-500">
-                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                          {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                            source: state.sourceLabel,
+                            relative: formatRelativeTime(state.asOf),
+                          })}
                         </p>
                       </div>
                     ))}
@@ -1206,7 +1119,7 @@ function ConstructiveSignalsModal({
             </section>
           ) : (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
-              No tracked signals currently lean bullish.
+              {DASHBOARD_MESSAGES.constructive.noBullishSignals}
             </section>
           )}
 
@@ -1218,7 +1131,9 @@ function ConstructiveSignalsModal({
                   className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                    {panel.title} bearish signals
+                    {fillMessage(DASHBOARD_MESSAGES.constructive.panelBearishSuffix, {
+                      value: panel.title,
+                    })}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-stone-600">{panel.description}</p>
                   <div className="mt-4 grid gap-3">
@@ -1234,12 +1149,12 @@ function ConstructiveSignalsModal({
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                              Bearish
+                              {DASHBOARD_MESSAGES.status.bearish}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
                             >
-                              {state.dataMode ?? "seeded"}
+                              {DASHBOARD_MESSAGES.status[state.dataMode ?? "seeded"]}
                             </span>
                           </div>
                         </div>
@@ -1247,7 +1162,10 @@ function ConstructiveSignalsModal({
                           {metric.bearishInterpretation}
                         </p>
                         <p className="mt-2 text-xs text-stone-500">
-                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                          {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                            source: state.sourceLabel,
+                            relative: formatRelativeTime(state.asOf),
+                          })}
                         </p>
                       </div>
                     ))}
@@ -1260,7 +1178,7 @@ function ConstructiveSignalsModal({
           {groupedNeutralMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Neutral / watchlist signals
+                {DASHBOARD_MESSAGES.constructive.neutralWatchlist}
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {groupedNeutralMetrics.flatMap(({ panel, metrics }) =>
@@ -1276,7 +1194,7 @@ function ConstructiveSignalsModal({
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
-                            Neutral
+                            {DASHBOARD_MESSAGES.status.neutral}
                           </span>
                           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 ring-1 ring-stone-200">
                             {panel.title}
@@ -1284,7 +1202,10 @@ function ConstructiveSignalsModal({
                         </div>
                       </div>
                       <p className="mt-2 text-xs text-stone-500">
-                        Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                        {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                          source: state.sourceLabel,
+                          relative: formatRelativeTime(state.asOf),
+                        })}
                       </p>
                     </div>
                   )),
@@ -1295,18 +1216,485 @@ function ConstructiveSignalsModal({
 
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Signal support by data mode
+              {DASHBOARD_MESSAGES.constructive.signalSupportByDataMode}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(["live", "scraped", "approx", "seeded"] as const).map((dataMode) => (
+              {(["live", "derived", "model", "approx", "scraped", "seeded"] as const).map((dataMode) => (
                 <span
                   key={dataMode}
                   className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[dataMode]}`}
                 >
-                  {dataMode}: {dataModeCounts[dataMode] ?? 0}
+                  {DASHBOARD_MESSAGES.status[dataMode]}: {dataModeCounts[dataMode] ?? 0}
                 </span>
               ))}
             </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function RedditSentimentModal({
+  metric,
+  metricState,
+  closeButtonRef,
+  onClose,
+}: {
+  metric: DashboardMetric;
+  metricState: DashboardMetricState;
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}) {
+  const details = metricState.details;
+  const stats = details?.stats ?? [];
+  const drivers = details?.drivers ?? [];
+  const risks = details?.risks ?? [];
+  const opportunities = details?.opportunities ?? [];
+  const subreddits = details?.subreddits ?? [];
+  const samplePosts = details?.samplePosts ?? [];
+  const sampleComments = details?.sampleComments ?? [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reddit-sentiment-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">
+              {DASHBOARD_MESSAGES.redditSentiment.eyebrow}
+            </p>
+            <h2
+              id="reddit-sentiment-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {metricState.currentValue}
+            </h2>
+            <p className="mt-2 text-sm text-stone-600">{metricState.deltaLabel}</p>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            {DASHBOARD_MESSAGES.common.close}
+          </button>
+        </div>
+
+        <div className="space-y-8 px-6 py-6 lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl">
+                <p className="text-sm leading-7 text-stone-600">
+                  {details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${sentimentClasses[metricState.status]}`}
+                >
+                  {DASHBOARD_MESSAGES.status[metricState.status]}
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[metricState.dataMode ?? "seeded"]}`}
+                >
+                  {DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"]}
+                </span>
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                  {fillMessage(DASHBOARD_MESSAGES.redditSentiment.sourceUpdated, {
+                    source: metricState.sourceLabel,
+                    relative: formatRelativeTime(metricState.asOf),
+                  })}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {stats.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.statsLabel}
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {stats.map((stat) => (
+                  <div
+                    key={`${stat.label}-${stat.value}`}
+                    className="rounded-[1.25rem] bg-stone-50 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{stat.label}</p>
+                    <p className="mt-2 text-lg font-semibold text-stone-950">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {details?.methodology && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.methodologyLabel}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-stone-600">{details.methodology}</p>
+            </section>
+          )}
+
+          <section className="grid gap-4 lg:grid-cols-3">
+            <article className="rounded-[1.5rem] border border-emerald-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                {DASHBOARD_MESSAGES.redditSentiment.driversLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {drivers.length > 0 ? (
+                  drivers.map((driver) => (
+                    <p key={driver} className="rounded-[1.25rem] bg-emerald-50/70 p-4 text-sm leading-6 text-stone-700">
+                      {driver}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-rose-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">
+                {DASHBOARD_MESSAGES.redditSentiment.risksLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {risks.length > 0 ? (
+                  risks.map((risk) => (
+                    <p key={risk} className="rounded-[1.25rem] bg-rose-50/70 p-4 text-sm leading-6 text-stone-700">
+                      {risk}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-sky-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+                {DASHBOARD_MESSAGES.redditSentiment.opportunitiesLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {opportunities.length > 0 ? (
+                  opportunities.map((opportunity) => (
+                    <p
+                      key={opportunity}
+                      className="rounded-[1.25rem] bg-sky-50/70 p-4 text-sm leading-6 text-stone-700"
+                    >
+                      {opportunity}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+          </section>
+
+          {subreddits.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.communitiesLabel}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {subreddits.map((subreddit) => (
+                  <span
+                    key={subreddit}
+                    className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm text-stone-700"
+                  >
+                    {subreddit}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="grid gap-4 xl:grid-cols-2">
+            <article className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.postsLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {samplePosts.length > 0 ? (
+                  samplePosts.map((post) => {
+                    const content = (
+                      <>
+                        <p className="text-sm font-medium leading-6 text-stone-900">{post.title}</p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {post.subreddit}
+                          {typeof post.score === "number" ? ` • score ${post.score}` : ""}
+                        </p>
+                      </>
+                    );
+
+                    return post.url ? (
+                      <a
+                        key={`${post.subreddit}-${post.title}`}
+                        href={post.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        key={`${post.subreddit}-${post.title}`}
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3"
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.commentsLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {sampleComments.length > 0 ? (
+                  sampleComments.map((comment) => {
+                    const content = (
+                      <>
+                        <p className="text-sm leading-6 text-stone-700">{comment.body}</p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {comment.subreddit}
+                          {typeof comment.score === "number" ? ` • score ${comment.score}` : ""}
+                        </p>
+                      </>
+                    );
+
+                    return comment.url ? (
+                      <a
+                        key={`${comment.subreddit}-${comment.body}`}
+                        href={comment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        key={`${comment.subreddit}-${comment.body}`}
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3"
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              {metric.name}
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[1.25rem] bg-emerald-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                  {DASHBOARD_MESSAGES.learnPanel.bullishReadLabel}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bullishInterpretation}</p>
+              </div>
+              <div className="rounded-[1.25rem] bg-rose-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
+                  {DASHBOARD_MESSAGES.learnPanel.bearishReadLabel}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bearishInterpretation}</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DonateModal({
+  closeButtonRef,
+  onClose,
+  donationSats,
+  setDonationSats,
+  donationUri,
+  donationNotice,
+  onCopyAddress,
+  onCopyLink,
+}: {
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+  donationSats: number;
+  setDonationSats: (value: number) => void;
+  donationUri: string;
+  donationNotice: string | null;
+  onCopyAddress: () => void;
+  onCopyLink: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="donate-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-500">
+              {DASHBOARD_MESSAGES.donate.eyebrow}
+            </p>
+            <h2
+              id="donate-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {DASHBOARD_MESSAGES.donate.title}
+            </h2>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            {DASHBOARD_MESSAGES.common.close}
+          </button>
+        </div>
+
+        <div className="grid gap-6 px-6 py-6 lg:grid-cols-[1.1fr_0.9fr] lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-sm leading-7 text-stone-600">{DASHBOARD_MESSAGES.donate.body}</p>
+
+            <div className="mt-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.donate.amountLabel}
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {DONATION_PRESETS.map((preset) => {
+                  const isSelected = preset === donationSats;
+                  const label =
+                    preset === 0
+                      ? DASHBOARD_MESSAGES.donate.amountAny
+                      : fillMessage(DASHBOARD_MESSAGES.donate.amountTemplate, {
+                          value: preset.toLocaleString("en-US"),
+                        });
+
+                  return (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setDonationSats(preset)}
+                      className={[
+                        "rounded-full border px-3 py-1.5 text-sm font-semibold transition",
+                        isSelected
+                          ? "border-orange-300 bg-orange-50 text-orange-700"
+                          : "border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300 hover:bg-stone-100",
+                      ].join(" ")}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-4 rounded-[1.25rem] bg-stone-50 p-4">
+                <p className="text-sm font-semibold text-stone-950">
+                  {donationSats > 0
+                    ? fillMessage(DASHBOARD_MESSAGES.donate.amountTemplate, {
+                        value: donationSats.toLocaleString("en-US"),
+                      })
+                    : DASHBOARD_MESSAGES.donate.amountAny}
+                </p>
+                <p className="mt-1 text-sm text-stone-600">
+                  {donationSats > 0 ? `${satsToBtc(donationSats)} BTC` : DASHBOARD_MESSAGES.donate.address}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.donate.addressLabel}
+              </p>
+              <div className="mt-3 rounded-[1.25rem] border border-stone-200 bg-stone-50 p-4">
+                <p className="break-all font-mono text-sm leading-7 text-stone-800">
+                  {DASHBOARD_MESSAGES.donate.address}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={onCopyAddress}
+                className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+              >
+                {DASHBOARD_MESSAGES.donate.copyAddress}
+              </button>
+              <button
+                type="button"
+                onClick={onCopyLink}
+                className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+              >
+                {DASHBOARD_MESSAGES.donate.copyLink}
+              </button>
+              <a
+                href={donationUri}
+                className="rounded-full border border-orange-300 bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-600"
+              >
+                {DASHBOARD_MESSAGES.donate.openWallet}
+              </a>
+            </div>
+
+            <p className="mt-4 text-sm text-stone-500">{DASHBOARD_MESSAGES.donate.verifyNote}</p>
+            {donationNotice && (
+              <p className="mt-2 text-sm font-medium text-emerald-700">{donationNotice}</p>
+            )}
+          </section>
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white p-4">
+              <img
+                src={DONATION_QR_IMAGE_URL}
+                alt={DASHBOARD_MESSAGES.donate.qrAlt}
+                className="mx-auto aspect-square w-full max-w-[320px] rounded-[1.25rem] bg-white object-contain"
+              />
+            </div>
+            <p className="mt-4 text-sm leading-7 text-stone-600">{DASHBOARD_MESSAGES.donate.qrNote}</p>
           </section>
         </div>
       </div>
@@ -1350,12 +1738,16 @@ function DebugPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-            Debug / Cache
+            {DASHBOARD_MESSAGES.debug.sectionTitle}
           </p>
-          <h3 className="mt-1 text-xl font-semibold text-stone-950">Prototype source health</h3>
+          <h3 className="mt-1 text-xl font-semibold text-stone-950">{DASHBOARD_MESSAGES.debug.cacheHealthTitle}</h3>
         </div>
         <div className="text-sm text-stone-500">
-          {generatedAt ? `Cache updated ${formatRelativeTime(generatedAt)}` : "Cache timestamp unavailable"}
+          {generatedAt
+            ? fillMessage(DASHBOARD_MESSAGES.debug.cacheUpdated, {
+                value: formatRelativeTime(generatedAt),
+              })
+            : DASHBOARD_MESSAGES.debug.cacheUnavailable}
         </div>
       </div>
 
@@ -1365,13 +1757,15 @@ function DebugPanel({
           onClick={onRefresh}
           className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
         >
-          {isRefreshing ? "Refreshing..." : "Refresh data"}
+          {isRefreshing ? DASHBOARD_MESSAGES.debug.refreshing : DASHBOARD_MESSAGES.debug.refresh}
         </button>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-          Mode: <span className="font-semibold capitalize text-stone-950">{dataMode}</span>
+          {DASHBOARD_MESSAGES.debug.modeLabel}{" "}
+          <span className="font-semibold text-stone-950">{dataMode}</span>
         </div>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-          Live metrics: <span className="font-semibold text-stone-950">{liveMetricCount}</span>
+          {DASHBOARD_MESSAGES.debug.liveMetricsLabel}{" "}
+          <span className="font-semibold text-stone-950">{liveMetricCount}</span>
         </div>
         {refreshNotice && !isRefreshing && (
           <div
@@ -1382,34 +1776,42 @@ function DebugPanel({
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div className="rounded-2xl bg-stone-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Seeded</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.seededLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-stone-950">{counts.seeded ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-sky-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">Scraped</p>
-          <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.scraped ?? 0}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">{DASHBOARD_MESSAGES.debug.derivedLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.derived ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-amber-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">Approx</p>
-          <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.approx ?? 0}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">{DASHBOARD_MESSAGES.debug.modelLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.model ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Live</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{DASHBOARD_MESSAGES.debug.liveLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-emerald-950">{counts.live ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-fuchsia-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-fuchsia-700">{DASHBOARD_MESSAGES.debug.approxLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-fuchsia-950">{counts.approx ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-orange-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-orange-700">{DASHBOARD_MESSAGES.debug.scrapedLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-orange-950">{counts.scraped ?? 0}</p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-stone-200 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Scheduler</p>
-          <p className="mt-2 text-sm text-stone-700">{scheduler ?? "Unknown"}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.schedulerLabel}</p>
+          <p className="mt-2 text-sm text-stone-700">{scheduler ?? DASHBOARD_MESSAGES.common.unknown}</p>
         </div>
         <div className="rounded-2xl border border-stone-200 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Next suggested run</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.nextRunLabel}</p>
           <p className="mt-2 text-sm text-stone-700">
-            {nextSuggestedRunAt ? formatRelativeTime(nextSuggestedRunAt) : "Not scheduled"}
+            {nextSuggestedRunAt ? formatRelativeTime(nextSuggestedRunAt) : DASHBOARD_MESSAGES.common.notScheduled}
           </p>
         </div>
       </div>
@@ -1427,21 +1829,25 @@ function DebugPanel({
                 className="rounded-2xl border border-stone-200 p-4"
               >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{group.label}</p>
-                <p className="mt-2 text-lg font-semibold text-stone-950">{group.status ?? "unknown"}</p>
+                <p className="mt-2 text-lg font-semibold text-stone-950">
+                  {groupStatusLabel(group.status)}
+                </p>
                 <p className="mt-1 text-sm text-stone-700">
-                  {group.generatedAt ? `Cache ${formatRelativeTime(group.generatedAt)}` : "No cache snapshot"}
+                  {group.generatedAt
+                    ? `Cache ${formatRelativeTime(group.generatedAt)}`
+                    : DASHBOARD_MESSAGES.debug.noCacheSnapshot}
                 </p>
                 <p className="mt-1 text-sm text-stone-600">
                   {group.lastSourceUpdateAt
                     ? `Source ${formatRelativeTime(group.lastSourceUpdateAt)}`
-                    : "No source timestamp"}
+                    : DASHBOARD_MESSAGES.debug.noSourceTimestamp}
                 </p>
                 <p className="mt-1 text-xs text-stone-500">
                   {group.refreshedDuringRequest
-                    ? "Refreshed during request"
+                    ? DASHBOARD_MESSAGES.debug.refreshedDuringRequest
                     : group.refreshSource === "bootstrap"
-                      ? "Bootstrapped from bundled cache"
-                      : "Served from grouped cache"}
+                      ? DASHBOARD_MESSAGES.debug.bootstrappedCache
+                      : DASHBOARD_MESSAGES.debug.servedFromGroupedCache}
                 </p>
               </div>
             );
@@ -1451,7 +1857,7 @@ function DebugPanel({
 
       {warnings.length > 0 && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-amber-800">Implementation notes</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-800">{DASHBOARD_MESSAGES.debug.implementationNotes}</p>
           <div className="mt-3 grid gap-2">
             {warnings.map((warning) => (
               <p
@@ -1468,16 +1874,43 @@ function DebugPanel({
   );
 }
 
+function CoinGeckoAttribution() {
+  return (
+    <section className="mt-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
+      <p className="leading-6">
+        {DASHBOARD_MESSAGES.app.coingeckoAttributionPrefix}{" "}
+        <a
+          href={COINGECKO_ATTRIBUTION_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold underline decoration-emerald-400 underline-offset-2"
+        >
+          {DASHBOARD_MESSAGES.app.coingeckoAttributionLinkLabel}
+        </a>
+        .
+      </p>
+    </section>
+  );
+}
+
 export function BtcDashboard() {
   const [activePanelId, setActivePanelId] = useState<DashboardPanelId>("price-action");
   const [selectedMetricId, setSelectedMetricId] = useState<string>(DASHBOARD_METRICS[0].id);
   const [showDebug, setShowDebug] = useState(false);
   const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
+  const [showRedditSentimentModal, setShowRedditSentimentModal] = useState(false);
+  const [showDonateModal, setShowDonateModal] = useState(false);
+  const [donationSats, setDonationSats] = useState<number>(10_000);
+  const [donationNotice, setDonationNotice] = useState<string | null>(null);
   const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
   const constructiveCloseRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogTriggerRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogCloseRef = useRef<HTMLButtonElement | null>(null);
+  const redditSentimentTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const redditSentimentCloseRef = useRef<HTMLButtonElement | null>(null);
+  const donateTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const donateCloseRef = useRef<HTMLButtonElement | null>(null);
   const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
 
   const activePanel =
@@ -1505,8 +1938,9 @@ export function BtcDashboard() {
   };
   const liveMetricCount = snapshot?.summary.liveMetricCount ?? 0;
   const dataMode = snapshot?.summary.mode ?? "fallback";
-  const btcPrice = snapshot?.summary.btcPrice ?? "Loading";
-  const btcPriceChange = snapshot?.summary.btcPriceChange ?? "Connecting...";
+  const btcPrice = snapshot?.summary.btcPrice ?? DASHBOARD_MESSAGES.common.loadingValue;
+  const btcPriceChange = snapshot?.summary.btcPriceChange ?? DASHBOARD_MESSAGES.common.connectingValue;
+  const btcPriceChangeLabel = btcPriceChange.split("|")[0]?.trim() || btcPriceChange;
   const warnings = snapshot?.summary.warnings ?? [];
   const allMetricStates = snapshot?.metrics ?? {};
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
@@ -1521,19 +1955,35 @@ export function BtcDashboard() {
     DASHBOARD_METRICS.find((metric) => metric.id === "recent-reddit-sentiment") ?? null;
   const redditSentimentState =
     (redditSentimentMetric &&
-      (snapshot?.metrics[redditSentimentMetric.id] ?? getMetricSample(redditSentimentMetric.id))) ||
+      (snapshot?.metrics[redditSentimentMetric.id] ?? {
+        ...getMetricSample(redditSentimentMetric.id)!,
+        isLive: false,
+        dataMode: "seeded",
+      })) ||
     null;
-
-  function openMetric(metric: DashboardMetric) {
-    setActivePanelId(metric.panelId);
-    setSelectedMetricId(metric.id);
-  }
+  const hasRedditSentimentDetails = Boolean(redditSentimentMetric && redditSentimentState?.details);
+  const donationUri = buildBitcoinDonationUri(DASHBOARD_MESSAGES.donate.address, donationSats);
 
   useEffect(() => {
     if (!cycleAnalog) {
       setShowCycleAnalogModal(false);
     }
   }, [cycleAnalog]);
+
+  useEffect(() => {
+    if (!hasRedditSentimentDetails) {
+      setShowRedditSentimentModal(false);
+    }
+  }, [hasRedditSentimentDetails]);
+
+  useEffect(() => {
+    if (!donationNotice || typeof window === "undefined") {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => setDonationNotice(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [donationNotice]);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
@@ -1597,6 +2047,77 @@ export function BtcDashboard() {
     };
   }, [showCycleAnalogModal]);
 
+  useEffect(() => {
+    if (!showRedditSentimentModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => redditSentimentCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowRedditSentimentModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => redditSentimentTriggerRef.current?.focus());
+      }
+    };
+  }, [showRedditSentimentModal]);
+
+  useEffect(() => {
+    if (!showDonateModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => donateCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowDonateModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => donateTriggerRef.current?.focus());
+      }
+    };
+  }, [showDonateModal]);
+
+  async function copyDonationValue(value: string, notice: string) {
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      return;
+    }
+
+    await navigator.clipboard.writeText(value);
+    setDonationNotice(notice);
+  }
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
@@ -1606,47 +2127,67 @@ export function BtcDashboard() {
               <div className="flex items-center gap-4">
                 <img
                   src="/brand-mark.svg"
-                  alt="BTC Dashboard logo"
+                  alt={DASHBOARD_MESSAGES.app.logoAlt}
                   className="h-14 w-14 rounded-[1.25rem] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(249,115,22,0.18)]"
                 />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.26em] text-orange-300">
-                    BTC Dashboard
+                    {DASHBOARD_MESSAGES.app.brand}
                   </p>
-                  <p className="mt-1 text-sm text-stone-400">Bitcoin market intelligence</p>
+                  <p className="mt-1 text-sm text-stone-400">{DASHBOARD_MESSAGES.app.subtitle}</p>
                 </div>
               </div>
               <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Track price action, cycle regime, network health, and macro structure in one place.
+                {DASHBOARD_MESSAGES.app.heroTitle}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
-                This dashboard now mixes live market and network data with graceful fallbacks for metrics
-                that still need a dedicated on-chain or macro provider key.
+                {DASHBOARD_MESSAGES.app.heroBody}
               </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <button
+                  ref={donateTriggerRef}
+                  type="button"
+                  onClick={() => setShowDonateModal(true)}
+                  aria-haspopup="dialog"
+                  aria-expanded={showDonateModal}
+                  className="rounded-full border border-orange-300/40 bg-orange-500/15 px-4 py-2 text-sm font-semibold text-orange-100 transition hover:bg-orange-500/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                >
+                  {DASHBOARD_MESSAGES.donate.cta}
+                </button>
+                {donationNotice && (
+                  <div className="rounded-full border border-white/10 bg-black/10 px-4 py-2 text-sm text-stone-200">
+                    {donationNotice}
+                  </div>
+                )}
+              </div>
               <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">
-                      Daily cycle estimate
+                      {DASHBOARD_MESSAGES.cycleEstimate.eyebrow}
                     </p>
                     <h1 className="mt-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                      {cycleEstimate?.label ?? "Estimate pending"}
+                      {cycleEstimate?.label ?? DASHBOARD_MESSAGES.cycleEstimate.pendingTitle}
                     </h1>
                   </div>
                   {cycleEstimate && (
                     <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1 text-xs font-semibold text-stone-100">
-                      {cycleEstimate.confidence}% confidence
+                      {fillMessage(DASHBOARD_MESSAGES.cycleEstimate.confidenceSuffix, {
+                        value: cycleEstimate.confidence,
+                      })}
                     </div>
                   )}
                 </div>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-200 sm:text-base">
                   {cycleEstimate?.summary ??
-                    "Cycle estimation appears once the dashboard has a synthesized indicator snapshot."}
+                    DASHBOARD_MESSAGES.cycleEstimate.pendingSummary}
                 </p>
                 {cycleEstimate && (
                   <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-200">
                     <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      Score {cycleEstimate.score}
+                      {fillMessage(DASHBOARD_MESSAGES.cycleEstimate.scorePrefix, {
+                        value: cycleEstimate.score,
+                      })}
                     </span>
                     <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
                       {cycleSourceLabels[cycleEstimate.source]}
@@ -1662,58 +2203,42 @@ export function BtcDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">BTC price</p>
-                <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>
-                <p className="mt-1 text-sm text-stone-300">{btcPriceChange}</p>
+            <div className="grid gap-3">
+              <div className="grid gap-3 md:grid-cols-2">
+                <div className="flex min-h-[10.5rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+                  <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.app.btcPriceLabel}</p>
+                  <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>
+                  <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">{btcPriceChangeLabel}</p>
+                </div>
+                <button
+                  ref={constructiveTriggerRef}
+                  type="button"
+                  onClick={() => hasConstructiveSignals && setShowConstructiveModal(true)}
+                  disabled={!hasConstructiveSignals}
+                  aria-haspopup="dialog"
+                  aria-expanded={showConstructiveModal}
+                  className={[
+                    "flex min-h-[10.5rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                    hasConstructiveSignals
+                      ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
+                      : "cursor-default opacity-80",
+                  ].join(" ")}
+                >
+                  <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.constructive.summaryCardLabel}</p>
+                  <p className="mt-2 text-3xl font-semibold">{bullishCount}</p>
+                  <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
+                    {constructiveSummaryLabel(bullishCount, metricEntries.length)}
+                  </p>
+                  <p className="mt-1 max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
+                    {constructiveSummaryText({
+                      bullishCount,
+                      neutralCount,
+                      bearishCount,
+                      totalCount: metricEntries.length,
+                    })}
+                  </p>
+                </button>
               </div>
-              <button
-                ref={constructiveTriggerRef}
-                type="button"
-                onClick={() => hasConstructiveSignals && setShowConstructiveModal(true)}
-                disabled={!hasConstructiveSignals}
-                aria-haspopup="dialog"
-                aria-expanded={showConstructiveModal}
-                className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
-                  hasConstructiveSignals
-                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
-                    : "cursor-default opacity-80",
-                ].join(" ")}
-              >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Constructive</p>
-                <p className="mt-2 text-3xl font-semibold">{bullishCount}</p>
-                <p className="mt-1 text-sm text-stone-300">
-                  {constructiveSummaryLabel(bullishCount, metricEntries.length)}
-                </p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {constructiveSummaryText({
-                    bullishCount,
-                    neutralCount,
-                    bearishCount,
-                    totalCount: metricEntries.length,
-                  })}
-                </p>
-              </button>
-              <button
-                type="button"
-                onClick={() => redditSentimentMetric && openMetric(redditSentimentMetric)}
-                className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-              >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
-                  Recent Reddit sentiment
-                </p>
-                <p className="mt-2 text-3xl font-semibold">
-                  {redditSentimentState?.currentValue ?? "Pending"}
-                </p>
-                <p className="mt-1 text-sm text-stone-300">
-                  {redditSentimentState?.deltaLabel ?? "Awaiting recent subreddit scan"}
-                </p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {redditSentimentState?.details?.summary ?? redditSentimentState?.sourceLabel ?? "Detailed view"}
-                </p>
-              </button>
               <button
                 ref={cycleAnalogTriggerRef}
                 type="button"
@@ -1722,30 +2247,65 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showCycleAnalogModal}
                 className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  "flex min-h-[11rem] flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasPhaseWindowAnalog
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Cycle analog</p>
-                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? "Pending"}</p>
-                <p className="mt-1 text-sm text-stone-300">
-                  {cycleAnalogDatesLabel(cycleAnalog)}
-                </p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {cycleAnalogAgreementLabel(cycleAnalog)}
-                </p>
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
+                  <p className="mt-2 max-w-full text-[clamp(1.85rem,4vw,3rem)] font-semibold leading-none [overflow-wrap:anywhere]">
+                    {cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}
+                  </p>
+                  <p className="text-sm text-stone-300 [overflow-wrap:anywhere]">
+                    {cycleAnalogDatesLabel(cycleAnalog)}
+                  </p>
+                  <p className="mt-2 max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
+                    {cycleAnalogAgreementLabel(cycleAnalog)}
+                  </p>
+                </div>
+              </button>
+              <button
+                ref={redditSentimentTriggerRef}
+                type="button"
+                onClick={() => hasRedditSentimentDetails && setShowRedditSentimentModal(true)}
+                disabled={!hasRedditSentimentDetails}
+                aria-haspopup="dialog"
+                aria-expanded={showRedditSentimentModal}
+                className={[
+                  "flex min-h-[11rem] flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  hasRedditSentimentDetails
+                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                    : "cursor-default opacity-80",
+                ].join(" ")}
+              >
+                <div className="min-w-0">
+                  <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardLabel}
+                  </p>
+                  <p className="mt-2 text-3xl font-semibold">
+                    {redditSentimentState?.currentValue ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardPending}
+                  </p>
+                  <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
+                    {redditSentimentState?.deltaLabel ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardWaiting}
+                  </p>
+                  <p className="max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
+                    {redditSentimentState?.details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                </div>
               </button>
             </div>
           </div>
         </header>
 
+        <CoinGeckoAttribution />
+
         {(error || isLoading) && (
           <section className="mt-6 grid gap-3">
             {isLoading && (
               <div className="rounded-[1.25rem] border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-600">
-                Loading live dashboard data...
+                {DASHBOARD_MESSAGES.app.loadingLiveData}
               </div>
             )}
             {error && (
@@ -1794,7 +2354,7 @@ export function BtcDashboard() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                  Active panel
+                  {DASHBOARD_MESSAGES.app.activePanelLabel}
                 </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-tight text-stone-950">
                   {activePanel.title}
@@ -1802,7 +2362,7 @@ export function BtcDashboard() {
                 <p className="mt-2 text-sm leading-6 text-stone-600">{activePanel.description}</p>
               </div>
               <div className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600">
-                {activePanel.metrics.length} cards
+                {activePanel.metrics.length} {DASHBOARD_MESSAGES.app.cardsSuffix}
               </div>
             </div>
 
@@ -1819,7 +2379,7 @@ export function BtcDashboard() {
                     }
                   }
                   selected={selectedMetric.id === metric.id}
-                  onSelect={(nextMetric) => openMetric(nextMetric)}
+                  onSelect={(nextMetric) => setSelectedMetricId(nextMetric.id)}
                 />
               ))}
             </div>
@@ -1837,14 +2397,14 @@ export function BtcDashboard() {
           >
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Debug / Cache
+                {DASHBOARD_MESSAGES.debug.sectionTitle}
               </p>
               <p className="mt-1 text-sm text-stone-600">
-                Inspect cache freshness, provenance counts, and prototype source health.
+                {DASHBOARD_MESSAGES.debug.sectionDescription}
               </p>
             </div>
             <div className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm font-semibold text-stone-700">
-              {showDebug ? "Hide" : "Show"}
+              {showDebug ? DASHBOARD_MESSAGES.common.hide : DASHBOARD_MESSAGES.common.show}
             </div>
           </button>
 
@@ -1884,6 +2444,30 @@ export function BtcDashboard() {
             cycleAnalog={cycleAnalog}
             closeButtonRef={cycleAnalogCloseRef}
             onClose={() => setShowCycleAnalogModal(false)}
+          />
+        )}
+
+        {showRedditSentimentModal && redditSentimentMetric && redditSentimentState && (
+          <RedditSentimentModal
+            metric={redditSentimentMetric}
+            metricState={redditSentimentState}
+            closeButtonRef={redditSentimentCloseRef}
+            onClose={() => setShowRedditSentimentModal(false)}
+          />
+        )}
+
+        {showDonateModal && (
+          <DonateModal
+            closeButtonRef={donateCloseRef}
+            onClose={() => setShowDonateModal(false)}
+            donationSats={donationSats}
+            setDonationSats={setDonationSats}
+            donationUri={donationUri}
+            donationNotice={donationNotice}
+            onCopyAddress={() =>
+              copyDonationValue(DASHBOARD_MESSAGES.donate.address, DASHBOARD_MESSAGES.donate.copiedAddress)
+            }
+            onCopyLink={() => copyDonationValue(donationUri, DASHBOARD_MESSAGES.donate.copiedLink)}
           />
         )}
       </div>

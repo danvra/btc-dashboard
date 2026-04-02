@@ -228,7 +228,7 @@ export const METRIC_SAMPLES: MetricSample[] = [
     currentValue: "23",
     deltaLabel: "Fear still dominates sentiment",
     trend: "down",
-    status: "bullish",
+    status: "bearish",
     series: [41, 38, 36, 34, 32, 30, 28, 26, 25, 24, 23, 23],
     sourceLabel: "Sentiment index",
   },
