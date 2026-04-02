@@ -1,19 +1,19 @@
 {
   "meta": {
-    "generatedAt": 1775152653356,
-    "nextSuggestedRunAt": 1775156253356,
+    "generatedAt": 1775154078941,
+    "nextSuggestedRunAt": 1775157678941,
     "scheduler": "Daily cron plus stale-triggered refreshes with compact snapshots, source caching, and refresh locks",
     "groups": {
       "fast": {
         "groupId": "fast",
         "label": "Fast",
-        "generatedAt": 1775152653356,
-        "expiresAt": 1775156253356,
+        "generatedAt": 1775154078941,
+        "expiresAt": 1775157678941,
         "ttlMs": 3600000,
         "staleAfterMs": 7200000,
         "refreshedDuringRequest": false,
         "refreshSource": "bootstrap",
-        "lastSourceUpdateAt": 1775152648173,
+        "lastSourceUpdateAt": 1775154033000,
         "warningCount": 1,
         "metricIds": [
           "ssr",
@@ -26,8 +26,8 @@
       "daily": {
         "groupId": "daily",
         "label": "Daily",
-        "generatedAt": 1775152653356,
-        "expiresAt": 1775239053356,
+        "generatedAt": 1775154078941,
+        "expiresAt": 1775240478941,
         "ttlMs": 86400000,
         "staleAfterMs": 172800000,
         "refreshedDuringRequest": false,
@@ -76,8 +76,8 @@
       "slow": {
         "groupId": "slow",
         "label": "Slow",
-        "generatedAt": 1775152653356,
-        "expiresAt": 1775325453356,
+        "generatedAt": 1775154078941,
+        "expiresAt": 1775326878941,
         "ttlMs": 172800000,
         "staleAfterMs": 259200000,
         "refreshedDuringRequest": false,
@@ -95,7 +95,7 @@
       "synthetic": {
         "groupId": "synthetic",
         "label": "Synthetic",
-        "generatedAt": 1775152653356,
+        "generatedAt": 1775154078941,
         "expiresAt": 0,
         "ttlMs": 0,
         "staleAfterMs": 172800000,
@@ -118,16 +118,16 @@
       "phaseId": "bottoming-and-reaccumulation",
       "label": "Bottoming and Reaccumulation",
       "confidence": 76,
-      "score": 25,
-      "heatScore": 25,
-      "damageScore": 59,
+      "score": 13,
+      "heatScore": 13,
+      "damageScore": 54,
       "distributionScore": 52,
       "summary": "The dashboard looks more like a repair phase than a clean breakout, with fear and damage fading but not enough broad confirmation for stronger expansion.",
-      "rationale": "Selling pressure appears to be fading, but conviction is still rebuilding and broad participation remains tentative. Supporting evidence leans most on Mvrv, Pi Cycle Top, Mayer Multiple.",
+      "rationale": "Selling pressure appears to be fading, but conviction is still rebuilding and broad participation remains tentative. Supporting evidence leans most on Mvrv, Active Addresses, Pi Cycle Top.",
       "supportingMetricIds": [
         "mvrv",
-        "pi-cycle-top",
-        "mayer-multiple"
+        "active-addresses",
+        "pi-cycle-top"
       ],
       "conflictingMetricIds": [
         "ssr",
@@ -139,11 +139,11 @@
     },
     "cycleAnalog": {
       "asOfDate": "2026-04-02",
-      "phaseId": "deep-capitulation",
-      "label": "Capitulation",
+      "phaseId": "bottoming-and-reaccumulation",
+      "label": "Reaccumulation",
       "agreement": 100,
-      "confidence": 86,
-      "summary": "Current conditions most closely resemble prior washout periods with high damage and limited expansion.",
+      "confidence": 92,
+      "summary": "Current conditions most closely resemble prior repair phases where stress was fading but conviction was still rebuilding.",
       "methodology": "phase-window-nearest-neighbor",
       "indicatorIds": [
         "mvrv",
@@ -151,32 +151,59 @@
         "pi-cycle-top",
         "mayer-multiple",
         "hash-ribbon",
-        "active-addresses"
+        "active-addresses",
+        "active-supply"
       ],
       "phaseDistribution": [
         {
-          "phaseId": "deep-capitulation",
-          "label": "Capitulation",
-          "cyclesMatched": 1,
-          "averageDistance": 0.0895
+          "phaseId": "bottoming-and-reaccumulation",
+          "label": "Reaccumulation",
+          "cyclesMatched": 3,
+          "averageDistance": 0.2176
         }
       ],
       "perCycleMatches": [
         {
           "cycleId": "2016-2020",
           "cycleLabel": "2016-2020 cycle",
-          "phaseId": "deep-capitulation",
-          "phaseLabel": "Capitulation",
-          "windowStartDate": "2018-11-22",
-          "windowEndDate": "2019-02-14",
-          "bestMatchDate": "2019-01-09",
-          "bestMatchDateLabel": "Jan 2019",
-          "distance": 0.0895,
+          "phaseId": "bottoming-and-reaccumulation",
+          "phaseLabel": "Reaccumulation",
+          "windowStartDate": "2019-02-14",
+          "windowEndDate": "2019-06-14",
+          "bestMatchDate": "2019-02-16",
+          "bestMatchDateLabel": "Feb 2019",
+          "distance": 0.1659,
           "coverage": 1
+        },
+        {
+          "cycleId": "2020-2024",
+          "cycleLabel": "2020-2024 cycle",
+          "phaseId": "bottoming-and-reaccumulation",
+          "phaseLabel": "Reaccumulation",
+          "windowStartDate": "2022-07-08",
+          "windowEndDate": "2022-09-28",
+          "bestMatchDate": "2022-08-07",
+          "bestMatchDateLabel": "Aug 2022",
+          "distance": 0.1828,
+          "coverage": 0.857
+        },
+        {
+          "cycleId": "2012-2016",
+          "cycleLabel": "2012-2016 cycle",
+          "phaseId": "bottoming-and-reaccumulation",
+          "phaseLabel": "Reaccumulation",
+          "windowStartDate": "2016-04-04",
+          "windowEndDate": "2016-05-26",
+          "bestMatchDate": "2016-04-16",
+          "bestMatchDateLabel": "Apr 2016",
+          "distance": 0.304,
+          "coverage": 0.857
         }
       ],
       "topMatchDates": [
-        "2019-01-09"
+        "2019-02-16",
+        "2022-08-07",
+        "2016-04-16"
       ]
     },
     "liveMetricCount": 43,
@@ -184,20 +211,20 @@
     "warnings": [
       "Reddit sentiment used the newest available public archive items because the mirror did not expose BTC-relevant posts or comments from the last 48 hours. Reddit sentiment fell back to the heuristic summarizer because the LLM request failed: OpenAI Reddit sentiment request failed with 429",
       "LTH-NUPL and STH-NUPL are currently derived from public cohort MVRV series.",
-      "Glassnode cohort metrics are unavailable, so Exchange Netflow, Exchange Reserve, LTH Supply, STH Supply, LTH Net Position Change, Reserve Risk, Liveliness, and Percent Supply in Profit are currently using fallback proxy or scraped sources.",
+      "Coin Metrics Community is now supplying Exchange Netflow and Exchange Reserve, but LTH Supply, STH Supply, LTH Net Position Change, Reserve Risk, Liveliness, and Percent Supply in Profit still require fallback sources while Glassnode cohort metrics are unavailable.",
       "FRED_API_KEY is missing, so the slow macro cohort is using the public FRED CSV connector."
     ],
-    "lastUpdatedAt": 1775152653356,
+    "lastUpdatedAt": 1775154078941,
     "btcPrice": "$67K",
-    "btcPriceChange": "-2.11% over 24h | mempool 3 sat/vB"
+    "btcPriceChange": "-1.91% over 24h | mempool 2 sat/vB"
   },
   "metrics": {
     "ssr": {
       "metricId": "ssr",
-      "currentValue": "4.62",
+      "currentValue": "4.61",
       "deltaLabel": "BTC market cap / major stablecoin market caps",
       "sourceLabel": "CoinGecko derived",
-      "trend": "down",
+      "trend": "flat",
       "status": "bullish",
       "series": [
         4.6250087451863635,
@@ -205,13 +232,15 @@
         4.623239445230597,
         4.656862682554511,
         4.651015245212058,
-        4.620494879857195
+        4.620494879857195,
+        4.609485805767858,
+        4.609485805767858
       ],
       "isLive": true,
-      "asOf": 1775152591000,
+      "asOf": 1775154033000,
       "dataMode": "derived",
       "groupId": "fast",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 7200000
     },
     "funding-rate": {
@@ -239,7 +268,7 @@
       "asOf": 1775145600000,
       "dataMode": "derived",
       "groupId": "fast",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 7200000
     },
     "open-interest": {
@@ -247,18 +276,19 @@
       "currentValue": "90.8K BTC",
       "deltaLabel": "Binance BTCUSDT perp open interest",
       "sourceLabel": "Binance API + local history",
-      "trend": "down",
+      "trend": "up",
       "status": "bullish",
       "series": [
         89237.71,
         91005.13,
-        90775.353
+        90775.353,
+        90797.81
       ],
       "isLive": true,
-      "asOf": 1775152648173,
+      "asOf": 1775153704716,
       "dataMode": "live",
       "groupId": "fast",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 7200000
     },
     "recent-reddit-sentiment": {
@@ -397,7 +427,7 @@
         ]
       },
       "groupId": "fast",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 7200000
     },
     "adjusted-transfer-volume": {
@@ -425,63 +455,63 @@
       "asOf": 1774915200000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "active-addresses": {
       "metricId": "active-addresses",
-      "currentValue": "485K",
+      "currentValue": "697K",
       "deltaLabel": "Unique active addresses",
-      "sourceLabel": "Blockchain.com",
+      "sourceLabel": "Coin Metrics Community",
       "trend": "up",
       "status": "bullish",
       "series": [
-        468702,
-        475423,
-        525035,
-        406808,
-        488604,
-        486162,
-        458834,
-        476303,
-        501248,
-        507433,
-        382086,
-        485131
+        586709,
+        545348,
+        640101,
+        587472,
+        657017,
+        623105,
+        640242,
+        555352,
+        513446,
+        631420,
+        630351,
+        697142
       ],
       "isLive": true,
-      "asOf": 1774915200000,
+      "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "active-supply": {
       "metricId": "active-supply",
-      "currentValue": "0.47%",
+      "currentValue": "0.54%",
       "deltaLabel": "BTC transfer volume / circulating supply",
       "sourceLabel": "Blockchain.com derived",
-      "trend": "down",
-      "status": "bearish",
+      "trend": "up",
+      "status": "bullish",
       "series": [
-        0.08627279358879573,
-        0.25892994615320547,
-        0.45502277715401934,
-        0.4964447597353486,
-        0.5867770071644047,
-        0.4485672506643553,
-        0.6488493658035415,
-        0.20355812317935335,
-        0.1486083265312925,
-        0.5434527306500002,
-        0.5447854094916333,
-        0.47340878651048424
+        0.5071085996629983,
+        0.5726202388526224,
+        0.5386096120507957,
+        0.24562776884454154,
+        0.5312963661855608,
+        0.4080305611693269,
+        0.08629618441890458,
+        0.4551232530040065,
+        0.5868810911500958,
+        0.6489323287285287,
+        0.14861994612835527,
+        0.5448048618216813
       ],
       "isLive": true,
-      "asOf": 1775001600000,
+      "asOf": 1774915200000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "hashrate": {
@@ -509,7 +539,7 @@
       "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "difficulty": {
@@ -537,35 +567,35 @@
       "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "mvrv": {
       "metricId": "mvrv",
       "currentValue": "1.26",
       "deltaLabel": "Market value to realized value",
-      "sourceLabel": "Blockchain.com",
-      "trend": "up",
+      "sourceLabel": "Coin Metrics Community",
+      "trend": "down",
       "status": "neutral",
       "series": [
-        1.1729507870753204,
-        1.236054980571484,
-        1.2247889496017699,
-        1.3044711683287753,
-        1.2363992782713131,
-        1.2953652534783076,
-        1.3537381255358336,
-        1.289798735790377,
-        1.252792238320108,
-        1.3007694227892306,
-        1.2305305440166423,
-        1.2643503912738887
+        1.2832286394689276,
+        1.2516621596693462,
+        1.301409408329922,
+        1.3002777489726738,
+        1.3129187923123302,
+        1.2664072256679186,
+        1.221391534843414,
+        1.224282130242581,
+        1.2173465160210977,
+        1.2307677885365405,
+        1.259461592624952,
+        1.2578004357870882
       ],
       "isLive": true,
-      "asOf": 1775073320000,
+      "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "pi-cycle-top": {
@@ -593,7 +623,7 @@
       "asOf": 1775088000000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "mayer-multiple": {
@@ -621,7 +651,7 @@
       "asOf": 1775088000000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "2-year-ma-multiplier": {
@@ -649,7 +679,7 @@
       "asOf": 1775088000000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "hash-ribbon": {
@@ -677,7 +707,7 @@
       "asOf": 1775001600000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "nvt-signal": {
@@ -705,7 +735,7 @@
       "asOf": 1774915200000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "power-law": {
@@ -733,35 +763,35 @@
       "asOf": 1775088000000,
       "dataMode": "model",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "stock-to-flow": {
       "metricId": "stock-to-flow",
-      "currentValue": "37.2",
+      "currentValue": "121.2",
       "deltaLabel": "Circulating supply / annual issuance",
       "sourceLabel": "Local model",
-      "trend": "up",
+      "trend": "down",
       "status": "bullish",
       "series": [
-        36.59336090092254,
-        36.642416190399835,
-        36.694256485538,
-        36.74459411352649,
-        36.79157588544032,
-        36.840320946723764,
-        36.89561237664853,
-        36.947511500256844,
-        37.00748028765001,
-        37.061766629811224,
-        37.10679741062063,
-        37.15821267952996
+        121.2781619643379,
+        121.25365780281024,
+        121.2475000469395,
+        121.3164979509222,
+        121.3102009824522,
+        121.28345077930152,
+        121.27713991864177,
+        121.2345058626297,
+        121.23034548675948,
+        121.23521553542953,
+        121.26534243010008,
+        121.20643103415587
       ],
       "isLive": true,
-      "asOf": 1775083788000,
+      "asOf": 1775001600000,
       "dataMode": "model",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "puell-multiple": {
@@ -789,7 +819,7 @@
       "asOf": 1774915200000,
       "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "fear-and-greed": {
@@ -817,7 +847,7 @@
       "asOf": 1775088000000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "cdd": {
@@ -831,13 +861,15 @@
         5494822.373125,
         5494822.373125,
         5494822.373125,
-        5494822.373125
+        5494822.373125,
+        5494766.054104807,
+        5494766.054104807
       ],
       "isLive": true,
-      "asOf": 1775152653356,
+      "asOf": 1775154078941,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "dormancy": {
@@ -851,13 +883,15 @@
         26.848803238207154,
         26.848803238207154,
         26.848803238207154,
-        26.848803238207154
+        26.848803238207154,
+        26.848528052188563,
+        26.848528052188563
       ],
       "isLive": true,
-      "asOf": 1775152653356,
+      "asOf": 1775154078941,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "nupl": {
@@ -885,7 +919,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "lth-nupl": {
@@ -913,7 +947,7 @@
       "asOf": 1775001600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "sth-nupl": {
@@ -941,7 +975,7 @@
       "asOf": 1775001600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "rhodl-ratio": {
@@ -969,7 +1003,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "hodl-waves": {
@@ -997,7 +1031,7 @@
       "asOf": 1775001600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "asopr": {
@@ -1025,63 +1059,63 @@
       "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "exchange-netflow": {
       "metricId": "exchange-netflow",
-      "currentValue": "0 BTC",
-      "deltaLabel": "STH supply day-over-day proxy for exchange flow",
-      "sourceLabel": "BGeometrics liquid-supply proxy (Glassnode unavailable)",
-      "trend": "flat",
-      "status": "neutral",
+      "currentValue": "-5.7K BTC",
+      "deltaLabel": "Net BTC flow into and out of exchanges",
+      "sourceLabel": "Coin Metrics Community",
+      "trend": "down",
+      "status": "bullish",
       "series": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
+        314.7005933199998,
+        -9284.75440545,
+        3393.0727122699973,
+        2148.8304339899987,
+        -8095.709452200001,
+        3215.3413166399987,
+        922.3077417500026,
+        748.9945835199997,
+        -1766.855947189999,
+        3666.325896189999,
+        -1815.3089249299992,
+        -5686.04118833
       ],
       "isLive": true,
       "asOf": 1775001600000,
-      "dataMode": "approx",
+      "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "exchange-balance": {
       "metricId": "exchange-balance",
-      "currentValue": "0 BTC",
-      "deltaLabel": "STH supply proxy for exchange-ready BTC",
-      "sourceLabel": "BGeometrics liquid-supply proxy (Glassnode unavailable)",
-      "trend": "flat",
+      "currentValue": "2.6M BTC",
+      "deltaLabel": "BTC balance held on exchanges",
+      "sourceLabel": "Coin Metrics Community",
+      "trend": "down",
       "status": "neutral",
       "series": [
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0,
-        0
+        2610551.94675265,
+        2601588.31380216,
+        2605306.21244676,
+        2607977.76940956,
+        2601918.76840528,
+        2605385.36063734,
+        2606753.07897323,
+        2607989.31125545,
+        2608962.48542872,
+        2612895.43667598,
+        2611461.78074481,
+        2607613.54248242
       ],
       "isLive": true,
       "asOf": 1775001600000,
-      "dataMode": "approx",
+      "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "percent-supply-in-profit": {
@@ -1109,7 +1143,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "reserve-risk": {
@@ -1137,7 +1171,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "lth-supply": {
@@ -1165,7 +1199,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "sth-supply": {
@@ -1193,7 +1227,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "lth-net-position-change": {
@@ -1221,7 +1255,7 @@
       "asOf": 1775001600000,
       "dataMode": "approx",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "liveliness": {
@@ -1249,7 +1283,7 @@
       "asOf": 1775001600000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "spot-btc-etf-flows": {
@@ -1277,7 +1311,7 @@
       "asOf": 1774915200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "spot-btc-etf-holdings": {
@@ -1305,35 +1339,35 @@
       "asOf": 1774915200000,
       "dataMode": "scraped",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "price-vs-realized-price": {
       "metricId": "price-vs-realized-price",
       "currentValue": "1.26x",
       "deltaLabel": "Spot $68K vs realized $54K",
-      "sourceLabel": "Blockchain.com proxy",
-      "trend": "up",
+      "sourceLabel": "Coin Metrics Community + CoinGecko derived",
+      "trend": "down",
       "status": "bullish",
       "series": [
-        1.1729507870753204,
-        1.236054980571484,
-        1.2247889496017699,
-        1.3044711683287753,
-        1.2363992782713131,
-        1.2953652534783076,
-        1.3537381255358336,
-        1.289798735790377,
-        1.252792238320108,
-        1.3007694227892306,
-        1.2305305440166423,
-        1.2643503912738887
+        1.2832286394689276,
+        1.2516621596693462,
+        1.301409408329922,
+        1.3002777489726738,
+        1.3129187923123302,
+        1.2664072256679186,
+        1.221391534843414,
+        1.224282130242581,
+        1.2173465160210977,
+        1.2307677885365405,
+        1.259461592624952,
+        1.2578004357870882
       ],
       "isLive": true,
-      "asOf": 1775073320000,
-      "dataMode": "approx",
+      "asOf": 1775001600000,
+      "dataMode": "derived",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "fed-rate-expectations": {
@@ -1357,7 +1391,7 @@
       "asOf": 1805241600000,
       "dataMode": "live",
       "groupId": "daily",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 172800000
     },
     "dxy": {
@@ -1385,7 +1419,7 @@
       "asOf": 1774569600000,
       "dataMode": "live",
       "groupId": "slow",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 259200000
     },
     "10y-real-yield": {
@@ -1413,7 +1447,7 @@
       "asOf": 1774915200000,
       "dataMode": "live",
       "groupId": "slow",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 259200000
     },
     "fed-balance-sheet": {
@@ -1441,7 +1475,7 @@
       "asOf": 1774396800000,
       "dataMode": "live",
       "groupId": "slow",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 259200000
     },
     "on-rrp": {
@@ -1469,7 +1503,7 @@
       "asOf": 1775001600000,
       "dataMode": "live",
       "groupId": "slow",
-      "refreshedAt": 1775152653356,
+      "refreshedAt": 1775154078941,
       "staleAfterMs": 259200000
     }
   }
