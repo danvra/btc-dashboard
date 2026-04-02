@@ -2202,11 +2202,11 @@ export function BtcDashboard() {
               </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
+            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <div className="flex min-h-[15rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.app.btcPriceLabel}</p>
                 <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>
-                <p className="mt-1 text-sm text-stone-300">{btcPriceChange}</p>
+                <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">{btcPriceChange}</p>
               </div>
               <button
                 ref={constructiveTriggerRef}
@@ -2216,7 +2216,7 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showConstructiveModal}
                 className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  "flex min-h-[15rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasConstructiveSignals
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300"
                     : "cursor-default opacity-80",
@@ -2224,10 +2224,10 @@ export function BtcDashboard() {
               >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.constructive.summaryCardLabel}</p>
                 <p className="mt-2 text-3xl font-semibold">{bullishCount}</p>
-                <p className="mt-1 text-sm text-stone-300">
+                <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
                   {constructiveSummaryLabel(bullishCount, metricEntries.length)}
                 </p>
-                <p className="mt-1 text-xs text-stone-400">
+                <p className="mt-1 max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
                   {constructiveSummaryText({
                     bullishCount,
                     neutralCount,
@@ -2244,18 +2244,20 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showCycleAnalogModal}
                 className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  "flex min-h-[15rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasPhaseWindowAnalog
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
-                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}</p>
-                <p className="mt-1 text-sm text-stone-300">
+                <p className="mt-2 max-w-full text-[clamp(2rem,6vw,3rem)] font-semibold leading-none [overflow-wrap:anywhere]">
+                  {cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}
+                </p>
+                <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
                   {cycleAnalogDatesLabel(cycleAnalog)}
                 </p>
-                <p className="mt-1 text-xs text-stone-400">
+                <p className="mt-1 max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
                   {cycleAnalogAgreementLabel(cycleAnalog)}
                 </p>
               </button>
@@ -2267,7 +2269,7 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showRedditSentimentModal}
                 className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  "flex min-h-[15rem] flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasRedditSentimentDetails
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                     : "cursor-default opacity-80",
@@ -2279,10 +2281,10 @@ export function BtcDashboard() {
                 <p className="mt-2 text-3xl font-semibold">
                   {redditSentimentState?.currentValue ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardPending}
                 </p>
-                <p className="mt-1 text-sm text-stone-300">
+                <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
                   {redditSentimentState?.deltaLabel ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardWaiting}
                 </p>
-                <p className="mt-1 text-xs text-stone-400">
+                <p className="mt-1 max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
                   {redditSentimentState?.details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
                 </p>
               </button>
