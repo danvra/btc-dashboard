@@ -120,6 +120,7 @@ const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGrou
   ssr: "fast",
   "funding-rate": "fast",
   "open-interest": "fast",
+  "recent-reddit-sentiment": "fast",
   "fear-and-greed": "daily",
   dxy: "slow",
   "10y-real-yield": "slow",

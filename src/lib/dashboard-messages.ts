@@ -134,6 +134,22 @@ export interface DashboardMessages {
     signalSupportByDataMode: string;
     sourceUpdated: string;
   };
+  redditSentiment: {
+    summaryCardLabel: string;
+    summaryCardPending: string;
+    summaryCardWaiting: string;
+    summaryCardFallback: string;
+    eyebrow: string;
+    statsLabel: string;
+    methodologyLabel: string;
+    driversLabel: string;
+    risksLabel: string;
+    opportunitiesLabel: string;
+    communitiesLabel: string;
+    postsLabel: string;
+    commentsLabel: string;
+    sourceUpdated: string;
+  };
   debug: {
     sectionTitle: string;
     sectionDescription: string;
@@ -318,6 +334,22 @@ export const DASHBOARD_MESSAGES: DashboardMessages = {
     neutralWatchlist: getString(sections.constructive, "neutral_watchlist"),
     signalSupportByDataMode: getString(sections.constructive, "signal_support_by_data_mode"),
     sourceUpdated: getString(sections.constructive, "source_updated"),
+  },
+  redditSentiment: {
+    summaryCardLabel: getString(sections.reddit_sentiment, "summary_card_label"),
+    summaryCardPending: getString(sections.reddit_sentiment, "summary_card_pending"),
+    summaryCardWaiting: getString(sections.reddit_sentiment, "summary_card_waiting"),
+    summaryCardFallback: getString(sections.reddit_sentiment, "summary_card_fallback"),
+    eyebrow: getString(sections.reddit_sentiment, "eyebrow"),
+    statsLabel: getString(sections.reddit_sentiment, "stats_label"),
+    methodologyLabel: getString(sections.reddit_sentiment, "methodology_label"),
+    driversLabel: getString(sections.reddit_sentiment, "drivers_label"),
+    risksLabel: getString(sections.reddit_sentiment, "risks_label"),
+    opportunitiesLabel: getString(sections.reddit_sentiment, "opportunities_label"),
+    communitiesLabel: getString(sections.reddit_sentiment, "communities_label"),
+    postsLabel: getString(sections.reddit_sentiment, "posts_label"),
+    commentsLabel: getString(sections.reddit_sentiment, "comments_label"),
+    sourceUpdated: getString(sections.reddit_sentiment, "source_updated"),
   },
   debug: {
     sectionTitle: getString(sections.debug, "section_title"),

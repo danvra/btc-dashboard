@@ -209,8 +209,8 @@ function loadDashboardConfig() {
 
   const enabledMetrics = allMetrics.filter((metric) => metric.enabled);
 
-  if (enabledMetrics.length !== 22) {
-    throw new Error(`Expected 22 enabled metrics, found ${enabledMetrics.length}.`);
+  if (enabledMetrics.length !== 23) {
+    throw new Error(`Expected 23 enabled metrics, found ${enabledMetrics.length}.`);
   }
 
   const metricsByPanel = panels.map((panel) => ({

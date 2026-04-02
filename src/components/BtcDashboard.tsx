@@ -1214,6 +1214,314 @@ function ConstructiveSignalsModal({
   );
 }
 
+function RedditSentimentModal({
+  metric,
+  metricState,
+  closeButtonRef,
+  onClose,
+}: {
+  metric: DashboardMetric;
+  metricState: DashboardMetricState;
+  closeButtonRef: RefObject<HTMLButtonElement>;
+  onClose: () => void;
+}) {
+  const details = metricState.details;
+  const stats = details?.stats ?? [];
+  const drivers = details?.drivers ?? [];
+  const risks = details?.risks ?? [];
+  const opportunities = details?.opportunities ?? [];
+  const subreddits = details?.subreddits ?? [];
+  const samplePosts = details?.samplePosts ?? [];
+  const sampleComments = details?.sampleComments ?? [];
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 px-4 py-6 backdrop-blur-sm"
+      onClick={onClose}
+      role="presentation"
+    >
+      <div
+        className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-[2rem] border border-stone-200 bg-stone-50 shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="reddit-sentiment-title"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-600">
+              {DASHBOARD_MESSAGES.redditSentiment.eyebrow}
+            </p>
+            <h2
+              id="reddit-sentiment-title"
+              className="mt-1 text-3xl font-semibold tracking-tight text-stone-950"
+            >
+              {metricState.currentValue}
+            </h2>
+            <p className="mt-2 text-sm text-stone-600">{metricState.deltaLabel}</p>
+          </div>
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
+          >
+            {DASHBOARD_MESSAGES.common.close}
+          </button>
+        </div>
+
+        <div className="space-y-8 px-6 py-6 lg:px-8">
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-3xl">
+                <p className="text-sm leading-7 text-stone-600">
+                  {details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${sentimentClasses[metricState.status]}`}
+                >
+                  {DASHBOARD_MESSAGES.status[metricState.status]}
+                </span>
+                <span
+                  className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[metricState.dataMode ?? "seeded"]}`}
+                >
+                  {DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"]}
+                </span>
+                <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
+                  {fillMessage(DASHBOARD_MESSAGES.redditSentiment.sourceUpdated, {
+                    source: metricState.sourceLabel,
+                    relative: formatRelativeTime(metricState.asOf),
+                  })}
+                </span>
+              </div>
+            </div>
+          </section>
+
+          {stats.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.statsLabel}
+              </p>
+              <div className="mt-4 grid gap-3 md:grid-cols-3">
+                {stats.map((stat) => (
+                  <div
+                    key={`${stat.label}-${stat.value}`}
+                    className="rounded-[1.25rem] bg-stone-50 p-4"
+                  >
+                    <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{stat.label}</p>
+                    <p className="mt-2 text-lg font-semibold text-stone-950">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {details?.methodology && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.methodologyLabel}
+              </p>
+              <p className="mt-3 text-sm leading-7 text-stone-600">{details.methodology}</p>
+            </section>
+          )}
+
+          <section className="grid gap-4 lg:grid-cols-3">
+            <article className="rounded-[1.5rem] border border-emerald-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                {DASHBOARD_MESSAGES.redditSentiment.driversLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {drivers.length > 0 ? (
+                  drivers.map((driver) => (
+                    <p key={driver} className="rounded-[1.25rem] bg-emerald-50/70 p-4 text-sm leading-6 text-stone-700">
+                      {driver}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-rose-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">
+                {DASHBOARD_MESSAGES.redditSentiment.risksLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {risks.length > 0 ? (
+                  risks.map((risk) => (
+                    <p key={risk} className="rounded-[1.25rem] bg-rose-50/70 p-4 text-sm leading-6 text-stone-700">
+                      {risk}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-sky-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+                {DASHBOARD_MESSAGES.redditSentiment.opportunitiesLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {opportunities.length > 0 ? (
+                  opportunities.map((opportunity) => (
+                    <p
+                      key={opportunity}
+                      className="rounded-[1.25rem] bg-sky-50/70 p-4 text-sm leading-6 text-stone-700"
+                    >
+                      {opportunity}
+                    </p>
+                  ))
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+          </section>
+
+          {subreddits.length > 0 && (
+            <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.communitiesLabel}
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {subreddits.map((subreddit) => (
+                  <span
+                    key={subreddit}
+                    className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm text-stone-700"
+                  >
+                    {subreddit}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <section className="grid gap-4 xl:grid-cols-2">
+            <article className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.postsLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {samplePosts.length > 0 ? (
+                  samplePosts.map((post) => {
+                    const content = (
+                      <>
+                        <p className="text-sm font-medium leading-6 text-stone-900">{post.title}</p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {post.subreddit}
+                          {typeof post.score === "number" ? ` • score ${post.score}` : ""}
+                        </p>
+                      </>
+                    );
+
+                    return post.url ? (
+                      <a
+                        key={`${post.subreddit}-${post.title}`}
+                        href={post.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        key={`${post.subreddit}-${post.title}`}
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3"
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+
+            <article className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                {DASHBOARD_MESSAGES.redditSentiment.commentsLabel}
+              </p>
+              <div className="mt-4 grid gap-3">
+                {sampleComments.length > 0 ? (
+                  sampleComments.map((comment) => {
+                    const content = (
+                      <>
+                        <p className="text-sm leading-6 text-stone-700">{comment.body}</p>
+                        <p className="mt-1 text-xs text-stone-500">
+                          {comment.subreddit}
+                          {typeof comment.score === "number" ? ` • score ${comment.score}` : ""}
+                        </p>
+                      </>
+                    );
+
+                    return comment.url ? (
+                      <a
+                        key={`${comment.subreddit}-${comment.body}`}
+                        href={comment.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                      >
+                        {content}
+                      </a>
+                    ) : (
+                      <div
+                        key={`${comment.subreddit}-${comment.body}`}
+                        className="rounded-[1.25rem] border border-stone-200 bg-stone-50 px-4 py-3"
+                      >
+                        {content}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <p className="rounded-[1.25rem] bg-stone-50 p-4 text-sm leading-6 text-stone-600">
+                    {DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
+                  </p>
+                )}
+              </div>
+            </article>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              {metric.name}
+            </p>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-[1.25rem] bg-emerald-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-700">
+                  {DASHBOARD_MESSAGES.learnPanel.bullishReadLabel}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bullishInterpretation}</p>
+              </div>
+              <div className="rounded-[1.25rem] bg-rose-50/70 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-rose-700">
+                  {DASHBOARD_MESSAGES.learnPanel.bearishReadLabel}
+                </p>
+                <p className="mt-3 text-sm leading-6 text-stone-700">{metric.bearishInterpretation}</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function DebugPanel({
   metrics,
   generatedAt,
@@ -1403,10 +1711,13 @@ export function BtcDashboard() {
   const [showDebug, setShowDebug] = useState(false);
   const [showConstructiveModal, setShowConstructiveModal] = useState(false);
   const [showCycleAnalogModal, setShowCycleAnalogModal] = useState(false);
+  const [showRedditSentimentModal, setShowRedditSentimentModal] = useState(false);
   const constructiveTriggerRef = useRef<HTMLButtonElement | null>(null);
   const constructiveCloseRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogTriggerRef = useRef<HTMLButtonElement | null>(null);
   const cycleAnalogCloseRef = useRef<HTMLButtonElement | null>(null);
+  const redditSentimentTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const redditSentimentCloseRef = useRef<HTMLButtonElement | null>(null);
   const { snapshot, isLoading, isRefreshing, error, refreshNotice, refresh } = useDashboardData();
 
   const activePanel =
@@ -1446,12 +1757,29 @@ export function BtcDashboard() {
   const cycleAnalog = snapshot?.summary.cycleAnalog;
   const hasConstructiveSignals = metricEntries.length > 0;
   const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
+  const redditSentimentMetric =
+    DASHBOARD_METRICS.find((metric) => metric.id === "recent-reddit-sentiment") ?? null;
+  const redditSentimentState =
+    (redditSentimentMetric &&
+      (snapshot?.metrics[redditSentimentMetric.id] ?? {
+        ...getMetricSample(redditSentimentMetric.id)!,
+        isLive: false,
+        dataMode: "seeded",
+      })) ||
+    null;
+  const hasRedditSentimentDetails = Boolean(redditSentimentMetric && redditSentimentState?.details);
 
   useEffect(() => {
     if (!cycleAnalog) {
       setShowCycleAnalogModal(false);
     }
   }, [cycleAnalog]);
+
+  useEffect(() => {
+    if (!hasRedditSentimentDetails) {
+      setShowRedditSentimentModal(false);
+    }
+  }, [hasRedditSentimentDetails]);
 
   useEffect(() => {
     if (!showConstructiveModal || typeof document === "undefined") {
@@ -1514,6 +1842,37 @@ export function BtcDashboard() {
       }
     };
   }, [showCycleAnalogModal]);
+
+  useEffect(() => {
+    if (!showRedditSentimentModal || typeof document === "undefined") {
+      return undefined;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusFrame =
+      typeof window !== "undefined"
+        ? window.requestAnimationFrame(() => redditSentimentCloseRef.current?.focus())
+        : 0;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowRedditSentimentModal(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = previousOverflow;
+
+      if (typeof window !== "undefined") {
+        window.cancelAnimationFrame(focusFrame);
+        window.requestAnimationFrame(() => redditSentimentTriggerRef.current?.focus());
+      }
+    };
+  }, [showRedditSentimentModal]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(249,115,22,0.14),transparent_30%),linear-gradient(180deg,#fafaf9_0%,#f5f5f4_100%)] text-stone-900">
@@ -1615,6 +1974,33 @@ export function BtcDashboard() {
                     bearishCount,
                     totalCount: metricEntries.length,
                   })}
+                </p>
+              </button>
+              <button
+                ref={redditSentimentTriggerRef}
+                type="button"
+                onClick={() => hasRedditSentimentDetails && setShowRedditSentimentModal(true)}
+                disabled={!hasRedditSentimentDetails}
+                aria-haspopup="dialog"
+                aria-expanded={showRedditSentimentModal}
+                className={[
+                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  hasRedditSentimentDetails
+                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                    : "cursor-default opacity-80",
+                ].join(" ")}
+              >
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
+                  {DASHBOARD_MESSAGES.redditSentiment.summaryCardLabel}
+                </p>
+                <p className="mt-2 text-3xl font-semibold">
+                  {redditSentimentState?.currentValue ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardPending}
+                </p>
+                <p className="mt-1 text-sm text-stone-300">
+                  {redditSentimentState?.deltaLabel ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardWaiting}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {redditSentimentState?.details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
                 </p>
               </button>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
@@ -1798,6 +2184,15 @@ export function BtcDashboard() {
             cycleAnalog={cycleAnalog}
             closeButtonRef={cycleAnalogCloseRef}
             onClose={() => setShowCycleAnalogModal(false)}
+          />
+        )}
+
+        {showRedditSentimentModal && redditSentimentMetric && redditSentimentState && (
+          <RedditSentimentModal
+            metric={redditSentimentMetric}
+            metricState={redditSentimentState}
+            closeButtonRef={redditSentimentCloseRef}
+            onClose={() => setShowRedditSentimentModal(false)}
           />
         )}
       </div>
