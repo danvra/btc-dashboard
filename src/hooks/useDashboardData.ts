@@ -5,6 +5,7 @@ import {
   type DashboardCachePayload,
   type DashboardDataSnapshot,
 } from "../lib/dashboard-data";
+import { DASHBOARD_MESSAGES } from "../lib/dashboard-messages";
 
 type RefreshNotice = {
   completedAt: number;
@@ -146,7 +147,7 @@ export function useDashboardData() {
           refreshSource = "static";
         }
         catch {
-          throw new Error("Dashboard cache is unavailable.");
+          throw new Error(DASHBOARD_MESSAGES.refresh.cacheUnavailable);
         }
       }
 
@@ -159,8 +160,8 @@ export function useDashboardData() {
         const completedAt = Date.now();
         const message =
           refreshSource === "api"
-            ? "Refresh complete."
-            : "Live refresh unavailable. Showing cached data.";
+            ? DASHBOARD_MESSAGES.refresh.complete
+            : DASHBOARD_MESSAGES.refresh.fallback;
 
         setRefreshNotice({
           completedAt,
@@ -172,14 +173,15 @@ export function useDashboardData() {
       startTransition(() => {
         setSnapshot(buildFallbackSnapshot());
       });
-      const message = loadError instanceof Error ? loadError.message : "Unable to load dashboard data.";
+      const message =
+        loadError instanceof Error ? loadError.message : DASHBOARD_MESSAGES.refresh.unableToLoad;
       setError(message);
 
       if (mode === "refresh") {
         setRefreshNotice({
           completedAt: Date.now(),
           kind: "error",
-          message: "Refresh failed.",
+          message: DASHBOARD_MESSAGES.refresh.failed,
         });
       }
     } finally {

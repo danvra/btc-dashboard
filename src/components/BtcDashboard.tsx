@@ -6,6 +6,7 @@ import {
   type DashboardMetric,
   type DashboardPanelId,
 } from "../lib/dashboard-definitions";
+import { DASHBOARD_MESSAGES, fillMessage } from "../lib/dashboard-messages";
 import { getMetricSample } from "../lib/dashboard-samples";
 import { useDashboardData } from "../hooks/useDashboardData";
 import type {
@@ -44,8 +45,8 @@ const freshnessClasses = {
 };
 
 const cycleSourceLabels = {
-  "rule-based": "Rule engine",
-  "llm-assisted": "LLM assisted",
+  "rule-based": DASHBOARD_MESSAGES.cycleEstimate.sourceRuleBased,
+  "llm-assisted": DASHBOARD_MESSAGES.cycleEstimate.sourceLlmAssisted,
 };
 
 const refreshNoticeClasses = {
@@ -63,7 +64,7 @@ function clamp(value: number, min = 0, max = 1) {
 
 function formatRelativeTime(timestamp?: number) {
   if (!timestamp) {
-    return "No timestamp";
+    return DASHBOARD_MESSAGES.common.noTimestamp;
   }
 
   const diffMs = Date.now() - timestamp;
@@ -71,21 +72,30 @@ function formatRelativeTime(timestamp?: number) {
   const diffMinutes = Math.max(Math.round(Math.abs(diffMs) / 60000), 0);
 
   if (diffMinutes < 1) {
-    return isFuture ? "in under a minute" : "just now";
+    return isFuture ? DASHBOARD_MESSAGES.common.inUnderAMinute : DASHBOARD_MESSAGES.common.justNow;
   }
 
   if (diffMinutes < 60) {
-    return isFuture ? `in ${diffMinutes}m` : `${diffMinutes}m ago`;
+    return fillMessage(
+      isFuture ? DASHBOARD_MESSAGES.relativeTime.minutesFuture : DASHBOARD_MESSAGES.relativeTime.minutesPast,
+      { value: diffMinutes },
+    );
   }
 
   const diffHours = Math.round(diffMinutes / 60);
 
   if (diffHours < 48) {
-    return isFuture ? `in ${diffHours}h` : `${diffHours}h ago`;
+    return fillMessage(
+      isFuture ? DASHBOARD_MESSAGES.relativeTime.hoursFuture : DASHBOARD_MESSAGES.relativeTime.hoursPast,
+      { value: diffHours },
+    );
   }
 
   const diffDays = Math.round(diffHours / 24);
-  return isFuture ? `in ${diffDays}d` : `${diffDays}d ago`;
+  return fillMessage(
+    isFuture ? DASHBOARD_MESSAGES.relativeTime.daysFuture : DASHBOARD_MESSAGES.relativeTime.daysPast,
+    { value: diffDays },
+  );
 }
 
 function freshnessTone(timestamp?: number) {
@@ -108,14 +118,26 @@ function freshnessTone(timestamp?: number) {
 
 function cycleChangeLabel(change?: DashboardCycleEstimate["change"]) {
   if (change === "later") {
-    return "Shifted later";
+    return DASHBOARD_MESSAGES.cycleEstimate.changeLater;
   }
 
   if (change === "earlier") {
-    return "Shifted earlier";
+    return DASHBOARD_MESSAGES.cycleEstimate.changeEarlier;
   }
 
-  return "Unchanged";
+  return DASHBOARD_MESSAGES.cycleEstimate.changeUnchanged;
+}
+
+function groupStatusLabel(status?: DashboardCacheGroupMeta["status"]) {
+  if (status === "fresh") {
+    return DASHBOARD_MESSAGES.status.fresh;
+  }
+
+  if (status === "stale" || status === "expired") {
+    return DASHBOARD_MESSAGES.status.stale;
+  }
+
+  return DASHBOARD_MESSAGES.status.unknown;
 }
 
 function formatMonthYear(dateKey?: string) {
@@ -149,29 +171,33 @@ function cycleAnalogTopDateLabels(cycleAnalog?: DashboardCycleAnalog | null) {
 
 function cycleAnalogDatesLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
-    return "Historical phase-window analog appears after the next synthetic refresh";
+    return DASHBOARD_MESSAGES.cycleAnalog.datesPending;
   }
 
   const dateLabels = cycleAnalogTopDateLabels(cycleAnalog);
 
   if (dateLabels.length === 0) {
-    return "Historical comparison appears once enough analog data is available";
+    return DASHBOARD_MESSAGES.cycleAnalog.datesWaiting;
   }
 
-  return `Analogous to prior-cycle ${dateLabels.join(", ")}`;
+  return fillMessage(DASHBOARD_MESSAGES.cycleAnalog.datesTemplate, {
+    value: dateLabels.join(", "),
+  });
 }
 
 function cycleAnalogAgreementLabel(cycleAnalog?: DashboardCycleAnalog | null) {
   if (!cycleAnalog?.perCycleMatches?.length) {
-    return "Phase-window analog pending refresh";
+    return DASHBOARD_MESSAGES.cycleAnalog.agreementPending;
   }
 
-  return `${cycleAnalog.agreement}% of prior cycles match this phase`;
+  return fillMessage(DASHBOARD_MESSAGES.cycleAnalog.agreementTemplate, {
+    value: cycleAnalog.agreement,
+  });
 }
 
 function formatDistance(value?: number) {
   if (!Number.isFinite(value)) {
-    return "n/a";
+    return DASHBOARD_MESSAGES.common.notAvailable;
   }
 
   return value!.toFixed(3);
@@ -179,7 +205,7 @@ function formatDistance(value?: number) {
 
 function formatCoverage(value?: number) {
   if (!Number.isFinite(value)) {
-    return "n/a";
+    return DASHBOARD_MESSAGES.common.notAvailable;
   }
 
   return `${Math.round(value! * 100)}%`;
@@ -190,38 +216,41 @@ function formatWindowLabel(startDate?: string, endDate?: string) {
   const end = formatMonthYear(endDate);
 
   if (!start && !end) {
-    return "Window unavailable";
+    return DASHBOARD_MESSAGES.common.windowUnavailable;
   }
 
   if (start === end) {
-    return start ?? "Window unavailable";
+    return start ?? DASHBOARD_MESSAGES.common.windowUnavailable;
   }
 
-  return `${start ?? "Unknown"} to ${end ?? "Unknown"}`;
+  return `${start ?? DASHBOARD_MESSAGES.common.unknown} to ${end ?? DASHBOARD_MESSAGES.common.unknown}`;
 }
 
 function constructiveSummaryLabel(bullishCount: number, totalCount: number) {
   if (totalCount <= 0) {
-    return "Signal summary appears once metric coverage is available";
+    return DASHBOARD_MESSAGES.constructive.summaryPending;
   }
 
-  return `${bullishCount} of ${totalCount} signals currently lean bullish`;
+  return fillMessage(DASHBOARD_MESSAGES.constructive.summaryLabel, {
+    bullish: bullishCount,
+    total: totalCount,
+  });
 }
 
 function constructiveToneLabel(bullishShare: number) {
   if (bullishShare >= 0.6) {
-    return "Broadly constructive";
+    return DASHBOARD_MESSAGES.constructive.toneBroadlyConstructive;
   }
 
   if (bullishShare >= 0.4) {
-    return "Mixed but constructive";
+    return DASHBOARD_MESSAGES.constructive.toneMixedButConstructive;
   }
 
   if (bullishShare >= 0.25) {
-    return "Selective strength";
+    return DASHBOARD_MESSAGES.constructive.toneSelectiveStrength;
   }
 
-  return "Limited constructive breadth";
+  return DASHBOARD_MESSAGES.constructive.toneLimitedBreadth;
 }
 
 function constructiveSummaryText({
@@ -236,17 +265,24 @@ function constructiveSummaryText({
   totalCount: number;
 }) {
   if (totalCount <= 0) {
-    return "Constructive breadth appears once the dashboard has live or fallback metric states.";
+    return DASHBOARD_MESSAGES.constructive.summaryNoMetrics;
   }
 
   const bullishShare = bullishCount / totalCount;
   const tone = constructiveToneLabel(bullishShare);
 
   if (bullishCount === 0) {
-    return `${tone}. None of the tracked dashboard signals currently lean bullish.`;
+    return fillMessage(DASHBOARD_MESSAGES.constructive.summaryNoneBullish, {
+      tone,
+    });
   }
 
-  return `${tone}. ${bullishCount} signals lean bullish, ${neutralCount} sit in a neutral range, and ${bearishCount} still lean bearish.`;
+  return fillMessage(DASHBOARD_MESSAGES.constructive.summaryWithCounts, {
+    tone,
+    bullish: bullishCount,
+    neutral: neutralCount,
+    bearish: bearishCount,
+  });
 }
 
 function Sparkline({
@@ -321,6 +357,9 @@ function MetricCard({
   selected: boolean;
   onSelect: (metric: DashboardMetric) => void;
 }) {
+  const dataModeLabel = DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"];
+  const sentimentLabel = DASHBOARD_MESSAGES.status[metricState.status];
+
   return (
     <button
       type="button"
@@ -345,7 +384,7 @@ function MetricCard({
             sentimentClasses[metricState.status]
           }`}
         >
-          {metricState.status}
+          {sentimentLabel}
         </span>
       </div>
 
@@ -356,12 +395,16 @@ function MetricCard({
               dataModeClasses[metricState.dataMode ?? "seeded"]
             }`}
           >
-            {metricState.dataMode ?? "seeded"}
+            {dataModeLabel}
           </span>
           <span
             className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}
           >
-            {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+            {metricState.asOf
+              ? fillMessage(DASHBOARD_MESSAGES.card.updatedPrefix, {
+                  value: formatRelativeTime(metricState.asOf),
+                })
+              : DASHBOARD_MESSAGES.common.noLiveTimestamp}
           </span>
         </div>
       </div>
@@ -381,10 +424,10 @@ function MetricCard({
 
       <div className="mt-4 grid gap-2 text-sm text-stone-600">
         <p>
-          <span className="font-medium text-stone-900">Measures:</span> {metric.tooltip.what}
+          <span className="font-medium text-stone-900">{DASHBOARD_MESSAGES.card.measuresLabel}</span> {metric.tooltip.what}
         </p>
         <p>
-          <span className="font-medium text-stone-900">Matters because:</span> {metric.tooltip.why}
+          <span className="font-medium text-stone-900">{DASHBOARD_MESSAGES.card.mattersLabel}</span> {metric.tooltip.why}
         </p>
       </div>
     </button>
@@ -398,10 +441,12 @@ function LearnPanel({
   metric: DashboardMetric;
   metricState: DashboardMetricState;
 }) {
+  const dataModeLabel = DASHBOARD_MESSAGES.status[metricState.dataMode ?? "seeded"];
+
   return (
     <aside className="rounded-[1.75rem] border border-stone-200 bg-white/95 p-6 shadow-panel lg:sticky lg:top-6">
       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-        Selected metric
+        {DASHBOARD_MESSAGES.learnPanel.selectedMetricLabel}
       </p>
       <h2 className="mt-2 text-2xl font-semibold tracking-tight text-stone-950">
         {metric.name}
@@ -411,7 +456,7 @@ function LearnPanel({
       <dl className="mt-6 grid gap-4">
         <div className="rounded-2xl bg-stone-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-            Current snapshot
+            {DASHBOARD_MESSAGES.learnPanel.currentSnapshotLabel}
           </dt>
           <dd className="mt-2 text-2xl font-semibold text-stone-950">
             {metricState.currentValue}
@@ -419,22 +464,26 @@ function LearnPanel({
           <p className="mt-1 text-sm text-stone-600">{metricState.deltaLabel}</p>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <div className="inline-flex rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-stone-700">
-              {metricState.dataMode ?? "seeded"}
+              {dataModeLabel}
             </div>
             <div className={`text-xs font-medium ${freshnessClasses[freshnessTone(metricState.asOf)]}`}>
-              {metricState.asOf ? `Updated ${formatRelativeTime(metricState.asOf)}` : "No live timestamp"}
+              {metricState.asOf
+                ? fillMessage(DASHBOARD_MESSAGES.card.updatedPrefix, {
+                    value: formatRelativeTime(metricState.asOf),
+                  })
+                : DASHBOARD_MESSAGES.common.noLiveTimestamp}
             </div>
           </div>
         </div>
         <div className="rounded-2xl bg-stone-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-            Source
+            {DASHBOARD_MESSAGES.learnPanel.sourceLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-stone-700">{metricState.sourceLabel}</dd>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
-            Bullish read
+            {DASHBOARD_MESSAGES.learnPanel.bullishReadLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-emerald-950">
             {metric.bullishInterpretation}
@@ -442,7 +491,7 @@ function LearnPanel({
         </div>
         <div className="rounded-2xl bg-rose-50 p-4">
           <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-rose-700">
-            Bearish read
+            {DASHBOARD_MESSAGES.learnPanel.bearishReadLabel}
           </dt>
           <dd className="mt-2 text-sm leading-6 text-rose-950">
             {metric.bearishInterpretation}
@@ -457,14 +506,14 @@ const phaseTimelineOrder: Array<{
   id: DashboardCycleAnalogWindow["phaseId"];
   label: string;
 }> = [
-  { id: "deep-capitulation", label: "Capitulation" },
-  { id: "bottoming-and-reaccumulation", label: "Reaccumulation" },
-  { id: "early-recovery-under-disbelief", label: "Early Bull" },
-  { id: "healthy-bull-expansion", label: "Bull Expansion" },
-  { id: "late-cycle-acceleration", label: "Late Bull" },
-  { id: "euphoric-overheating", label: "Overheating" },
-  { id: "distribution-and-top-formation", label: "Distribution" },
-  { id: "post-top-unwind", label: "Unwind" },
+  { id: "deep-capitulation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseCapitulation },
+  { id: "bottoming-and-reaccumulation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseReaccumulation },
+  { id: "early-recovery-under-disbelief", label: DASHBOARD_MESSAGES.cycleAnalog.phaseEarlyBull },
+  { id: "healthy-bull-expansion", label: DASHBOARD_MESSAGES.cycleAnalog.phaseBullExpansion },
+  { id: "late-cycle-acceleration", label: DASHBOARD_MESSAGES.cycleAnalog.phaseLateBull },
+  { id: "euphoric-overheating", label: DASHBOARD_MESSAGES.cycleAnalog.phaseOverheating },
+  { id: "distribution-and-top-formation", label: DASHBOARD_MESSAGES.cycleAnalog.phaseDistribution },
+  { id: "post-top-unwind", label: DASHBOARD_MESSAGES.cycleAnalog.phaseUnwind },
 ];
 
 function CycleAnalogPhaseTimeline({
@@ -485,7 +534,7 @@ function CycleAnalogPhaseTimeline({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="h-auto w-full"
-      aria-label="Prior-cycle analog phases"
+      aria-label={DASHBOARD_MESSAGES.cycleAnalog.timelineAria}
       role="img"
     >
       <line
@@ -584,7 +633,7 @@ function CycleAnalogDistanceChart({
     <svg
       viewBox={`0 0 ${width} ${height}`}
       className="h-auto w-full"
-      aria-label="Analog distance comparison by prior cycle"
+      aria-label={DASHBOARD_MESSAGES.cycleAnalog.distanceChartAria}
       role="img"
     >
       {matches.map((match, index) => {
@@ -663,7 +712,7 @@ function CycleAnalogModal({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-600">
-              Cycle Analog
+              {DASHBOARD_MESSAGES.cycleAnalog.eyebrow}
             </p>
             <h2
               id="cycle-analog-title"
@@ -678,7 +727,7 @@ function CycleAnalogModal({
             onClick={onClose}
             className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
           >
-            Close
+            {DASHBOARD_MESSAGES.common.close}
           </button>
         </div>
 
@@ -690,10 +739,14 @@ function CycleAnalogModal({
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-orange-100 px-3 py-1 text-sm font-semibold text-orange-700">
-                  {cycleAnalog.agreement}% agreement
+                  {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.agreementBadge, {
+                    value: cycleAnalog.agreement,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
-                  {cycleAnalog.confidence}% confidence
+                  {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.confidenceBadge, {
+                    value: cycleAnalog.confidence,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
                   {cycleAnalog.methodology}
@@ -708,7 +761,7 @@ function CycleAnalogModal({
                     key={phase.phaseId}
                     className="rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-xs font-medium text-stone-600"
                   >
-                    {phase.label}: {phase.cyclesMatched} cycles
+                    {phase.label}: {phase.cyclesMatched} {DASHBOARD_MESSAGES.app.coverageSuffix}
                   </span>
                 ))}
               </div>
@@ -726,20 +779,30 @@ function CycleAnalogModal({
                     {match.cycleLabel}
                   </p>
                   <h3 className="mt-2 text-xl font-semibold text-stone-950">{match.phaseLabel}</h3>
-                  <p className="mt-1 text-sm text-stone-600">Best match {match.bestMatchDateLabel}</p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    {fillMessage(DASHBOARD_MESSAGES.cycleAnalog.bestMatchPrefix, {
+                      value: match.bestMatchDateLabel,
+                    })}
+                  </p>
                   <div className="mt-4 grid gap-3 text-sm text-stone-600">
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Phase window</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.phaseWindowLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">
                         {formatWindowLabel(match.windowStartDate, match.windowEndDate)}
                       </p>
                     </div>
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Distance</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.distanceLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">{formatDistance(match.distance)}</p>
                     </div>
                     <div className="rounded-2xl bg-stone-50 p-3">
-                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Coverage</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-stone-500">
+                        {DASHBOARD_MESSAGES.cycleAnalog.coverageLabel}
+                      </p>
                       <p className="mt-1 font-medium text-stone-900">{formatCoverage(match.coverage)}</p>
                     </div>
                   </div>
@@ -748,7 +811,7 @@ function CycleAnalogModal({
             </section>
           ) : (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
-              Detailed prior-cycle matches will appear after the next synthetic refresh computes the new phase-window analog payload.
+              {DASHBOARD_MESSAGES.cycleAnalog.noMatches}
             </section>
           )}
 
@@ -756,7 +819,7 @@ function CycleAnalogModal({
             <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
               <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Phase Ladder
+                  {DASHBOARD_MESSAGES.cycleAnalog.phaseLadderLabel}
                 </p>
                 <div className="mt-4">
                   <CycleAnalogPhaseTimeline
@@ -768,7 +831,7 @@ function CycleAnalogModal({
 
               <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                  Distance By Cycle
+                  {DASHBOARD_MESSAGES.cycleAnalog.distanceByCycleLabel}
                 </p>
                 <div className="mt-4">
                   <CycleAnalogDistanceChart matches={matches} />
@@ -779,7 +842,7 @@ function CycleAnalogModal({
 
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Indicator Support
+              {DASHBOARD_MESSAGES.cycleAnalog.indicatorSupportLabel}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {cycleAnalog.indicatorIds.map((indicatorId) => (
@@ -875,7 +938,7 @@ function ConstructiveSignalsModal({
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-stone-50/95 px-6 py-5 backdrop-blur">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-600">
-              Constructive Signals
+              {DASHBOARD_MESSAGES.constructive.eyebrow}
             </p>
             <h2
               id="constructive-signals-title"
@@ -890,7 +953,7 @@ function ConstructiveSignalsModal({
             onClick={onClose}
             className="rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-700 transition hover:border-stone-400 hover:bg-stone-100"
           >
-            Close
+            {DASHBOARD_MESSAGES.common.close}
           </button>
         </div>
 
@@ -909,13 +972,19 @@ function ConstructiveSignalsModal({
               </div>
               <div className="flex flex-wrap gap-2">
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-semibold text-emerald-700">
-                  {bullishMetrics.length} bullish
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.bullishBadge, {
+                    value: bullishMetrics.length,
+                  })}
                 </span>
                 <span className="rounded-full bg-stone-100 px-3 py-1 text-sm font-semibold text-stone-700">
-                  {neutralCount} neutral
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.neutralBadge, {
+                    value: neutralCount,
+                  })}
                 </span>
                 <span className="rounded-full bg-rose-100 px-3 py-1 text-sm font-semibold text-rose-700">
-                  {bearishCount} bearish
+                  {fillMessage(DASHBOARD_MESSAGES.constructive.bearishBadge, {
+                    value: bearishCount,
+                  })}
                 </span>
               </div>
             </div>
@@ -924,7 +993,7 @@ function ConstructiveSignalsModal({
           {topBullishMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Leading constructive reads
+                {DASHBOARD_MESSAGES.constructive.leadingConstructiveReads}
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {topBullishMetrics.map(({ metric, state }) => (
@@ -953,7 +1022,7 @@ function ConstructiveSignalsModal({
           {topBearishMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Main bearish pressure
+                {DASHBOARD_MESSAGES.constructive.mainBearishPressure}
               </p>
               <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {topBearishMetrics.map(({ metric, state }) => (
@@ -1003,12 +1072,12 @@ function ConstructiveSignalsModal({
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                              Bullish
+                              {DASHBOARD_MESSAGES.status.bullish}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
                             >
-                              {state.dataMode ?? "seeded"}
+                              {DASHBOARD_MESSAGES.status[state.dataMode ?? "seeded"]}
                             </span>
                           </div>
                         </div>
@@ -1016,7 +1085,10 @@ function ConstructiveSignalsModal({
                           {metric.bullishInterpretation}
                         </p>
                         <p className="mt-2 text-xs text-stone-500">
-                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                          {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                            source: state.sourceLabel,
+                            relative: formatRelativeTime(state.asOf),
+                          })}
                         </p>
                       </div>
                     ))}
@@ -1026,7 +1098,7 @@ function ConstructiveSignalsModal({
             </section>
           ) : (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 text-sm text-stone-600 shadow-sm">
-              No tracked signals currently lean bullish.
+              {DASHBOARD_MESSAGES.constructive.noBullishSignals}
             </section>
           )}
 
@@ -1038,7 +1110,9 @@ function ConstructiveSignalsModal({
                   className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm"
                 >
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                    {panel.title} bearish signals
+                    {fillMessage(DASHBOARD_MESSAGES.constructive.panelBearishSuffix, {
+                      value: panel.title,
+                    })}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-stone-600">{panel.description}</p>
                   <div className="mt-4 grid gap-3">
@@ -1054,12 +1128,12 @@ function ConstructiveSignalsModal({
                           </div>
                           <div className="flex flex-wrap gap-2">
                             <span className="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-700">
-                              Bearish
+                              {DASHBOARD_MESSAGES.status.bearish}
                             </span>
                             <span
                               className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ${dataModeClasses[state.dataMode ?? "seeded"]}`}
                             >
-                              {state.dataMode ?? "seeded"}
+                              {DASHBOARD_MESSAGES.status[state.dataMode ?? "seeded"]}
                             </span>
                           </div>
                         </div>
@@ -1067,7 +1141,10 @@ function ConstructiveSignalsModal({
                           {metric.bearishInterpretation}
                         </p>
                         <p className="mt-2 text-xs text-stone-500">
-                          Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                          {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                            source: state.sourceLabel,
+                            relative: formatRelativeTime(state.asOf),
+                          })}
                         </p>
                       </div>
                     ))}
@@ -1080,7 +1157,7 @@ function ConstructiveSignalsModal({
           {groupedNeutralMetrics.length > 0 && (
             <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-                Neutral / watchlist signals
+                {DASHBOARD_MESSAGES.constructive.neutralWatchlist}
               </p>
               <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {groupedNeutralMetrics.flatMap(({ panel, metrics }) =>
@@ -1096,7 +1173,7 @@ function ConstructiveSignalsModal({
                         </div>
                         <div className="flex flex-wrap gap-2">
                           <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">
-                            Neutral
+                            {DASHBOARD_MESSAGES.status.neutral}
                           </span>
                           <span className="rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-stone-600 ring-1 ring-stone-200">
                             {panel.title}
@@ -1104,7 +1181,10 @@ function ConstructiveSignalsModal({
                         </div>
                       </div>
                       <p className="mt-2 text-xs text-stone-500">
-                        Source: {state.sourceLabel} • Updated {formatRelativeTime(state.asOf)}
+                        {fillMessage(DASHBOARD_MESSAGES.constructive.sourceUpdated, {
+                          source: state.sourceLabel,
+                          relative: formatRelativeTime(state.asOf),
+                        })}
                       </p>
                     </div>
                   )),
@@ -1115,7 +1195,7 @@ function ConstructiveSignalsModal({
 
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
-              Signal support by data mode
+              {DASHBOARD_MESSAGES.constructive.signalSupportByDataMode}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {(["live", "derived", "model", "seeded"] as const).map((dataMode) => (
@@ -1123,7 +1203,7 @@ function ConstructiveSignalsModal({
                   key={dataMode}
                   className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[dataMode]}`}
                 >
-                  {dataMode}: {dataModeCounts[dataMode] ?? 0}
+                  {DASHBOARD_MESSAGES.status[dataMode]}: {dataModeCounts[dataMode] ?? 0}
                 </span>
               ))}
             </div>
@@ -1170,12 +1250,16 @@ function DebugPanel({
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-            Debug / Cache
+            {DASHBOARD_MESSAGES.debug.sectionTitle}
           </p>
-          <h3 className="mt-1 text-xl font-semibold text-stone-950">Connector cache health</h3>
+          <h3 className="mt-1 text-xl font-semibold text-stone-950">{DASHBOARD_MESSAGES.debug.cacheHealthTitle}</h3>
         </div>
         <div className="text-sm text-stone-500">
-          {generatedAt ? `Cache updated ${formatRelativeTime(generatedAt)}` : "Cache timestamp unavailable"}
+          {generatedAt
+            ? fillMessage(DASHBOARD_MESSAGES.debug.cacheUpdated, {
+                value: formatRelativeTime(generatedAt),
+              })
+            : DASHBOARD_MESSAGES.debug.cacheUnavailable}
         </div>
       </div>
 
@@ -1185,13 +1269,15 @@ function DebugPanel({
           onClick={onRefresh}
           className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
         >
-          {isRefreshing ? "Refreshing..." : "Refresh data"}
+          {isRefreshing ? DASHBOARD_MESSAGES.debug.refreshing : DASHBOARD_MESSAGES.debug.refresh}
         </button>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-          Mode: <span className="font-semibold capitalize text-stone-950">{dataMode}</span>
+          {DASHBOARD_MESSAGES.debug.modeLabel}{" "}
+          <span className="font-semibold text-stone-950">{dataMode}</span>
         </div>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
-          Live metrics: <span className="font-semibold text-stone-950">{liveMetricCount}</span>
+          {DASHBOARD_MESSAGES.debug.liveMetricsLabel}{" "}
+          <span className="font-semibold text-stone-950">{liveMetricCount}</span>
         </div>
         {refreshNotice && !isRefreshing && (
           <div
@@ -1204,32 +1290,32 @@ function DebugPanel({
 
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl bg-stone-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Seeded</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.seededLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-stone-950">{counts.seeded ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-sky-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">Derived</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-sky-700">{DASHBOARD_MESSAGES.debug.derivedLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-sky-950">{counts.derived ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-amber-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">Model</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-700">{DASHBOARD_MESSAGES.debug.modelLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-amber-950">{counts.model ?? 0}</p>
         </div>
         <div className="rounded-2xl bg-emerald-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">Live</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{DASHBOARD_MESSAGES.debug.liveLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-emerald-950">{counts.live ?? 0}</p>
         </div>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <div className="rounded-2xl border border-stone-200 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Scheduler</p>
-          <p className="mt-2 text-sm text-stone-700">{scheduler ?? "Unknown"}</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.schedulerLabel}</p>
+          <p className="mt-2 text-sm text-stone-700">{scheduler ?? DASHBOARD_MESSAGES.common.unknown}</p>
         </div>
         <div className="rounded-2xl border border-stone-200 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">Next suggested run</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.nextRunLabel}</p>
           <p className="mt-2 text-sm text-stone-700">
-            {nextSuggestedRunAt ? formatRelativeTime(nextSuggestedRunAt) : "Not scheduled"}
+            {nextSuggestedRunAt ? formatRelativeTime(nextSuggestedRunAt) : DASHBOARD_MESSAGES.common.notScheduled}
           </p>
         </div>
       </div>
@@ -1247,21 +1333,25 @@ function DebugPanel({
                 className="rounded-2xl border border-stone-200 p-4"
               >
                 <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{group.label}</p>
-                <p className="mt-2 text-lg font-semibold text-stone-950">{group.status ?? "unknown"}</p>
+                <p className="mt-2 text-lg font-semibold text-stone-950">
+                  {groupStatusLabel(group.status)}
+                </p>
                 <p className="mt-1 text-sm text-stone-700">
-                  {group.generatedAt ? `Cache ${formatRelativeTime(group.generatedAt)}` : "No cache snapshot"}
+                  {group.generatedAt
+                    ? `Cache ${formatRelativeTime(group.generatedAt)}`
+                    : DASHBOARD_MESSAGES.debug.noCacheSnapshot}
                 </p>
                 <p className="mt-1 text-sm text-stone-600">
                   {group.lastSourceUpdateAt
                     ? `Source ${formatRelativeTime(group.lastSourceUpdateAt)}`
-                    : "No source timestamp"}
+                    : DASHBOARD_MESSAGES.debug.noSourceTimestamp}
                 </p>
                 <p className="mt-1 text-xs text-stone-500">
                   {group.refreshedDuringRequest
-                    ? "Refreshed during request"
+                    ? DASHBOARD_MESSAGES.debug.refreshedDuringRequest
                     : group.refreshSource === "bootstrap"
-                      ? "Bootstrapped from bundled cache"
-                      : "Served from grouped cache"}
+                      ? DASHBOARD_MESSAGES.debug.bootstrappedCache
+                      : DASHBOARD_MESSAGES.debug.servedFromGroupedCache}
                 </p>
               </div>
             );
@@ -1271,7 +1361,7 @@ function DebugPanel({
 
       {warnings.length > 0 && (
         <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <p className="text-xs uppercase tracking-[0.14em] text-amber-800">Implementation notes</p>
+          <p className="text-xs uppercase tracking-[0.14em] text-amber-800">{DASHBOARD_MESSAGES.debug.implementationNotes}</p>
           <div className="mt-3 grid gap-2">
             {warnings.map((warning) => (
               <p
@@ -1292,14 +1382,14 @@ function CoinGeckoAttribution() {
   return (
     <section className="mt-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50/80 px-4 py-3 text-sm text-emerald-950">
       <p className="leading-6">
-        Price and market-cap data provided by{" "}
+        {DASHBOARD_MESSAGES.app.coingeckoAttributionPrefix}{" "}
         <a
           href={COINGECKO_ATTRIBUTION_URL}
           target="_blank"
           rel="noreferrer"
           className="font-semibold underline decoration-emerald-400 underline-offset-2"
         >
-          CoinGecko API
+          {DASHBOARD_MESSAGES.app.coingeckoAttributionLinkLabel}
         </a>
         .
       </p>
@@ -1344,8 +1434,8 @@ export function BtcDashboard() {
   };
   const liveMetricCount = snapshot?.summary.liveMetricCount ?? 0;
   const dataMode = snapshot?.summary.mode ?? "fallback";
-  const btcPrice = snapshot?.summary.btcPrice ?? "Loading";
-  const btcPriceChange = snapshot?.summary.btcPriceChange ?? "Connecting...";
+  const btcPrice = snapshot?.summary.btcPrice ?? DASHBOARD_MESSAGES.common.loadingValue;
+  const btcPriceChange = snapshot?.summary.btcPriceChange ?? DASHBOARD_MESSAGES.common.connectingValue;
   const warnings = snapshot?.summary.warnings ?? [];
   const allMetricStates = snapshot?.metrics ?? {};
   const cacheGeneratedAt = snapshot?.meta?.generatedAt;
@@ -1434,47 +1524,50 @@ export function BtcDashboard() {
               <div className="flex items-center gap-4">
                 <img
                   src="/brand-mark.svg"
-                  alt="BTC Dashboard logo"
+                  alt={DASHBOARD_MESSAGES.app.logoAlt}
                   className="h-14 w-14 rounded-[1.25rem] ring-1 ring-white/10 shadow-[0_18px_45px_rgba(249,115,22,0.18)]"
                 />
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.26em] text-orange-300">
-                    BTC Dashboard
+                    {DASHBOARD_MESSAGES.app.brand}
                   </p>
-                  <p className="mt-1 text-sm text-stone-400">Bitcoin market intelligence</p>
+                  <p className="mt-1 text-sm text-stone-400">{DASHBOARD_MESSAGES.app.subtitle}</p>
                 </div>
               </div>
               <h1 className="mt-6 max-w-2xl text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                Track price action, cycle regime, network health, and macro structure in one place.
+                {DASHBOARD_MESSAGES.app.heroTitle}
               </h1>
               <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-300 sm:text-base">
-                This dashboard now runs on a strict free, API-first connector layer with compact cache
-                cohorts, local derivations, and graceful fallback snapshots.
+                {DASHBOARD_MESSAGES.app.heroBody}
               </p>
               <div className="mt-6 max-w-3xl rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.18em] text-orange-300">
-                      Daily cycle estimate
+                      {DASHBOARD_MESSAGES.cycleEstimate.eyebrow}
                     </p>
                     <h1 className="mt-2 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
-                      {cycleEstimate?.label ?? "Estimate pending"}
+                      {cycleEstimate?.label ?? DASHBOARD_MESSAGES.cycleEstimate.pendingTitle}
                     </h1>
                   </div>
                   {cycleEstimate && (
                     <div className="rounded-full border border-white/10 bg-black/10 px-3 py-1 text-xs font-semibold text-stone-100">
-                      {cycleEstimate.confidence}% confidence
+                      {fillMessage(DASHBOARD_MESSAGES.cycleEstimate.confidenceSuffix, {
+                        value: cycleEstimate.confidence,
+                      })}
                     </div>
                   )}
                 </div>
                 <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-200 sm:text-base">
                   {cycleEstimate?.summary ??
-                    "Cycle estimation appears once the dashboard has a synthesized indicator snapshot."}
+                    DASHBOARD_MESSAGES.cycleEstimate.pendingSummary}
                 </p>
                 {cycleEstimate && (
                   <div className="mt-4 flex flex-wrap gap-2 text-xs text-stone-200">
                     <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
-                      Score {cycleEstimate.score}
+                      {fillMessage(DASHBOARD_MESSAGES.cycleEstimate.scorePrefix, {
+                        value: cycleEstimate.score,
+                      })}
                     </span>
                     <span className="rounded-full border border-white/10 bg-black/10 px-2.5 py-1">
                       {cycleSourceLabels[cycleEstimate.source]}
@@ -1492,7 +1585,7 @@ export function BtcDashboard() {
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">BTC price</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.app.btcPriceLabel}</p>
                 <p className="mt-2 text-3xl font-semibold">{btcPrice}</p>
                 <p className="mt-1 text-sm text-stone-300">{btcPriceChange}</p>
               </div>
@@ -1510,7 +1603,7 @@ export function BtcDashboard() {
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Constructive</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.constructive.summaryCardLabel}</p>
                 <p className="mt-2 text-3xl font-semibold">{bullishCount}</p>
                 <p className="mt-1 text-sm text-stone-300">
                   {constructiveSummaryLabel(bullishCount, metricEntries.length)}
@@ -1525,9 +1618,13 @@ export function BtcDashboard() {
                 </p>
               </button>
               <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Coverage</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.app.coverageLabel}</p>
                 <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
-                <p className="mt-1 text-sm text-stone-300">Metrics across 4 dashboard panels</p>
+                <p className="mt-1 text-sm text-stone-300">
+                  {fillMessage(DASHBOARD_MESSAGES.app.coverageSummary, {
+                    value: DASHBOARD_METRICS_BY_PANEL.length,
+                  })}
+                </p>
               </div>
               <button
                 ref={cycleAnalogTriggerRef}
@@ -1543,8 +1640,8 @@ export function BtcDashboard() {
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Cycle analog</p>
-                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? "Pending"}</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
+                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}</p>
                 <p className="mt-1 text-sm text-stone-300">
                   {cycleAnalogDatesLabel(cycleAnalog)}
                 </p>
@@ -1562,7 +1659,7 @@ export function BtcDashboard() {
           <section className="mt-6 grid gap-3">
             {isLoading && (
               <div className="rounded-[1.25rem] border border-stone-200 bg-white/80 px-4 py-3 text-sm text-stone-600">
-                Loading live dashboard data...
+                {DASHBOARD_MESSAGES.app.loadingLiveData}
               </div>
             )}
             {error && (
@@ -1611,7 +1708,7 @@ export function BtcDashboard() {
             <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.2em] text-stone-500">
-                  Active panel
+                  {DASHBOARD_MESSAGES.app.activePanelLabel}
                 </p>
                 <h2 className="mt-1 text-3xl font-semibold tracking-tight text-stone-950">
                   {activePanel.title}
@@ -1619,7 +1716,7 @@ export function BtcDashboard() {
                 <p className="mt-2 text-sm leading-6 text-stone-600">{activePanel.description}</p>
               </div>
               <div className="rounded-full border border-stone-200 bg-white px-4 py-2 text-sm text-stone-600">
-                {activePanel.metrics.length} cards
+                {activePanel.metrics.length} {DASHBOARD_MESSAGES.app.cardsSuffix}
               </div>
             </div>
 
@@ -1654,14 +1751,14 @@ export function BtcDashboard() {
           >
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-stone-500">
-                Debug / Cache
+                {DASHBOARD_MESSAGES.debug.sectionTitle}
               </p>
               <p className="mt-1 text-sm text-stone-600">
-                Inspect cache freshness, provenance counts, and connector health.
+                {DASHBOARD_MESSAGES.debug.sectionDescription}
               </p>
             </div>
             <div className="shrink-0 rounded-full border border-stone-200 bg-stone-50 px-3 py-1 text-sm font-semibold text-stone-700">
-              {showDebug ? "Hide" : "Show"}
+              {showDebug ? DASHBOARD_MESSAGES.common.hide : DASHBOARD_MESSAGES.common.show}
             </div>
           </button>
 

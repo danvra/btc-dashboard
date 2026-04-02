@@ -1,4 +1,5 @@
 import { DASHBOARD_METRICS, type DashboardMetric } from "./dashboard-definitions";
+import { DASHBOARD_MESSAGES } from "./dashboard-messages";
 import { METRIC_SAMPLES, type MetricSample } from "./dashboard-samples";
 
 export type DashboardCacheGroupId = "fast" | "daily" | "slow" | "synthetic";
@@ -153,12 +154,12 @@ export function buildFallbackSnapshot(): DashboardDataSnapshot {
       btcPriceChange: DEFAULT_BTC_PRICE_CHANGE,
       liveMetricCount: 0,
       mode: "fallback",
-      warnings: ["Using bundled connector samples."],
+      warnings: [DASHBOARD_MESSAGES.fallback.warnings],
       cycleEstimate: null,
       cycleAnalog: null,
     },
     meta: {
-      scheduler: "bundled samples",
+      scheduler: DASHBOARD_MESSAGES.fallback.scheduler,
     },
   };
 }

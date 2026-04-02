@@ -4,7 +4,7 @@ This document captures the current security pipeline design for the repository, 
 
 ## Current State
 
-The current pipeline has four jobs:
+The current pipeline has four security jobs:
 
 - `build`
 - `sast`
@@ -20,9 +20,16 @@ The current SAST job now uses a simplified and more reliable configuration:
 
 - Semgrep CE is reinstalled fresh in CI
 - Semgrep runs with the maintained default ruleset via `--config auto`
-- findings are uploaded as a JSON artifact for later triage
+- findings are emitted as SARIF, uploaded into GitHub Code Scanning, and retained as workflow artifacts
 
 The active implementation now reflects the OSV migration described below.
+
+GitHub Code Scanning now has a single workflow source of truth:
+
+- `Security Baseline` uploads SARIF on pull requests and on `main`
+- `Security Gate` is intentionally kept non-SARIF and acts as the fast PR build gate
+
+This avoids GitHub Code Scanning configuration drift between PR-only and mainline-only workflow files.
 
 ## Decision Summary
 
@@ -73,10 +80,10 @@ Replace it with OSV reusable workflows pinned to the immutable workflow commit `
 Implemented workflow structure:
 
 - PR workflow:
-  - use OSV's reusable PR scan workflow
+  - `Security Baseline` uses OSV's reusable PR scan workflow
   - fail only when the PR introduces new vulnerabilities relative to `main`
 - Mainline workflow:
-  - use OSV's reusable scheduled/full scan workflow
+  - `Security Baseline` uses OSV's reusable scheduled/full scan workflow
   - run on `push` to `main`, `workflow_dispatch`, and weekly schedule
   - fail when any known vulnerability exists in the default branch dependency tree
 
@@ -143,11 +150,11 @@ This is treated as a supplemental supply-chain integrity control, not the primar
 
 The active CI path no longer depends on the repo-local experimental Semgrep rule files.
 
-Instead, both workflows:
+Instead, the baseline workflow:
 
 - reinstall the latest Semgrep CE package
 - run `semgrep scan --config auto`
-- upload the resulting JSON report as a workflow artifact
+- emit SARIF for GitHub Code Scanning and retain the SARIF report as a workflow artifact
 
 The local `.semgrep/critical.yml` and `.semgrep/audit.yml` files are retained only as future tuning candidates and are not part of the active merge gate.
 
@@ -155,22 +162,18 @@ The local `.semgrep/critical.yml` and `.semgrep/audit.yml` files are retained on
 
 ### Pull Request Gate
 
-The PR workflow should contain:
+PRs now use two workflow roles:
 
-- `build`
+- `Security Gate`
+  - `build`
   - `npm ci`
   - `npm audit signatures`
   - `npm run build`
-- `sast`
-  - Semgrep CE reinstalled in CI
-  - Semgrep default ruleset via `--config auto`
-  - JSON artifact upload for later triage
-- `sca`
-  - OSV reusable PR scan workflow
-  - compare feature branch results against the base branch
-  - fail only on newly introduced vulnerabilities
-- `secrets`
-  - Gitleaks with full git history
+- `Security Baseline`
+  - `sast`
+  - `sca`
+  - `secrets`
+  - all SARIF uploads to GitHub Code Scanning
 
 Branch protection should continue to require:
 
@@ -201,159 +204,22 @@ Differences from PR behavior:
 
 ### Reporting Model
 
-The pipeline should expose findings in three layers:
+The target reporting model is:
 
-1. GitHub check status for pass/fail
-2. GitHub step summary for quick triage
-3. GitHub Code Scanning SARIF for durable SCA visibility
+- GitHub required checks gate PR merges
+- GitHub Code Scanning stores SARIF-based findings for:
+  - Semgrep
+  - OSV-Scanner
+  - Gitleaks
+- workflow artifacts retain raw scanner outputs for auditability and troubleshooting
+- `npm audit signatures` stays in the build lane as a supply-chain integrity guard
 
-Artifacts should still be kept for:
+## Result
 
-- Semgrep JSON
-- Gitleaks SARIF
-- any optional OSV workflow artifacts produced by the reusable workflows
+The repository now has a security pipeline that is:
 
-### Security Hardening Rules
-
-All third-party GitHub Actions should be pinned to full commit SHAs wherever possible.
-
-Priority order:
-
-1. security-sensitive actions that download or execute binaries
-2. code checkout and artifact actions
-3. convenience actions
-
-The current implementation pins the OSV reusable workflow reference by full SHA. A later hardening pass should also apply SHA pinning to:
-
-- `actions/checkout`
-- `actions/setup-node`
-- `actions/setup-python`
-- `actions/upload-artifact`
-
-## Contender Tools
-
-These are credible open-source SCA tools we may want later, even if they are not the primary tool for this repo today.
-
-### 1. Anchore Grype
-
-Primary sources:
-
-- [anchore/grype](https://github.com/anchore/grype)
-- [anchore/scan-action](https://github.com/anchore/scan-action)
-
-Why it is strong:
-
-- mature and very widely used in professional cloud-native environments
-- excellent for filesystem, container image, and SBOM scanning
-- strong fit if this repo later adds Docker images or broader artifact scanning
-- the current `scan-action` release stream is active and its latest release is marked immutable
-
-Why it is not the best primary fit right now:
-
-- broader than we need for a simple npm lockfile-based web app
-- not as lockfile-centric or PR-diff-centric as OSV for this exact repository
-
-When it complements OSV:
-
-- when the project adds containers
-- when we want SBOM-driven scanning alongside lockfile scanning
-- when we want a second opinion from a different vulnerability data and matching pipeline
-
-### 2. OWASP Dependency-Check
-
-Primary sources:
-
-- [dependency-check/DependencyCheck](https://github.com/dependency-check/DependencyCheck)
-- [OWASP project page](https://owasp.org/www-project-dependency-check/)
-
-Why it is strong:
-
-- long-established SCA tool with strong enterprise recognition
-- supports Node via Node analyzers and Node Audit integration
-- includes broader analyzer coverage such as RetireJS-related JavaScript checks
-
-Why it is not the best primary fit right now:
-
-- heavier operational footprint than this repository needs
-- Java-based runtime and slower ergonomics for a lightweight GitHub Actions gate
-- better suited to polyglot or enterprise environments than a focused Vite/React npm application
-
-When it complements OSV:
-
-- when we want a secondary enterprise-style report
-- when the repo becomes more polyglot
-- when richer analyzer diversity matters more than CI simplicity
-
-### 3. OWASP dep-scan
-
-Primary sources:
-
-- [owasp-dep-scan/dep-scan](https://github.com/owasp-dep-scan/dep-scan)
-- [depscan.readthedocs.io](https://depscan.readthedocs.io)
-
-Why it is interesting:
-
-- more risk-oriented than many basic SCA tools
-- can complement SBOM workflows
-- includes reachability and risk-audit oriented concepts that may become useful later
-
-Why it is not the best first-line tool here:
-
-- smaller footprint and lower ecosystem adoption than OSV or Grype
-- more complexity than we need for a first healthy CI gate
-
-When it complements OSV:
-
-- when we want richer post-detection analysis
-- when we begin building broader risk-based prioritization into the platform
-
-## Why OSV Wins for This Repo
-
-OSV is the best primary choice for `btc-dashboard` because:
-
-- it directly matches the repo's artifact of truth: `package-lock.json`
-- it supports a clean PR-vs-main workflow model
-- it has first-party GitHub Action support from the same project family
-- it integrates cleanly with GitHub Code Scanning
-- it reduces the operational and supply-chain risk introduced by bringing in an unnecessarily broad scanner for a simple npm application
-
-If this project later expands into containers or multiple deployable artifacts, Grype becomes the most natural complementary tool.
-
-## Future Requirement: Simple ASPM
-
-This repository will also need a simple ASPM layer later.
-
-For now, the pipeline focuses on:
-
-- prevention at PR time
-- scheduled baseline scanning
-- supply-chain integrity verification
-
-What is still missing is a lightweight application security posture management layer that can answer:
-
-- which findings are still open
-- which findings are new versus accepted
-- which repos, workflows, and branches are not covered by required controls
-- whether branch protection, code scanning, secret scanning, and dependency policies are consistently enabled
-
-That later ASPM phase should be intentionally lightweight at first:
-
-- aggregate findings from GitHub Actions outputs and GitHub Code Scanning
-- track policy coverage, not just vulnerability events
-- provide a small posture dashboard or summary issue/workflow
-
-Good future ASPM candidates may include:
-
-- GitHub-native posture plus code scanning summaries
-- a lightweight self-hosted or open-source posture aggregator
-- a custom repo-security scorecard workflow if we want to keep things simple
-
-## Recommended Next Step
-
-The stabilization pass is now implemented. The next operating tasks are:
-
-1. keep branch protection aligned with the emitted check names, especially `sca / osv-scan`
-2. triage and remediate the live OSV findings reported against `package-lock.json`
-3. tune Semgrep over time if the default ruleset produces too much noise
-4. harden the remaining third-party GitHub Actions by pinning them to full commit SHAs
-5. add a lightweight ASPM layer so posture and coverage can be tracked across branches and workflows
+- healthier than the old Trivy-based setup
+- aligned with a public GitHub repository and GitHub Code Scanning
+- focused on the actual shipped dependency graph
+- strict on newly introduced vulnerabilities
+- supplemented with npm package signature verification
