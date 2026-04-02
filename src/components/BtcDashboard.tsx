@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import donationQrImage from "../btc-wallet.jpg";
 import {
   DASHBOARD_METRICS,
   DASHBOARD_METRICS_BY_PANEL,
@@ -62,6 +61,7 @@ const COINGECKO_ATTRIBUTION_URL =
   "https://www.coingecko.com/en/api?utm_source=btc-dashboard&utm_medium=referral";
 const DONATION_LABEL = "BTC Dashboard";
 const DONATION_PRESETS = [0, 10_000, 50_000, 100_000] as const;
+const DONATION_QR_IMAGE_URL = new URL("../btc-wallet.jpg", import.meta.url).href;
 
 function clamp(value: number, min = 0, max = 1) {
   return Math.min(max, Math.max(min, value));
@@ -1689,7 +1689,7 @@ function DonateModal({
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <div className="overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white p-4">
               <img
-                src={donationQrImage}
+                src={DONATION_QR_IMAGE_URL}
                 alt={DASHBOARD_MESSAGES.donate.qrAlt}
                 className="mx-auto aspect-square w-full max-w-[320px] rounded-[1.25rem] bg-white object-contain"
               />
