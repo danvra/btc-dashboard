@@ -2247,19 +2247,17 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showCycleAnalogModal}
                 className={[
-                  "flex min-h-[11rem] flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition md:flex-row md:items-start md:justify-between md:gap-6",
+                  "flex min-h-[11rem] flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasPhaseWindowAnalog
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
-                <div className="min-w-0 md:max-w-[18rem] md:flex-[0_0_18rem]">
+                <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
                   <p className="mt-2 max-w-full text-[clamp(1.85rem,4vw,3rem)] font-semibold leading-none [overflow-wrap:anywhere]">
                     {cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}
                   </p>
-                </div>
-                <div className="min-w-0 flex-1">
                   <p className="text-sm text-stone-300 [overflow-wrap:anywhere]">
                     {cycleAnalogDatesLabel(cycleAnalog)}
                   </p>
@@ -2276,13 +2274,13 @@ export function BtcDashboard() {
                 aria-haspopup="dialog"
                 aria-expanded={showRedditSentimentModal}
                 className={[
-                  "flex min-h-[11rem] flex-col gap-4 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition md:flex-row md:items-start md:justify-between md:gap-6",
+                  "flex min-h-[11rem] flex-col gap-3 overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
                   hasRedditSentimentDetails
                     ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
                     : "cursor-default opacity-80",
                 ].join(" ")}
               >
-                <div className="min-w-0 md:max-w-[18rem] md:flex-[0_0_18rem]">
+                <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
                     {DASHBOARD_MESSAGES.redditSentiment.summaryCardLabel}
                   </p>
@@ -2292,8 +2290,6 @@ export function BtcDashboard() {
                   <p className="mt-1 max-w-full text-sm text-stone-300 [overflow-wrap:anywhere]">
                     {redditSentimentState?.deltaLabel ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardWaiting}
                   </p>
-                </div>
-                <div className="min-w-0 flex-1">
                   <p className="max-w-full text-[11px] leading-6 text-stone-400 [overflow-wrap:anywhere] sm:text-xs">
                     {redditSentimentState?.details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
                   </p>
