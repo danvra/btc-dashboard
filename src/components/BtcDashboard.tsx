@@ -34,6 +34,8 @@ const dataModeClasses = {
   live: "bg-emerald-50 text-emerald-700 ring-emerald-200",
   derived: "bg-sky-50 text-sky-700 ring-sky-200",
   model: "bg-amber-50 text-amber-800 ring-amber-200",
+  approx: "bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200",
+  scraped: "bg-orange-50 text-orange-700 ring-orange-200",
   seeded: "bg-stone-100 text-stone-700 ring-stone-200",
 };
 
@@ -1198,7 +1200,7 @@ function ConstructiveSignalsModal({
               {DASHBOARD_MESSAGES.constructive.signalSupportByDataMode}
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
-              {(["live", "derived", "model", "seeded"] as const).map((dataMode) => (
+              {(["live", "derived", "model", "approx", "scraped", "seeded"] as const).map((dataMode) => (
                 <span
                   key={dataMode}
                   className={`rounded-full px-3 py-1 text-sm font-semibold ring-1 ${dataModeClasses[dataMode]}`}

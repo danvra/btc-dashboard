@@ -7,7 +7,7 @@ export type DashboardCacheGroupId = "fast" | "daily" | "slow" | "synthetic";
 export interface DashboardMetricState extends MetricSample {
   isLive: boolean;
   asOf?: number;
-  dataMode?: "seeded" | "live" | "derived" | "model";
+  dataMode?: "seeded" | "live" | "derived" | "model" | "approx" | "scraped";
   groupId?: DashboardCacheGroupId;
   refreshedAt?: number;
   staleAfterMs?: number;
@@ -124,21 +124,40 @@ function normalizeMetricDataMode(value: unknown): DashboardDataMode {
     case "derived":
     case "model":
     case "seeded":
-      return value;
     case "approx":
     case "scraped":
-      return "live";
+      return value;
     default:
       return "seeded";
   }
 }
 
 const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGroupId>> = {
+  "price-vs-realized-price": "daily",
+  "fear-and-greed": "daily",
+  "fed-rate-expectations": "daily",
+  asopr: "daily",
+  "exchange-netflow": "daily",
+  "exchange-balance": "daily",
+  "percent-supply-in-profit": "daily",
+  "lth-supply": "daily",
+  "sth-supply": "daily",
+  "lth-net-position-change": "daily",
+  "reserve-risk": "daily",
+  liveliness: "daily",
+  nupl: "daily",
+  "lth-nupl": "daily",
+  "sth-nupl": "daily",
+  "rhodl-ratio": "daily",
+  "hodl-waves": "daily",
+  cdd: "daily",
+  dormancy: "daily",
+  "spot-btc-etf-flows": "daily",
+  "spot-btc-etf-holdings": "daily",
   ssr: "fast",
   "funding-rate": "fast",
   "open-interest": "fast",
   "recent-reddit-sentiment": "fast",
-  "fear-and-greed": "daily",
   dxy: "slow",
   "10y-real-yield": "slow",
   "fed-balance-sheet": "slow",

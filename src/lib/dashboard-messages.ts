@@ -196,6 +196,8 @@ export interface DashboardMessages {
     derived: string;
     model: string;
     seeded: string;
+    approx: string;
+    scraped: string;
   };
   preview: {
     eyebrow: string;
@@ -397,6 +399,8 @@ export const DASHBOARD_MESSAGES: DashboardMessages = {
     derived: getString(sections.status, "derived"),
     model: getString(sections.status, "model"),
     seeded: getString(sections.status, "seeded"),
+    approx: getString(sections.status, "approx"),
+    scraped: getString(sections.status, "scraped"),
   },
   preview: {
     eyebrow: getString(sections.preview, "eyebrow"),
