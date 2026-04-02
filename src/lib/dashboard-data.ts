@@ -116,6 +116,23 @@ export interface DashboardCachePayload {
   summary?: Partial<DashboardDataSummary>;
 }
 
+type DashboardDataMode = NonNullable<DashboardMetricState["dataMode"]>;
+
+function normalizeMetricDataMode(value: unknown): DashboardDataMode {
+  switch (value) {
+    case "live":
+    case "derived":
+    case "model":
+    case "seeded":
+      return value;
+    case "approx":
+    case "scraped":
+      return "live";
+    default:
+      return "seeded";
+  }
+}
+
 const METRIC_GROUP_IDS: Partial<Record<DashboardMetric["id"], DashboardCacheGroupId>> = {
   ssr: "fast",
   "funding-rate": "fast",
@@ -185,7 +202,7 @@ export function mergeCachePayload(payload: DashboardCachePayload): DashboardData
       trend: metric.trend ?? mergedMetrics[metricId].trend,
       status: metric.status ?? mergedMetrics[metricId].status,
       isLive: metric.isLive ?? mergedMetrics[metricId].isLive,
-      dataMode: metric.dataMode ?? mergedMetrics[metricId].dataMode,
+      dataMode: normalizeMetricDataMode(metric.dataMode ?? mergedMetrics[metricId].dataMode),
       groupId:
         metric.groupId ??
         mergedMetrics[metricId].groupId ??

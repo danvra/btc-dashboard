@@ -1977,6 +1977,29 @@ export function BtcDashboard() {
                 </p>
               </button>
               <button
+                ref={cycleAnalogTriggerRef}
+                type="button"
+                onClick={() => hasPhaseWindowAnalog && setShowCycleAnalogModal(true)}
+                disabled={!hasPhaseWindowAnalog}
+                aria-haspopup="dialog"
+                aria-expanded={showCycleAnalogModal}
+                className={[
+                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
+                  hasPhaseWindowAnalog
+                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
+                    : "cursor-default opacity-80",
+                ].join(" ")}
+              >
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
+                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}</p>
+                <p className="mt-1 text-sm text-stone-300">
+                  {cycleAnalogDatesLabel(cycleAnalog)}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {cycleAnalogAgreementLabel(cycleAnalog)}
+                </p>
+              </button>
+              <button
                 ref={redditSentimentTriggerRef}
                 type="button"
                 onClick={() => hasRedditSentimentDetails && setShowRedditSentimentModal(true)}
@@ -2001,38 +2024,6 @@ export function BtcDashboard() {
                 </p>
                 <p className="mt-1 text-xs text-stone-400">
                   {redditSentimentState?.details?.summary ?? DASHBOARD_MESSAGES.redditSentiment.summaryCardFallback}
-                </p>
-              </button>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.app.coverageLabel}</p>
-                <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
-                <p className="mt-1 text-sm text-stone-300">
-                  {fillMessage(DASHBOARD_MESSAGES.app.coverageSummary, {
-                    value: DASHBOARD_METRICS_BY_PANEL.length,
-                  })}
-                </p>
-              </div>
-              <button
-                ref={cycleAnalogTriggerRef}
-                type="button"
-                onClick={() => hasPhaseWindowAnalog && setShowCycleAnalogModal(true)}
-                disabled={!hasPhaseWindowAnalog}
-                aria-haspopup="dialog"
-                aria-expanded={showCycleAnalogModal}
-                className={[
-                  "rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition",
-                  hasPhaseWindowAnalog
-                    ? "hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300"
-                    : "cursor-default opacity-80",
-                ].join(" ")}
-              >
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">{DASHBOARD_MESSAGES.cycleAnalog.summaryCardLabel}</p>
-                <p className="mt-2 text-3xl font-semibold">{cycleAnalog?.label ?? DASHBOARD_MESSAGES.cycleAnalog.pendingTitle}</p>
-                <p className="mt-1 text-sm text-stone-300">
-                  {cycleAnalogDatesLabel(cycleAnalog)}
-                </p>
-                <p className="mt-1 text-xs text-stone-400">
-                  {cycleAnalogAgreementLabel(cycleAnalog)}
                 </p>
               </button>
             </div>
