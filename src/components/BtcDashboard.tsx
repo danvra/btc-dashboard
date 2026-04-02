@@ -1598,7 +1598,7 @@ function DebugPanel({
         )}
       </div>
 
-      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-6">
         <div className="rounded-2xl bg-stone-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-stone-500">{DASHBOARD_MESSAGES.debug.seededLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-stone-950">{counts.seeded ?? 0}</p>
@@ -1614,6 +1614,14 @@ function DebugPanel({
         <div className="rounded-2xl bg-emerald-50 p-4">
           <p className="text-xs uppercase tracking-[0.14em] text-emerald-700">{DASHBOARD_MESSAGES.debug.liveLabel}</p>
           <p className="mt-2 text-2xl font-semibold text-emerald-950">{counts.live ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-fuchsia-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-fuchsia-700">{DASHBOARD_MESSAGES.debug.approxLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-fuchsia-950">{counts.approx ?? 0}</p>
+        </div>
+        <div className="rounded-2xl bg-orange-50 p-4">
+          <p className="text-xs uppercase tracking-[0.14em] text-orange-700">{DASHBOARD_MESSAGES.debug.scrapedLabel}</p>
+          <p className="mt-2 text-2xl font-semibold text-orange-950">{counts.scraped ?? 0}</p>
         </div>
       </div>
 

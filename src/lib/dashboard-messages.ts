@@ -164,6 +164,8 @@ export interface DashboardMessages {
     derivedLabel: string;
     modelLabel: string;
     liveLabel: string;
+    approxLabel: string;
+    scrapedLabel: string;
     schedulerLabel: string;
     nextRunLabel: string;
     noCacheSnapshot: string;
@@ -367,6 +369,8 @@ export const DASHBOARD_MESSAGES: DashboardMessages = {
     derivedLabel: getString(sections.debug, "derived_label"),
     modelLabel: getString(sections.debug, "model_label"),
     liveLabel: getString(sections.debug, "live_label"),
+    approxLabel: getString(sections.debug, "approx_label"),
+    scrapedLabel: getString(sections.debug, "scraped_label"),
     schedulerLabel: getString(sections.debug, "scheduler_label"),
     nextRunLabel: getString(sections.debug, "next_run_label"),
     noCacheSnapshot: getString(sections.debug, "no_cache_snapshot"),
