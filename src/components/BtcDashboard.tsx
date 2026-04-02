@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
+import donationQrImage from "../btc-wallet.jpg";
 import {
   DASHBOARD_METRICS,
   DASHBOARD_METRICS_BY_PANEL,
@@ -59,7 +60,6 @@ const refreshNoticeClasses = {
 
 const COINGECKO_ATTRIBUTION_URL =
   "https://www.coingecko.com/en/api?utm_source=btc-dashboard&utm_medium=referral";
-const DONATION_ADDRESS = "bc1qeag6r9zq9swczj5g2xzjl75zph8xzkrh6vhykc";
 const DONATION_LABEL = "BTC Dashboard";
 const DONATION_PRESETS = [0, 10_000, 50_000, 100_000] as const;
 
@@ -81,10 +81,6 @@ function buildBitcoinDonationUri(address: string, sats: number) {
   }
 
   return `bitcoin:${address}?${params.toString()}`;
-}
-
-function buildDonationQrUrl(uri: string) {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(uri)}`;
 }
 
 function formatRelativeTime(timestamp?: number) {
@@ -1553,7 +1549,6 @@ function DonateModal({
   donationSats,
   setDonationSats,
   donationUri,
-  donationQrUrl,
   donationNotice,
   onCopyAddress,
   onCopyLink,
@@ -1563,7 +1558,6 @@ function DonateModal({
   donationSats: number;
   setDonationSats: (value: number) => void;
   donationUri: string;
-  donationQrUrl: string;
   donationNotice: string | null;
   onCopyAddress: () => void;
   onCopyLink: () => void;
@@ -1647,7 +1641,7 @@ function DonateModal({
                     : DASHBOARD_MESSAGES.donate.amountAny}
                 </p>
                 <p className="mt-1 text-sm text-stone-600">
-                  {donationSats > 0 ? `${satsToBtc(donationSats)} BTC` : DONATION_ADDRESS}
+                  {donationSats > 0 ? `${satsToBtc(donationSats)} BTC` : DASHBOARD_MESSAGES.donate.address}
                 </p>
               </div>
             </div>
@@ -1658,7 +1652,7 @@ function DonateModal({
               </p>
               <div className="mt-3 rounded-[1.25rem] border border-stone-200 bg-stone-50 p-4">
                 <p className="break-all font-mono text-sm leading-7 text-stone-800">
-                  {DONATION_ADDRESS}
+                  {DASHBOARD_MESSAGES.donate.address}
                 </p>
               </div>
             </div>
@@ -1695,7 +1689,7 @@ function DonateModal({
           <section className="rounded-[1.5rem] border border-stone-200 bg-white p-5 shadow-sm">
             <div className="overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white p-4">
               <img
-                src={donationQrUrl}
+                src={donationQrImage}
                 alt={DASHBOARD_MESSAGES.donate.qrAlt}
                 className="mx-auto aspect-square w-full max-w-[320px] rounded-[1.25rem] bg-white object-contain"
               />
@@ -1967,8 +1961,7 @@ export function BtcDashboard() {
       })) ||
     null;
   const hasRedditSentimentDetails = Boolean(redditSentimentMetric && redditSentimentState?.details);
-  const donationUri = buildBitcoinDonationUri(DONATION_ADDRESS, donationSats);
-  const donationQrUrl = buildDonationQrUrl(donationUri);
+  const donationUri = buildBitcoinDonationUri(DASHBOARD_MESSAGES.donate.address, donationSats);
 
   useEffect(() => {
     if (!cycleAnalog) {
@@ -2461,9 +2454,10 @@ export function BtcDashboard() {
             donationSats={donationSats}
             setDonationSats={setDonationSats}
             donationUri={donationUri}
-            donationQrUrl={donationQrUrl}
             donationNotice={donationNotice}
-            onCopyAddress={() => copyDonationValue(DONATION_ADDRESS, DASHBOARD_MESSAGES.donate.copiedAddress)}
+            onCopyAddress={() =>
+              copyDonationValue(DASHBOARD_MESSAGES.donate.address, DASHBOARD_MESSAGES.donate.copiedAddress)
+            }
             onCopyLink={() => copyDonationValue(donationUri, DASHBOARD_MESSAGES.donate.copiedLink)}
           />
         )}

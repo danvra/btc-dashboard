@@ -159,6 +159,7 @@ export interface DashboardMessages {
     amountAny: string;
     amountTemplate: string;
     addressLabel: string;
+    address: string;
     copyAddress: string;
     copyLink: string;
     openWallet: string;
@@ -382,6 +383,7 @@ export const DASHBOARD_MESSAGES: DashboardMessages = {
     amountAny: getString(sections.donate, "amount_any"),
     amountTemplate: getString(sections.donate, "amount_template"),
     addressLabel: getString(sections.donate, "address_label"),
+    address: getString(sections.donate, "address"),
     copyAddress: getString(sections.donate, "copy_address"),
     copyLink: getString(sections.donate, "copy_link"),
     openWallet: getString(sections.donate, "open_wallet"),
