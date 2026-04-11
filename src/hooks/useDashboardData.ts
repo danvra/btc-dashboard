@@ -12,6 +12,13 @@ type RefreshNotice = {
   message: string;
 };
 
+const FRONTEND_REFRESH_MAX_AGE_MS = {
+  fast: 60 * 60 * 1000,
+  daily: 24 * 60 * 60 * 1000,
+  slow: 24 * 60 * 60 * 1000,
+  synthetic: 24 * 60 * 60 * 1000,
+} as const;
+
 export function useDashboardData() {
   const [snapshot, setSnapshot] = useState<DashboardDataSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,9 +55,32 @@ export function useDashboardData() {
     return mergeCachePayload(payload);
   }
 
-  async function loadApiCache(timeoutMs = 12_000) {
-    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}`, timeoutMs);
+  async function loadApiCache(timeoutMs = 12_000, options?: { force?: boolean }) {
+    const refreshMode = options?.force ? "&refresh=force" : "";
+    const payload = await fetchCachePayload(`/api/dashboard-cache?ts=${Date.now()}${refreshMode}`, timeoutMs);
     return mergeCachePayload(payload);
+  }
+
+  function shouldRequestApiRefresh(currentSnapshot: DashboardDataSnapshot) {
+    const groups = currentSnapshot.meta?.groups;
+
+    if (!groups) {
+      return true;
+    }
+
+    const now = Date.now();
+
+    return Object.entries(groups).some(([groupId, group]) => {
+      if (!group?.generatedAt) {
+        return true;
+      }
+
+      const maxAgeMs =
+        FRONTEND_REFRESH_MAX_AGE_MS[groupId as keyof typeof FRONTEND_REFRESH_MAX_AGE_MS] ??
+        FRONTEND_REFRESH_MAX_AGE_MS.daily;
+
+      return now - group.generatedAt >= maxAgeMs;
+    });
   }
 
   function shouldPromoteSnapshot(nextSnapshot: DashboardDataSnapshot, currentSnapshot: DashboardDataSnapshot | null) {
@@ -65,6 +95,8 @@ export function useDashboardData() {
   }
 
   async function load(mode: "initial" | "refresh") {
+    const currentSnapshot = snapshot;
+
     if (mode === "initial") {
       setIsLoading(true);
     } else {
@@ -82,19 +114,21 @@ export function useDashboardData() {
           });
           setIsLoading(false);
 
-          void (async () => {
-            try {
-              const apiSnapshot = await loadApiCache();
+          if (shouldRequestApiRefresh(staticSnapshot)) {
+            void (async () => {
+              try {
+                const apiSnapshot = await loadApiCache();
 
-              if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
-                startTransition(() => {
-                  setSnapshot(apiSnapshot);
-                });
+                if (shouldPromoteSnapshot(apiSnapshot, staticSnapshot)) {
+                  startTransition(() => {
+                    setSnapshot(apiSnapshot);
+                  });
+                }
+              } catch {
+                // Keep the fast static cache on screen if the API route is slow or unavailable.
               }
-            } catch {
-              // Keep the fast static cache on screen if the API route is slow or unavailable.
-            }
-          })();
+            })();
+          }
 
           return;
         } catch {
@@ -106,13 +140,14 @@ export function useDashboardData() {
       let refreshSource: "api" | "static" = "api";
 
       try {
-        nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000);
+        nextSnapshot = await loadApiCache(mode === "refresh" ? 10_000 : 20_000, {
+          force: mode === "refresh",
+        });
       } catch {
         try {
           nextSnapshot = await loadStaticCache();
           refreshSource = "static";
-        }
-        catch {
+        } catch {
           throw new Error("Dashboard cache is unavailable.");
         }
       }
@@ -126,8 +161,8 @@ export function useDashboardData() {
         const completedAt = Date.now();
         const message =
           refreshSource === "api"
-            ? "Refresh complete."
-            : "Live refresh unavailable. Showing cached data.";
+            ? "Refresh complete. Reddit sentiment updates on the scheduled cron run."
+            : "Live refresh unavailable. Showing cached data. Reddit sentiment updates on the scheduled cron run.";
 
         setRefreshNotice({
           completedAt,
@@ -136,18 +171,28 @@ export function useDashboardData() {
         });
       }
     } catch (loadError) {
-      startTransition(() => {
-        setSnapshot(buildFallbackSnapshot());
-      });
       const message = loadError instanceof Error ? loadError.message : "Unable to load dashboard data.";
-      setError(message);
 
-      if (mode === "refresh") {
+      if (mode === "refresh" && currentSnapshot) {
+        setError(null);
         setRefreshNotice({
           completedAt: Date.now(),
-          kind: "error",
-          message: "Refresh failed.",
+          kind: "fallback",
+          message: "Live refresh unavailable. Keeping current cached data.",
         });
+      } else {
+        startTransition(() => {
+          setSnapshot(buildFallbackSnapshot());
+        });
+        setError(message);
+
+        if (mode === "refresh") {
+          setRefreshNotice({
+            completedAt: Date.now(),
+            kind: "error",
+            message: "Refresh failed.",
+          });
+        }
       }
     } finally {
       setIsLoading(false);

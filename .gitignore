@@ -16,6 +16,8 @@ Thumbs.db
 *.log
 *.sarif
 
+.dashboard-cache-data/
+
 .vercel/
 .idea/
 .vscode/

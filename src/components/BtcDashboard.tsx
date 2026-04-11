@@ -411,6 +411,7 @@ function LearnPanel({
   metricState: DashboardMetricState;
 }) {
   const note = proxyNote(metricState);
+  const details = metricState.details;
 
   return (
     <aside className="rounded-[1.75rem] border border-stone-200 bg-white/95 p-6 shadow-panel lg:sticky lg:top-6">
@@ -446,6 +447,163 @@ function LearnPanel({
           </dt>
           <dd className="mt-2 text-sm leading-6 text-stone-700">{metricState.sourceLabel}</dd>
         </div>
+        {details?.summary && (
+          <div className="rounded-2xl bg-stone-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Saved summary
+            </dt>
+            <dd className="mt-2 text-sm leading-6 text-stone-700">{details.summary}</dd>
+            {details.methodology && (
+              <p className="mt-3 text-xs leading-5 text-stone-500">{details.methodology}</p>
+            )}
+          </div>
+        )}
+        {details?.stats && details.stats.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            {details.stats.map((stat) => (
+              <div
+                key={`${stat.label}-${stat.value}`}
+                className="rounded-2xl bg-stone-50 p-4"
+              >
+                <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  {stat.label}
+                </dt>
+                <dd className="mt-2 text-sm font-semibold text-stone-950">{stat.value}</dd>
+              </div>
+            ))}
+          </div>
+        )}
+        {details?.subreddits && details.subreddits.length > 0 && (
+          <div className="rounded-2xl bg-stone-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Sampled communities
+            </dt>
+            <dd className="mt-3 flex flex-wrap gap-2">
+              {details.subreddits.map((subreddit) => (
+                <span
+                  key={subreddit}
+                  className="rounded-full border border-stone-200 bg-white px-3 py-1 text-xs font-medium text-stone-700"
+                >
+                  {subreddit}
+                </span>
+              ))}
+            </dd>
+          </div>
+        )}
+        {details?.drivers && details.drivers.length > 0 && (
+          <div className="rounded-2xl bg-emerald-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+              What is driving the mood
+            </dt>
+            <dd className="mt-2 grid gap-2 text-sm leading-6 text-emerald-950">
+              {details.drivers.map((driver) => (
+                <p key={driver}>{driver}</p>
+              ))}
+            </dd>
+          </div>
+        )}
+        {details?.risks && details.risks.length > 0 && (
+          <div className="rounded-2xl bg-amber-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
+              Watchouts
+            </dt>
+            <dd className="mt-2 grid gap-2 text-sm leading-6 text-amber-950">
+              {details.risks.map((risk) => (
+                <p key={risk}>{risk}</p>
+              ))}
+            </dd>
+          </div>
+        )}
+        {details?.opportunities && details.opportunities.length > 0 && (
+          <div className="rounded-2xl bg-sky-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+              Constructive read
+            </dt>
+            <dd className="mt-2 grid gap-2 text-sm leading-6 text-sky-950">
+              {details.opportunities.map((opportunity) => (
+                <p key={opportunity}>{opportunity}</p>
+              ))}
+            </dd>
+          </div>
+        )}
+        {details?.samplePosts && details.samplePosts.length > 0 && (
+          <div className="rounded-2xl bg-stone-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Recent posts behind the read
+            </dt>
+            <dd className="mt-3 grid gap-3">
+              {details.samplePosts.map((post) => {
+                const content = (
+                  <>
+                    <p className="text-sm font-medium leading-6 text-stone-900">{post.title}</p>
+                    <p className="mt-1 text-xs text-stone-500">
+                      {post.subreddit}
+                      {typeof post.score === "number" ? ` • score ${post.score}` : ""}
+                    </p>
+                  </>
+                );
+
+                return post.url ? (
+                  <a
+                    key={`${post.subreddit}-${post.title}`}
+                    href={post.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div
+                    key={`${post.subreddit}-${post.title}`}
+                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3"
+                  >
+                    {content}
+                  </div>
+                );
+              })}
+            </dd>
+          </div>
+        )}
+        {details?.sampleComments && details.sampleComments.length > 0 && (
+          <div className="rounded-2xl bg-stone-50 p-4">
+            <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Representative comments
+            </dt>
+            <dd className="mt-3 grid gap-3">
+              {details.sampleComments.map((comment) => {
+                const content = (
+                  <>
+                    <p className="text-sm leading-6 text-stone-700">{comment.body}</p>
+                    <p className="mt-1 text-xs text-stone-500">
+                      {comment.subreddit}
+                      {typeof comment.score === "number" ? ` • score ${comment.score}` : ""}
+                    </p>
+                  </>
+                );
+
+                return comment.url ? (
+                  <a
+                    key={`${comment.subreddit}-${comment.body}`}
+                    href={comment.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3 transition hover:border-stone-300 hover:bg-stone-100"
+                  >
+                    {content}
+                  </a>
+                ) : (
+                  <div
+                    key={`${comment.subreddit}-${comment.body}`}
+                    className="rounded-2xl border border-stone-200 bg-white px-3 py-3"
+                  >
+                    {content}
+                  </div>
+                );
+              })}
+            </dd>
+          </div>
+        )}
         {note && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <dt className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">
@@ -1207,7 +1365,7 @@ function DebugPanel({
           onClick={onRefresh}
           className="rounded-full bg-stone-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-stone-800"
         >
-          {isRefreshing ? "Refreshing..." : "Refresh data"}
+          {isRefreshing ? "Refreshing..." : "Refresh market data"}
         </button>
         <div className="rounded-full border border-stone-200 bg-stone-50 px-4 py-2 text-sm text-stone-600">
           Mode: <span className="font-semibold capitalize text-stone-950">{dataMode}</span>
@@ -1359,6 +1517,17 @@ export function BtcDashboard() {
   const cycleAnalog = snapshot?.summary.cycleAnalog;
   const hasConstructiveSignals = metricEntries.length > 0;
   const hasPhaseWindowAnalog = Boolean(cycleAnalog?.perCycleMatches?.length);
+  const redditSentimentMetric =
+    DASHBOARD_METRICS.find((metric) => metric.id === "recent-reddit-sentiment") ?? null;
+  const redditSentimentState =
+    (redditSentimentMetric &&
+      (snapshot?.metrics[redditSentimentMetric.id] ?? getMetricSample(redditSentimentMetric.id))) ||
+    null;
+
+  function openMetric(metric: DashboardMetric) {
+    setActivePanelId(metric.panelId);
+    setSelectedMetricId(metric.id);
+  }
 
   useEffect(() => {
     if (!cycleAnalog) {
@@ -1527,11 +1696,24 @@ export function BtcDashboard() {
                   })}
                 </p>
               </button>
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
-                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">Coverage</p>
-                <p className="mt-2 text-3xl font-semibold">{DASHBOARD_METRICS.length}</p>
-                <p className="mt-1 text-sm text-stone-300">Metrics across 4 dashboard panels</p>
-              </div>
+              <button
+                type="button"
+                onClick={() => redditSentimentMetric && openMetric(redditSentimentMetric)}
+                className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-left transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+              >
+                <p className="text-xs uppercase tracking-[0.14em] text-stone-400">
+                  Recent Reddit sentiment
+                </p>
+                <p className="mt-2 text-3xl font-semibold">
+                  {redditSentimentState?.currentValue ?? "Pending"}
+                </p>
+                <p className="mt-1 text-sm text-stone-300">
+                  {redditSentimentState?.deltaLabel ?? "Awaiting recent subreddit scan"}
+                </p>
+                <p className="mt-1 text-xs text-stone-400">
+                  {redditSentimentState?.details?.summary ?? redditSentimentState?.sourceLabel ?? "Detailed view"}
+                </p>
+              </button>
               <button
                 ref={cycleAnalogTriggerRef}
                 type="button"
@@ -1637,7 +1819,7 @@ export function BtcDashboard() {
                     }
                   }
                   selected={selectedMetric.id === metric.id}
-                  onSelect={(nextMetric) => setSelectedMetricId(nextMetric.id)}
+                  onSelect={(nextMetric) => openMetric(nextMetric)}
                 />
               ))}
             </div>

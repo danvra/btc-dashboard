@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 
 export async function updateDashboardCache(options = {}) {
   const result = await refreshAllGroups({
+    refreshRedditSentiment: true,
     ...options,
     force: true,
   });
