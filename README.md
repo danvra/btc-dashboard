@@ -79,7 +79,7 @@ Production should use the API cache route instead of treating the static `public
 - That route manages grouped TTLs server-side, refreshes only stale groups on request, and persists successful updates immediately
 - `/api/dashboard-cache-warm` is the authenticated daily cron warm route for `daily`, `slow`, and `synthetic`
 - `DASHBOARD_CACHE_TTL_HOURS` controls the cache freshness window and defaults to `24`
-- `vercel.json` warms the cache once per day with a cron request at `00:00 UTC`
+- `vercel.json` warms the cache once per day with a cron request at `18:00 UTC` (`21:00` in Bucharest while daylight saving time is active)
 
 Optional environment variables:
 
