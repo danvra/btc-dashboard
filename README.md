@@ -77,3 +77,4 @@ Server-side histories, source caches, and watermarks are intentionally stored ou
 - `OPENAI_API_KEY`
 - `CYCLE_ESTIMATE_MODEL`
 - `CYCLE_ESTIMATE_USE_LLM=true|false`
+- `REDDIT_SENTIMENT_MODEL=gpt-5-mini`
