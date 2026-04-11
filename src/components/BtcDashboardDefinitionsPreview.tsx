@@ -4,22 +4,23 @@ import {
   type DashboardMetric,
   type UpdateFrequency,
 } from "../lib/dashboard-definitions";
+import { DASHBOARD_MESSAGES } from "../lib/dashboard-messages";
 
 const chartTypeLabels: Record<ChartType, string> = {
-  line: "Line",
-  area: "Area",
-  bar: "Bar",
-  histogram: "Histogram",
-  "step-line": "Step line",
-  gauge: "Gauge",
-  "line-with-zones": "Line + zones",
-  "bars-plus-line": "Bars + cumulative line",
+  line: DASHBOARD_MESSAGES.preview.line,
+  area: DASHBOARD_MESSAGES.preview.area,
+  bar: DASHBOARD_MESSAGES.preview.bar,
+  histogram: DASHBOARD_MESSAGES.preview.histogram,
+  "step-line": DASHBOARD_MESSAGES.preview.stepLine,
+  gauge: DASHBOARD_MESSAGES.preview.gauge,
+  "line-with-zones": DASHBOARD_MESSAGES.preview.lineWithZones,
+  "bars-plus-line": DASHBOARD_MESSAGES.preview.barsPlusLine,
 };
 
 const updateFrequencyLabels: Record<UpdateFrequency, string> = {
-  "real-time": "Real-time",
-  daily: "Daily",
-  weekly: "Weekly",
+  "real-time": DASHBOARD_MESSAGES.preview.realTime,
+  daily: DASHBOARD_MESSAGES.preview.daily,
+  weekly: DASHBOARD_MESSAGES.preview.weekly,
 };
 
 function MetricCard({ metric }: { metric: DashboardMetric }) {
@@ -50,15 +51,15 @@ function MetricCard({ metric }: { metric: DashboardMetric }) {
 
       <dl className="mt-4 space-y-3 text-sm">
         <div>
-          <dt className="font-medium text-emerald-700">Bullish read</dt>
+          <dt className="font-medium text-emerald-700">{DASHBOARD_MESSAGES.preview.bullishReadLabel}</dt>
           <dd className="mt-1 text-stone-600">{metric.bullishInterpretation}</dd>
         </div>
         <div>
-          <dt className="font-medium text-rose-700">Bearish read</dt>
+          <dt className="font-medium text-rose-700">{DASHBOARD_MESSAGES.preview.bearishReadLabel}</dt>
           <dd className="mt-1 text-stone-600">{metric.bearishInterpretation}</dd>
         </div>
         <div>
-          <dt className="font-medium text-stone-800">Learn more</dt>
+          <dt className="font-medium text-stone-800">{DASHBOARD_MESSAGES.preview.learnMoreLabel}</dt>
           <dd className="mt-1 text-stone-600">{metric.learnMore}</dd>
         </div>
       </dl>
@@ -72,14 +73,13 @@ export function BtcDashboardDefinitionsPreview() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-orange-700">
-            BTC Monitoring Dashboard
+            {DASHBOARD_MESSAGES.preview.eyebrow}
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-tight text-stone-950">
-            React/Tailwind-ready metric definitions
+            {DASHBOARD_MESSAGES.preview.title}
           </h1>
           <p className="mt-4 text-base leading-7 text-stone-600">
-            A presentational layer for the dashboard spec, with grouped panels,
-            short tooltip copy, chart preferences, update frequencies, and simple bullish or bearish reads.
+            {DASHBOARD_MESSAGES.preview.body}
           </p>
         </header>
 
@@ -91,7 +91,7 @@ export function BtcDashboardDefinitionsPreview() {
                   <h2 className="text-2xl font-semibold text-stone-900">{panel.title}</h2>
                   <p className="text-sm text-stone-600">{panel.description}</p>
                 </div>
-                <p className="text-sm text-stone-500">{panel.metrics.length} metrics</p>
+                <p className="text-sm text-stone-500">{panel.metrics.length} {DASHBOARD_MESSAGES.app.coverageSuffix}</p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

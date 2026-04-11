@@ -12,9 +12,11 @@ Thumbs.db
 *.local
 
 .dashboard-server-state.json
+.dashboard-cache-data/
 *.tsbuildinfo
 *.log
 *.sarif
+public/dashboard-cache-groups/*.json
 
 .dashboard-cache-data/
 
@@ -22,8 +24,5 @@ Thumbs.db
 .idea/
 .vscode/
 
-public/dashboard-cache.json
-public/dashboard-history.json
-public/dashboard-cache-groups/*.json
-
 tmp-*.js
+.env*.local

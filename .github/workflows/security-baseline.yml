@@ -1,6 +1,9 @@
 name: Security Baseline
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -20,6 +23,7 @@ concurrency:
 jobs:
   build:
     name: build
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
 
     steps:
@@ -73,14 +77,14 @@ jobs:
       - name: Run Semgrep default rules
         id: semgrep_scan
         continue-on-error: true
-        run: semgrep scan --config auto --error --json --output reports/semgrep-results.json .
+        run: semgrep scan --config auto --error --sarif --output reports/semgrep-results.sarif .
 
       - name: Summarize Semgrep results
         if: always()
         env:
           SEMGREP_OUTCOME: ${{ steps.semgrep_scan.outcome }}
         run: |
-          finding_count="$(jq '.results | length' reports/semgrep-results.json 2>/dev/null || echo 0)"
+          finding_count="$(jq '[.runs[]?.results[]?] | length' reports/semgrep-results.sarif 2>/dev/null || echo 0)"
 
           {
             echo "### SAST"
@@ -90,12 +94,19 @@ jobs:
             echo "- Scan status: ${SEMGREP_OUTCOME}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Upload Semgrep SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/semgrep-results.sarif
+          category: semgrep
+
       - name: Upload Semgrep reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-security-baseline
-          path: reports/semgrep-results.json
+          path: reports/semgrep-results.sarif
           if-no-files-found: error
 
       - name: Enforce Semgrep findings
@@ -167,6 +178,13 @@ jobs:
           name: gitleaks-security-baseline
           path: reports/gitleaks.sarif
           if-no-files-found: error
+
+      - name: Upload Gitleaks SARIF to GitHub Code Scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: reports/gitleaks.sarif
+          category: gitleaks
 
       - name: Enforce Gitleaks findings
         if: steps.gitleaks.outputs.exit-code != '0'
