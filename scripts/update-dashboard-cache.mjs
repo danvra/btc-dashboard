@@ -38,6 +38,7 @@ function normalizeBootstrapPayload(payload) {
 
 export async function updateDashboardCache(options = {}) {
   const result = await refreshAllGroups({
+    refreshRedditSentiment: true,
     ...options,
     force: true,
   });

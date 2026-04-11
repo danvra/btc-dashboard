@@ -18,6 +18,8 @@ Thumbs.db
 *.sarif
 public/dashboard-cache-groups/*.json
 
+.dashboard-cache-data/
+
 .vercel/
 .idea/
 .vscode/

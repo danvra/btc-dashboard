@@ -239,12 +239,12 @@ export const METRIC_SAMPLES: MetricSample[] = [
     trend: "up",
     status: "neutral",
     series: [45, 47, 49, 48, 50, 52, 54, 53, 55, 56, 57, 58],
-    sourceLabel: "Reddit sentiment synthesis",
+    sourceLabel: "PullPush + OpenAI scheduled summary",
     details: {
       summary:
         "Recent Bitcoin-relevant Reddit chatter leans constructive overall, but the conversation still mixes upside speculation with recurring exchange, scam, and execution worries.",
       methodology:
-        "This sample stands in for the scheduled Reddit summarizer and shows the kind of saved narrative the live cache will carry.",
+        "This sample stands in for the cron-updated Reddit sentiment summary and shows the saved narrative the live cache will preserve between successful runs.",
       drivers: [
         "Price-target and breakout discussion is picking up in Bitcoin-focused communities.",
         "Comments still reward patient accumulation and long-term holding language.",
