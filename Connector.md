@@ -45,12 +45,6 @@ The following cards are intentionally out of v1 and should stay out until we ado
 - `asopr`
 - `exchange-netflow`
 - `exchange-balance`
-- `percent-supply-in-profit`
-- `lth-supply`
-- `sth-supply`
-- `lth-net-position-change`
-- `reserve-risk`
-- `liveliness`
 - `nupl`
 - `lth-nupl`
 - `sth-nupl`
@@ -98,6 +92,14 @@ The following cards are intentionally out of v1 and should stay out until we ado
   - `nvts`
 - Alternative.me:
   - Fear & Greed
+- BGeometrics MCP / Bitcoin API:
+  - `long-term-hodler-supply-btc`
+  - `short-term-hodler-supply-btc`
+  - `lth-net-position-change-30d-btc` when the endpoint is healthy
+  - `reserve-risk`
+  - `liveliness`
+  - `supply-profit` combined with circulating supply to derive `percent-supply-in-profit`
+  - optional auth via `BGAPI_TOKEN`, but free tier works without a token
 - mempool.space:
   - next difficulty adjustment subtitle context
 
@@ -174,10 +176,20 @@ These are first-paint and emergency fallback artifacts only.
 - CoinGecko usage is intentionally conservative:
   - fast refresh: spot + market-cap calls on a 1-hour floor
   - daily refresh: CoinGecko is used only for fast spot and market-cap calls
+- BGeometrics MCP usage is intentionally conservative:
+  - daily cohort only
+  - one cached pull per mapped metric on a 24-hour floor
+  - free tier is treated as approximately `8 requests/hour` and `15/day`, so manual refreshes should still rely on cache whenever possible
 - Daily model metrics use Blockchain.com `market-price` history to avoid depending on CoinGecko's authenticated long-history endpoint.
 - Derivatives history is bounded and compact:
   - funding basket uses recent public venue history
   - open interest uses snapshots plus local history
+
+## Optional env vars
+
+- `BGAPI_TOKEN`
+  - optional BGeometrics bearer token for higher-rate access
+  - the app does not require it for the free MCP path
 
 ## Synthetic outputs
 
